@@ -29,8 +29,7 @@ export default function HowToSelect({ onClose }: Props) {
           inset: 0,
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          background: '#0e0e0e',
-          opacity: 0.7,
+          background: 'rgba(14, 14, 14, 0.7)',
           animation: closing
             ? 'fadeOutBackdrop 300ms ease-in both'
             : 'fadeInBackdrop 150ms ease-out both',
