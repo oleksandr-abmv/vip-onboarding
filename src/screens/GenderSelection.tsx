@@ -77,7 +77,7 @@ export default function GenderSelection({ onNext }: Props) {
         >
           <span
             className="material-symbols-rounded"
-            style={{ fontSize: 34, color: '#f6f6f6', opacity: 0.4 }}
+            style={{ fontSize: 27, color: '#f6f6f6', opacity: 0.4 }}
           >
             male
           </span>
@@ -116,7 +116,7 @@ export default function GenderSelection({ onNext }: Props) {
         >
           <span
             className="material-symbols-rounded"
-            style={{ fontSize: 34, color: '#f6f6f6', opacity: 0.4 }}
+            style={{ fontSize: 27, color: '#f6f6f6', opacity: 0.4 }}
           >
             female
           </span>
