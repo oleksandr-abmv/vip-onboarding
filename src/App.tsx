@@ -133,7 +133,6 @@ function App() {
         </div>
       </div>
 
-
       {/* Persistent back button */}
       <button
         onClick={handleBack}

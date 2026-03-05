@@ -61,7 +61,7 @@ export default function BrandsSelection({
     setIsDragging(true);
     startXRef.current = e.clientX;
     startYRef.current = e.clientY;
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
