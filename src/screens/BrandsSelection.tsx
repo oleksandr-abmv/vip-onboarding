@@ -20,7 +20,6 @@ export default function BrandsSelection({
   const [selectedCount, setSelectedCount] = useState(0);
   const [showInfo, setShowInfo] = useState(false);
   const [dragX, setDragX] = useState(0);
-  const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [exitDirection, setExitDirection] = useState<
     'left' | 'right' | null
@@ -28,7 +27,6 @@ export default function BrandsSelection({
   const [promoting, setPromoting] = useState(false);
   const [settled, setSettled] = useState(true);
   const startXRef = useRef(0);
-  const startYRef = useRef(0);
   const skipTransitionRef = useRef(false);
 
   const currentItem = products[currentIndex % products.length];
@@ -60,33 +58,22 @@ export default function BrandsSelection({
   const handlePointerDown = (e: React.PointerEvent) => {
     setIsDragging(true);
     startXRef.current = e.clientX;
-    startYRef.current = e.clientY;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDragging) return;
     setDragX(e.clientX - startXRef.current);
-    setDragY(e.clientY - startYRef.current);
   };
 
   const handlePointerUp = () => {
     if (!isDragging) return;
     setIsDragging(false);
-    const totalDrag = Math.abs(dragX) + Math.abs(dragY);
-    if (totalDrag < 5) {
-      // Tap — open info
-      setShowInfo(true);
-      setDragX(0);
-      setDragY(0);
-      return;
-    }
     if (Math.abs(dragX) > 80) {
       handleSwipe(dragX > 0 ? 'right' : 'left');
     } else {
       setDragX(0);
     }
-    setDragY(0);
   };
 
   const getCardTransform = () => {

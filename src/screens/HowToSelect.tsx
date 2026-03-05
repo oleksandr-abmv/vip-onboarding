@@ -269,19 +269,39 @@ export default function HowToSelect({ onClose }: Props) {
               >
                 View key details
               </p>
-              <p
+              <div
                 style={{
-                  color: 'rgba(255,255,255,0.7)',
-                  fontSize: 14,
-                  lineHeight: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
                   marginTop: 4,
-                  marginBottom: 0,
-                  marginLeft: 0,
-                  marginRight: 0,
                 }}
               >
-                Tap a card
-              </p>
+                <span
+                  style={{
+                    color: 'rgba(255,255,255,0.7)',
+                    fontSize: 14,
+                    lineHeight: '20px',
+                  }}
+                >
+                  Tap the
+                </span>
+                <span
+                  className="material-symbols-rounded"
+                  style={{ fontSize: 18, color: 'white' }}
+                >
+                  info
+                </span>
+                <span
+                  style={{
+                    color: 'rgba(255,255,255,0.7)',
+                    fontSize: 14,
+                    lineHeight: '20px',
+                  }}
+                >
+                  info icon
+                </span>
+              </div>
             </div>
           </div>
         </div>
