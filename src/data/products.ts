@@ -49,7 +49,7 @@ const PRODUCTS: Product[] = [
     name: 'Royal Oak 15500ST',
     brand: 'Audemars Piguet',
     price: '$29,900',
-    image: 'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=800&h=800&fit=crop',
+    image: '/images/watches-royal-oak.png',
     description: 'Iconic 41mm luxury sports watch with octagonal bezel, integrated bracelet, and calibre 4302 movement.',
     category: 'Watches',
   },
