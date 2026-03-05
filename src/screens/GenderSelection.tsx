@@ -30,12 +30,12 @@ export default function GenderSelection({ onNext }: Props) {
       <p
         style={{
           position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 112px)`,
+          top: `calc(env(safe-area-inset-top, 0px) + 114px)`,
           left: 16,
           right: 16,
           color: '#dedfe1',
-          fontSize: 14,
-          lineHeight: '20px',
+          fontSize: 15,
+          lineHeight: '21px',
           margin: 0,
           animation: 'fadeInUp 350ms ease-out 160ms both',
         }}

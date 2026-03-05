@@ -122,8 +122,8 @@ export default function BrandsSelection({
           left: 16,
           right: 16,
           color: '#dedfe1',
-          fontSize: 16,
-          lineHeight: '22px',
+          fontSize: 15,
+          lineHeight: '21px',
           margin: 0,
           animation: 'fadeInUp 350ms ease-out 160ms both',
         }}

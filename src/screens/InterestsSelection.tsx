@@ -59,12 +59,12 @@ export default function InterestsSelection({
       <p
         style={{
           position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 116px)`,
+          top: `calc(env(safe-area-inset-top, 0px) + 114px)`,
           left: 16,
           right: 16,
           color: '#dedfe1',
-          fontSize: 16,
-          lineHeight: '22px',
+          fontSize: 15,
+          lineHeight: '21px',
           margin: 0,
           animation: 'fadeInUp 350ms ease-out 160ms both',
         }}
