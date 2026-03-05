@@ -158,7 +158,7 @@ function App() {
         <svg width="8" height="15" viewBox="0 0 8 15" fill="none">
           <path
             d="M7 1L1 7.5L7 14"
-            stroke="rgba(255,255,255,0.8)"
+            stroke="rgba(245,240,232,0.8)"
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -178,7 +178,7 @@ function App() {
           cursor: showSkip ? 'pointer' : 'default',
           fontSize: 16,
           fontWeight: 500,
-          color: '#cdcdcd',
+          color: '#C9C4BA',
           lineHeight: '22px',
           zIndex: 30,
           padding: 0,
