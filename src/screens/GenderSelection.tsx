@@ -13,7 +13,7 @@ export default function GenderSelection({ onNext }: Props) {
       <h1
         style={{
           position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 65px)`,
+          top: `calc(env(safe-area-inset-top, 0px) + 72px)`,
           left: 16,
           right: 16,
           color: 'white',
@@ -30,7 +30,7 @@ export default function GenderSelection({ onNext }: Props) {
       <p
         style={{
           position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 105px)`,
+          top: `calc(env(safe-area-inset-top, 0px) + 112px)`,
           left: 16,
           right: 16,
           color: '#dedfe1',
@@ -47,7 +47,7 @@ export default function GenderSelection({ onNext }: Props) {
       <div
         style={{
           position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 171px)`,
+          top: `calc(env(safe-area-inset-top, 0px) + 178px)`,
           left: 16,
           right: 16,
           display: 'flex',
@@ -138,7 +138,7 @@ export default function GenderSelection({ onNext }: Props) {
         onClick={onNext}
         style={{
           position: 'absolute',
-          bottom: `calc(68px + env(safe-area-inset-bottom, 0px) + 56px)`,
+          bottom: `calc(24px + env(safe-area-inset-bottom, 0px) + 68px)`,
           left: 0,
           right: 0,
           background: 'none',
@@ -159,7 +159,7 @@ export default function GenderSelection({ onNext }: Props) {
         onClick={onNext}
         style={{
           position: 'absolute',
-          bottom: `calc(68px + env(safe-area-inset-bottom, 0px))`,
+          bottom: `calc(24px + env(safe-area-inset-bottom, 0px))`,
           left: 16,
           right: 16,
           height: 48,

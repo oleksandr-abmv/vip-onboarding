@@ -52,7 +52,7 @@ export default function HowToSelect({ onClose }: Props) {
           onClick={handleClose}
           style={{
             position: 'absolute',
-            top: `calc(env(safe-area-inset-top, 0px) + 12px)`,
+            top: `calc(env(safe-area-inset-top, 0px) + 20px)`,
             right: 19,
             width: 40,
             height: 40,
@@ -80,7 +80,7 @@ export default function HowToSelect({ onClose }: Props) {
         <h1
           style={{
             position: 'absolute',
-            top: `calc(env(safe-area-inset-top, 0px) + 61px)`,
+            top: `calc(env(safe-area-inset-top, 0px) + 72px)`,
             left: 28,
             right: 28,
             color: '#f6f6f6',
@@ -98,7 +98,7 @@ export default function HowToSelect({ onClose }: Props) {
         <p
           style={{
             position: 'absolute',
-            top: `calc(env(safe-area-inset-top, 0px) + 107px)`,
+            top: `calc(env(safe-area-inset-top, 0px) + 114px)`,
             left: 28,
             right: 28,
             color: '#dedfe1',
@@ -116,7 +116,7 @@ export default function HowToSelect({ onClose }: Props) {
         <div
           style={{
             position: 'absolute',
-            top: `calc(env(safe-area-inset-top, 0px) + 216px)`,
+            top: `calc(env(safe-area-inset-top, 0px) + 223px)`,
             left: 28,
             right: 28,
             display: 'flex',
@@ -295,7 +295,7 @@ export default function HowToSelect({ onClose }: Props) {
           onClick={handleClose}
           style={{
             position: 'absolute',
-            bottom: `calc(68px + env(safe-area-inset-bottom, 0px))`,
+            bottom: `calc(24px + env(safe-area-inset-bottom, 0px))`,
             left: 16,
             right: 16,
             height: 48,

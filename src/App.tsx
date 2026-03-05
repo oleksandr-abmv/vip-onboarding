@@ -139,7 +139,7 @@ function App() {
         onClick={handleBack}
         style={{
           position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 12px)`,
+          top: `calc(env(safe-area-inset-top, 0px) + 20px)`,
           left: 20,
           width: 28,
           height: 22,
@@ -172,7 +172,7 @@ function App() {
         onClick={handleSkip}
         style={{
           position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 12px)`,
+          top: `calc(env(safe-area-inset-top, 0px) + 20px)`,
           right: 20,
           background: 'none',
           border: 'none',

@@ -36,7 +36,7 @@ export default function PhoneFrame({ children }: { children: ReactNode }) {
           position: 'relative',
           width: '100%',
           height: '100dvh',
-          background: 'black',
+          background: '#111111',
           overflow: 'hidden',
         }}
       >
@@ -53,7 +53,7 @@ export default function PhoneFrame({ children }: { children: ReactNode }) {
         justifyContent: 'center',
         height: '100%',
         width: '100%',
-        background: 'black',
+        background: '#111111',
         overflow: 'hidden',
       }}
     >

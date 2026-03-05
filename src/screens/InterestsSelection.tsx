@@ -42,7 +42,7 @@ export default function InterestsSelection({
       <h1
         style={{
           position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 65px)`,
+          top: `calc(env(safe-area-inset-top, 0px) + 72px)`,
           left: 16,
           right: 16,
           color: 'white',
@@ -59,7 +59,7 @@ export default function InterestsSelection({
       <p
         style={{
           position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 109px)`,
+          top: `calc(env(safe-area-inset-top, 0px) + 116px)`,
           left: 16,
           right: 16,
           color: '#dedfe1',
@@ -76,7 +76,7 @@ export default function InterestsSelection({
       <div
         style={{
           position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 170px)`,
+          top: `calc(env(safe-area-inset-top, 0px) + 177px)`,
           left: 16,
           right: 16,
           display: 'flex',
@@ -130,7 +130,7 @@ export default function InterestsSelection({
         onClick={onNext}
         style={{
           position: 'absolute',
-          bottom: `calc(68px + env(safe-area-inset-bottom, 0px))`,
+          bottom: `calc(24px + env(safe-area-inset-bottom, 0px))`,
           left: 16,
           right: 16,
           height: 48,
