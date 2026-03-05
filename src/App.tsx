@@ -57,7 +57,7 @@ function App() {
     }
   }, [screen, goTo, handleNext]);
 
-  const showBack = screen !== 'gender' && screen !== 'tailoring';
+  const showBack = screen !== 'tailoring';
   const showSkip = screen !== 'tailoring';
 
   const renderScreen = (s: Screen) => {
