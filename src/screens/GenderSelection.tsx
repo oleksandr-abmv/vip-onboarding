@@ -65,7 +65,7 @@ export default function GenderSelection({ onNext }: Props) {
             alignItems: 'flex-start',
             justifyContent: 'space-between',
             padding: 16,
-            background: '#2a2a2a',
+            background: '#1a1a1a',
             border:
               selected === 'male'
                 ? '2px solid #f0f0f0'
@@ -104,7 +104,7 @@ export default function GenderSelection({ onNext }: Props) {
             alignItems: 'flex-start',
             justifyContent: 'space-between',
             padding: 16,
-            background: '#2a2a2a',
+            background: '#1a1a1a',
             border:
               selected === 'female'
                 ? '2px solid #f0f0f0'

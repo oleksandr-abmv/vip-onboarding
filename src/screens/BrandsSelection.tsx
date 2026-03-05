@@ -162,7 +162,7 @@ export default function BrandsSelection({
       >
         <div
           style={{
-            background: '#252525',
+            background: '#1a1a1a',
             height: `calc(100% - ${CARD_BOTTOM_H}px)`,
             display: 'flex',
             alignItems: 'center',
@@ -187,7 +187,7 @@ export default function BrandsSelection({
               position: 'absolute',
               inset: 0,
               background:
-                'radial-gradient(ellipse 70% 65% at center 45%, transparent 35%, #252525 90%)',
+                'radial-gradient(ellipse 70% 65% at center 45%, transparent 35%, #1a1a1a 90%)',
               pointerEvents: 'none',
             }}
           />
@@ -346,7 +346,7 @@ export default function BrandsSelection({
 
         <div
           style={{
-            background: '#2c2c2c',
+            background: '#1e1e1e',
             height: `calc(100% - ${CARD_BOTTOM_H}px)`,
             display: 'flex',
             alignItems: 'center',
@@ -372,7 +372,7 @@ export default function BrandsSelection({
               position: 'absolute',
               inset: 0,
               background:
-                'radial-gradient(ellipse 70% 65% at center 45%, transparent 35%, #2c2c2c 90%)',
+                'radial-gradient(ellipse 70% 65% at center 45%, transparent 35%, #1e1e1e 90%)',
               pointerEvents: 'none',
             }}
           />
@@ -470,7 +470,7 @@ export default function BrandsSelection({
           <div
             style={{
               position: 'relative',
-              background: '#252525',
+              background: '#1a1a1a',
               borderRadius: 24,
               width: 'calc(100% - 32px)',
               margin: `0 16px calc(20px + env(safe-area-inset-bottom, 0px))`,

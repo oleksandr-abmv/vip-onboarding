@@ -103,7 +103,7 @@ export default function InterestsSelection({
                 lineHeight: '22px',
                 cursor: 'pointer',
                 transition: 'background 0.2s, color 0.2s, border-color 0.2s',
-                background: isSelected ? '#f7f7f7' : '#252525',
+                background: isSelected ? '#f7f7f7' : '#1a1a1a',
                 color: isSelected ? '#121212' : '#f7f7f7',
                 border: isSelected ? '1px solid #f7f7f7' : '1px solid #494949',
                 animation: `fadeInUp 350ms ease-out ${240 + index * 40}ms both`,
