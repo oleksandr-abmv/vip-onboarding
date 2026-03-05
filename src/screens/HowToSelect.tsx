@@ -108,8 +108,8 @@ export default function HowToSelect({ onClose }: Props) {
             animation: 'fadeInUp 200ms ease-out 160ms both',
           }}
         >
-          Refine your selection using simple gestures. Your choices shape your
-          private feed.
+          Swipe through pieces to refine your private selection. Each choice
+          helps VIP.ai understand your taste.
         </p>
 
         {/* Gesture instructions */}
@@ -155,7 +155,7 @@ export default function HowToSelect({ onClose }: Props) {
                   margin: 0,
                 }}
               >
-                Skip
+                Skip a piece
               </p>
               <p
                 style={{
@@ -168,7 +168,7 @@ export default function HowToSelect({ onClose }: Props) {
                   marginRight: 0,
                 }}
               >
-                Dismiss pieces that do not match your taste.
+                Swipe left
               </p>
             </div>
           </div>
@@ -213,7 +213,7 @@ export default function HowToSelect({ onClose }: Props) {
                   margin: 0,
                 }}
               >
-                Like
+                Like a piece
               </p>
               <p
                 style={{
@@ -226,7 +226,7 @@ export default function HowToSelect({ onClose }: Props) {
                   marginRight: 0,
                 }}
               >
-                Add pieces to your curated selection.
+                Swipe right
               </p>
             </div>
           </div>
@@ -256,10 +256,11 @@ export default function HowToSelect({ onClose }: Props) {
               fill="none"
               style={{ flexShrink: 0 }}
             >
-              {/* Arrow */}
-              <path opacity="0.4" d="M10.8406 27.885C10.8406 28.24 11.1284 28.5278 11.4834 28.5278C11.8385 28.5278 12.1263 28.24 12.1263 27.885L11.4834 27.885L10.8406 27.885ZM11.9367 7.2566C11.6856 7.00562 11.2786 7.00572 11.0276 7.25684L6.93757 11.3491C6.68659 11.6002 6.6867 12.0072 6.93781 12.2582C7.18893 12.5092 7.59597 12.5091 7.84695 12.2579L11.4825 8.62043L15.1201 12.256C15.3712 12.507 15.7782 12.5069 16.0292 12.2558C16.2802 12.0046 16.2801 11.5976 16.0289 11.3466L11.9367 7.2566ZM11.4834 27.885L12.1263 27.885C12.1263 19.5769 12.1263 12.062 12.1251 7.71112L11.4823 7.71129L10.8394 7.71146C10.8406 12.0621 10.8406 19.5768 10.8406 27.885L11.4834 27.885Z" fill="white" />
-              {/* Hand — nudges up once after appearing */}
-              <path style={{ animation: 'nudgeUp 600ms ease-out 860ms both' }} d="M26.017 43.8381C26.1664 42.1576 25.5974 38.0776 22.1259 35.2024C18.6544 32.3272 20.6357 27.8858 24.2822 24.2514M24.2822 24.2514L23.5191 30.7354M24.2822 24.2514L24.6978 12.1857C24.7365 11.0637 25.7104 10.2051 26.8283 10.3073C27.8245 10.3984 28.5909 11.2273 28.6039 12.2275L28.7415 22.8042C29.3883 22.1572 31.0333 21.34 32.4389 23.2468C33.4452 22.6922 35.6444 22.1623 36.3903 24.4791C37.8961 23.7645 40.5613 24.0154 39.1759 30.7361" stroke="white" strokeWidth="1.28571" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              {/* Tap ripple rings */}
+              <circle cx="16" cy="16" r="6" stroke="white" strokeWidth="1.2" opacity="0.15" style={{ animation: 'tapRipple 1.2s ease-out 860ms both' }} />
+              <circle cx="16" cy="16" r="10" stroke="white" strokeWidth="1" opacity="0.08" style={{ animation: 'tapRipple 1.2s ease-out 960ms both' }} />
+              {/* Hand — taps down once after appearing */}
+              <path style={{ animation: 'tapDown 600ms ease-out 860ms both' }} d="M26.017 43.8381C26.1664 42.1576 25.5974 38.0776 22.1259 35.2024C18.6544 32.3272 20.6357 27.8858 24.2822 24.2514M24.2822 24.2514L23.5191 30.7354M24.2822 24.2514L24.6978 12.1857C24.7365 11.0637 25.7104 10.2051 26.8283 10.3073C27.8245 10.3984 28.5909 11.2273 28.6039 12.2275L28.7415 22.8042C29.3883 22.1572 31.0333 21.34 32.4389 23.2468C33.4452 22.6922 35.6444 22.1623 36.3903 24.4791C37.8961 23.7645 40.5613 24.0154 39.1759 30.7361" stroke="white" strokeWidth="1.28571" strokeLinecap="round" strokeLinejoin="round" fill="none" />
             </svg>
             <div style={{ flex: 1 }}>
               <p
@@ -271,7 +272,7 @@ export default function HowToSelect({ onClose }: Props) {
                   margin: 0,
                 }}
               >
-                Info
+                View key details
               </p>
               <p
                 style={{
@@ -284,7 +285,7 @@ export default function HowToSelect({ onClose }: Props) {
                   marginRight: 0,
                 }}
               >
-                View key details before deciding.
+                Tap a card
               </p>
             </div>
           </div>
@@ -313,7 +314,7 @@ export default function HowToSelect({ onClose }: Props) {
             animation: 'fadeInUp 200ms ease-out 640ms both',
           }}
         >
-          Close
+          Got it
         </button>
       </div>
     </div>

@@ -87,6 +87,17 @@ html, body, #root {
   65% { transform: translateY(-8px); }
   100% { transform: translateY(0); }
 }
+@keyframes tapDown {
+  0%, 30% { transform: translateY(0); }
+  55% { transform: translateY(4px); }
+  70% { transform: translateY(0); }
+  100% { transform: translateY(0); }
+}
+@keyframes tapRipple {
+  0% { transform: scale(0.5); opacity: 0; }
+  30% { opacity: 0.3; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
 
 /* Backdrop fade-out */
 @keyframes fadeOutBackdrop {

@@ -73,7 +73,9 @@ export default function BrandsSelection({
   const handlePointerUp = () => {
     if (!isDragging) return;
     setIsDragging(false);
-    if (dragY < -60 && Math.abs(dragY) > Math.abs(dragX)) {
+    const totalDrag = Math.abs(dragX) + Math.abs(dragY);
+    if (totalDrag < 5) {
+      // Tap — open info
       setShowInfo(true);
       setDragX(0);
       setDragY(0);
