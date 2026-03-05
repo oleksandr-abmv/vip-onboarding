@@ -10,11 +10,10 @@ export default function GenderSelection({ onNext }: Props) {
 
   return (
     <ScreenLayout>
-      {/* Heading at y=119, x=16 */}
       <h1
         style={{
           position: 'absolute',
-          top: 119,
+          top: `calc(env(safe-area-inset-top, 0px) + 65px)`,
           left: 16,
           right: 16,
           color: 'white',
@@ -28,11 +27,10 @@ export default function GenderSelection({ onNext }: Props) {
         Select Gender
       </h1>
 
-      {/* Description at y=159 */}
       <p
         style={{
           position: 'absolute',
-          top: 159,
+          top: `calc(env(safe-area-inset-top, 0px) + 105px)`,
           left: 16,
           right: 16,
           color: '#dedfe1',
@@ -46,11 +44,10 @@ export default function GenderSelection({ onNext }: Props) {
         private.
       </p>
 
-      {/* Gender Cards at y=225, h=142, gap=12 */}
       <div
         style={{
           position: 'absolute',
-          top: 225,
+          top: `calc(env(safe-area-inset-top, 0px) + 171px)`,
           left: 16,
           right: 16,
           display: 'flex',
@@ -136,12 +133,12 @@ export default function GenderSelection({ onNext }: Props) {
         </button>
       </div>
 
-      {/* "I'd rather not to say" at y=653, centered */}
+      {/* "I'd rather not to say" */}
       <button
         onClick={onNext}
         style={{
           position: 'absolute',
-          top: 653,
+          bottom: `calc(68px + env(safe-area-inset-bottom, 0px) + 56px)`,
           left: 0,
           right: 0,
           background: 'none',
@@ -157,12 +154,12 @@ export default function GenderSelection({ onNext }: Props) {
         I'd rather not to say
       </button>
 
-      {/* Continue button at y=696, h=48 */}
+      {/* Continue button */}
       <button
         onClick={onNext}
         style={{
           position: 'absolute',
-          top: 696,
+          bottom: `calc(68px + env(safe-area-inset-bottom, 0px))`,
           left: 16,
           right: 16,
           height: 48,

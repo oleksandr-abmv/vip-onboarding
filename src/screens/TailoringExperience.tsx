@@ -25,75 +25,70 @@ export default function TailoringExperience() {
         overflow: 'hidden',
       }}
     >
-      {/* VIP Logo at y=325, centered, 48x48 */}
+      {/* Centered content */}
       <div
         style={{
           position: 'absolute',
-          top: 325,
+          top: '50%',
           left: 0,
           right: 0,
+          transform: 'translateY(-50%)',
           display: 'flex',
-          justifyContent: 'center',
-          animation: 'fadeInUp 350ms ease-out 80ms both',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 24,
         }}
       >
-        <img
-          src="/vip-logo.svg"
-          alt="VIP"
-          style={{ width: 48, height: 48 }}
-          draggable={false}
-        />
-      </div>
+        <div style={{ animation: 'fadeInUp 350ms ease-out 80ms both' }}>
+          <img
+            src="/vip-logo.svg"
+            alt="VIP"
+            style={{ width: 48, height: 48 }}
+            draggable={false}
+          />
+        </div>
 
-      {/* Progress bar at y=422, w=200, h=4, centered */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 422,
-          left: 0,
-          right: 0,
-          display: 'flex',
-          justifyContent: 'center',
-          animation: 'fadeInUp 350ms ease-out 160ms both',
-        }}
-      >
         <div
           style={{
-            width: 200,
-            height: 4,
-            background: '#232323',
-            borderRadius: 3,
-            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 12,
+            animation: 'fadeInUp 350ms ease-out 160ms both',
           }}
         >
           <div
             style={{
-              height: '100%',
-              width: `${progress}%`,
-              background: 'white',
+              width: 200,
+              height: 4,
+              background: '#232323',
               borderRadius: 3,
-              transition: 'width 75ms linear',
+              overflow: 'hidden',
             }}
-          />
+          >
+            <div
+              style={{
+                height: '100%',
+                width: `${progress}%`,
+                background: 'white',
+                borderRadius: 3,
+                transition: 'width 75ms linear',
+              }}
+            />
+          </div>
+
+          <p
+            style={{
+              textAlign: 'center',
+              color: 'rgba(255, 255, 255, 0.9)',
+              fontSize: 15,
+              margin: 0,
+            }}
+          >
+            Tailoring experience...
+          </p>
         </div>
       </div>
-
-      {/* "Tailoring experience..." at y=446 */}
-      <p
-        style={{
-          position: 'absolute',
-          top: 446,
-          left: 0,
-          right: 0,
-          textAlign: 'center',
-          color: 'rgba(255, 255, 255, 0.9)',
-          fontSize: 15,
-          margin: 0,
-          animation: 'fadeInUp 350ms ease-out 240ms both',
-        }}
-      >
-        Tailoring experience...
-      </p>
     </div>
   );
 }

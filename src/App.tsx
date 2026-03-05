@@ -1,7 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
 import PhoneFrame from './components/PhoneFrame';
-import StatusBar from './components/StatusBar';
-import HomeIndicator from './components/HomeIndicator';
 import GenderSelection from './screens/GenderSelection';
 import InterestsSelection from './screens/InterestsSelection';
 import BrandsSelection from './screens/BrandsSelection';
@@ -135,25 +133,13 @@ function App() {
         </div>
       </div>
 
-      {/* Persistent chrome — always visible above content */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          zIndex: 30,
-          pointerEvents: 'none',
-        }}
-      >
-        <StatusBar />
-        <HomeIndicator />
-      </div>
 
       {/* Persistent back button */}
       <button
         onClick={handleBack}
         style={{
           position: 'absolute',
-          top: 67,
+          top: `calc(env(safe-area-inset-top, 0px) + 12px)`,
           left: 20,
           width: 28,
           height: 22,
@@ -186,7 +172,7 @@ function App() {
         onClick={handleSkip}
         style={{
           position: 'absolute',
-          top: 70,
+          top: `calc(env(safe-area-inset-top, 0px) + 12px)`,
           right: 20,
           background: 'none',
           border: 'none',

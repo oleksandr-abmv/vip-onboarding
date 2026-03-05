@@ -97,9 +97,10 @@ export default function BrandsSelection({
     return 'translateX(0)';
   };
 
-  // Card dimensions
-  const FRONT = { x: 19, y: 247, w: 337, h: 382 };
-  const BACK = { x: 29, y: 279, w: 317, h: 359 };
+  // Card dimensions — y values offset by safe-area-inset-top
+  const safeTop = 'env(safe-area-inset-top, 0px)';
+  const FRONT = { x: 19, y: `calc(${safeTop} + 193px)`, w: 337, h: 382 };
+  const BACK = { x: 29, y: `calc(${safeTop} + 225px)`, w: 317, h: 359 };
   const INFO_SIZE = 40;
   const CARD_BOTTOM_H = 80;
 
@@ -111,7 +112,7 @@ export default function BrandsSelection({
       <h1
         style={{
           position: 'absolute',
-          top: 119,
+          top: `calc(env(safe-area-inset-top, 0px) + 65px)`,
           left: 16,
           right: 16,
           color: 'white',
@@ -128,7 +129,7 @@ export default function BrandsSelection({
       <p
         style={{
           position: 'absolute',
-          top: 161,
+          top: `calc(env(safe-area-inset-top, 0px) + 107px)`,
           left: 16,
           right: 16,
           color: '#dedfe1',
@@ -424,7 +425,7 @@ export default function BrandsSelection({
         onClick={onNext}
         style={{
           position: 'absolute',
-          top: 690,
+          bottom: `calc(68px + env(safe-area-inset-bottom, 0px))`,
           left: 16,
           right: 16,
           height: 48,
@@ -472,7 +473,7 @@ export default function BrandsSelection({
               background: '#252525',
               borderRadius: 24,
               width: 'calc(100% - 32px)',
-              margin: '0 16px 62px',
+              margin: `0 16px calc(62px + env(safe-area-inset-bottom, 0px))`,
               padding: 24,
               display: 'flex',
               flexDirection: 'column',

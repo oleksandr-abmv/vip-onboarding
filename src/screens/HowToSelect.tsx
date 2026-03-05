@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import StatusBar from '../components/StatusBar';
-import HomeIndicator from '../components/HomeIndicator';
 
 interface Props {
   onClose: () => void;
@@ -49,15 +47,12 @@ export default function HowToSelect({ onClose }: Props) {
             : undefined,
         }}
       >
-        {/* Status bar */}
-        <StatusBar />
-
         {/* Close X button at top-right */}
         <button
           onClick={handleClose}
           style={{
             position: 'absolute',
-            top: 68,
+            top: `calc(env(safe-area-inset-top, 0px) + 12px)`,
             right: 19,
             width: 40,
             height: 40,
@@ -85,7 +80,7 @@ export default function HowToSelect({ onClose }: Props) {
         <h1
           style={{
             position: 'absolute',
-            top: 115,
+            top: `calc(env(safe-area-inset-top, 0px) + 61px)`,
             left: 28,
             right: 28,
             color: '#f6f6f6',
@@ -103,7 +98,7 @@ export default function HowToSelect({ onClose }: Props) {
         <p
           style={{
             position: 'absolute',
-            top: 161,
+            top: `calc(env(safe-area-inset-top, 0px) + 107px)`,
             left: 28,
             right: 28,
             color: '#dedfe1',
@@ -121,7 +116,7 @@ export default function HowToSelect({ onClose }: Props) {
         <div
           style={{
             position: 'absolute',
-            top: 270,
+            top: `calc(env(safe-area-inset-top, 0px) + 216px)`,
             left: 28,
             right: 28,
             display: 'flex',
@@ -300,7 +295,7 @@ export default function HowToSelect({ onClose }: Props) {
           onClick={handleClose}
           style={{
             position: 'absolute',
-            top: 691,
+            bottom: `calc(68px + env(safe-area-inset-bottom, 0px))`,
             left: 16,
             right: 16,
             height: 48,
@@ -320,9 +315,6 @@ export default function HowToSelect({ onClose }: Props) {
         >
           Close
         </button>
-
-        {/* Home indicator */}
-        <HomeIndicator />
       </div>
     </div>
   );

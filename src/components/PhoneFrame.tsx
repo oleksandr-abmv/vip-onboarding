@@ -16,10 +16,8 @@ export default function PhoneFrame({ children }: { children: ReactNode }) {
     setIsMobile(mobile);
 
     if (mobile) {
-      // Fill viewport — scale to fit both dimensions
-      setScale(Math.min(vw / DESIGN_W, vh / DESIGN_H));
+      setScale(1); // No scaling on mobile — use real viewport
     } else {
-      // Desktop — phone frame with padding
       const padding = 32;
       setScale(Math.min((vw - padding) / DESIGN_W, (vh - padding) / DESIGN_H, 1));
     }
@@ -30,6 +28,22 @@ export default function PhoneFrame({ children }: { children: ReactNode }) {
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, [update]);
+
+  if (isMobile) {
+    return (
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '100dvh',
+          background: 'black',
+          overflow: 'hidden',
+        }}
+      >
+        {children}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -51,13 +65,9 @@ export default function PhoneFrame({ children }: { children: ReactNode }) {
           overflow: 'hidden',
           transform: `scale(${scale})`,
           transformOrigin: 'center center',
-          ...(isMobile
-            ? {}
-            : {
-                borderRadius: 40,
-                border: '1px solid #333',
-                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-              }),
+          borderRadius: 40,
+          border: '1px solid #333',
+          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
         }}
       >
         {children}

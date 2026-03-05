@@ -39,11 +39,10 @@ export default function InterestsSelection({
 
   return (
     <ScreenLayout>
-      {/* Heading at y=119 */}
       <h1
         style={{
           position: 'absolute',
-          top: 119,
+          top: `calc(env(safe-area-inset-top, 0px) + 65px)`,
           left: 16,
           right: 16,
           color: 'white',
@@ -57,11 +56,10 @@ export default function InterestsSelection({
         Select Interests
       </h1>
 
-      {/* Description at y=163 */}
       <p
         style={{
           position: 'absolute',
-          top: 163,
+          top: `calc(env(safe-area-inset-top, 0px) + 109px)`,
           left: 16,
           right: 16,
           color: '#dedfe1',
@@ -75,11 +73,10 @@ export default function InterestsSelection({
         feed accordingly.
       </p>
 
-      {/* Chips at y=224 */}
       <div
         style={{
           position: 'absolute',
-          top: 224,
+          top: `calc(env(safe-area-inset-top, 0px) + 170px)`,
           left: 16,
           right: 16,
           display: 'flex',
@@ -128,12 +125,12 @@ export default function InterestsSelection({
         })}
       </div>
 
-      {/* Continue button at y=694 */}
+      {/* Continue button */}
       <button
         onClick={onNext}
         style={{
           position: 'absolute',
-          top: 694,
+          bottom: `calc(68px + env(safe-area-inset-bottom, 0px))`,
           left: 16,
           right: 16,
           height: 48,
