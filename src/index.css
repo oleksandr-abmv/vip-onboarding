@@ -71,32 +71,37 @@ html, body, #root {
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* Gesture hand nudge — plays once */
-@keyframes nudgeLeft {
-  0%, 30% { transform: translateX(0); }
-  65% { transform: translateX(-8px); }
+/* Gesture animations — premium, plays once with anticipation + follow-through */
+@keyframes gestureLeft {
+  0%, 20% { transform: translateX(0); }
+  28% { transform: translateX(1.5px); }
+  58% { transform: translateX(-10px); }
+  78% { transform: translateX(1px); }
   100% { transform: translateX(0); }
 }
-@keyframes nudgeRight {
-  0%, 30% { transform: translateX(0); }
-  65% { transform: translateX(8px); }
+@keyframes gestureRight {
+  0%, 20% { transform: translateX(0); }
+  28% { transform: translateX(-1.5px); }
+  58% { transform: translateX(10px); }
+  78% { transform: translateX(-1px); }
   100% { transform: translateX(0); }
 }
-@keyframes nudgeUp {
-  0%, 30% { transform: translateY(0); }
-  65% { transform: translateY(-8px); }
-  100% { transform: translateY(0); }
-}
-@keyframes tapDown {
-  0%, 30% { transform: translateY(0); }
+@keyframes gestureTap {
+  0%, 20% { transform: translateY(0); }
+  30% { transform: translateY(-2px); }
   55% { transform: translateY(4px); }
-  70% { transform: translateY(0); }
+  72% { transform: translateY(-1px); }
   100% { transform: translateY(0); }
 }
-@keyframes tapRipple {
-  0% { transform: scale(0.5); opacity: 0; }
-  30% { opacity: 0.3; }
-  100% { transform: scale(1.5); opacity: 0; }
+@keyframes arrowPulse {
+  0%, 20% { opacity: 0.25; }
+  55% { opacity: 0.6; }
+  100% { opacity: 0.25; }
+}
+@keyframes tapRing {
+  0% { r: 3; opacity: 0; }
+  30% { opacity: 0.18; }
+  100% { r: 12; opacity: 0; }
 }
 
 /* Backdrop fade-out */
