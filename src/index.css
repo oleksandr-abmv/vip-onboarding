@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  background: #000;
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+@keyframes screenEnterFromRight {
+  from { opacity: 0; transform: translateX(60px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes screenExitToLeft {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-30px); }
+}
+@keyframes screenEnterFromLeft {
+  from { opacity: 0; transform: translateX(-60px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes screenExitToRight {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(30px); }
+}
+
+/* Modal slide-up from bottom */
+@keyframes slideUpModal {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* Backdrop fade-in */
+@keyframes fadeInBackdrop {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Staggered content fade-in with subtle upward movement */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Simple fade-in */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Subtle scale-in with fade */
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Card reveal — smooth promotion from back-card to front-card */
+@keyframes cardReveal {
+  from { opacity: 0; transform: scale(0.94) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Gesture hand nudge — plays once */
+@keyframes nudgeLeft {
+  0%, 30% { transform: translateX(0); }
+  65% { transform: translateX(-8px); }
+  100% { transform: translateX(0); }
+}
+@keyframes nudgeRight {
+  0%, 30% { transform: translateX(0); }
+  65% { transform: translateX(8px); }
+  100% { transform: translateX(0); }
+}
+@keyframes nudgeUp {
+  0%, 30% { transform: translateY(0); }
+  65% { transform: translateY(-8px); }
+  100% { transform: translateY(0); }
+}
+
+/* Backdrop fade-out */
+@keyframes fadeOutBackdrop {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Content slide-down with fade (for modal dismiss) */
+@keyframes slideDownContent {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(40px); }
+}
+
+.material-symbols-rounded {
+  font-family: 'Material Symbols Rounded';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  width: 1em;
+  height: 1em;
+}
