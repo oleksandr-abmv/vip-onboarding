@@ -104,7 +104,7 @@ export default function BrandsSelection({
           top: `calc(env(safe-area-inset-top, 0px) + 72px)`,
           left: 16,
           right: 16,
-          color: 'white',
+          color: '#F5F0E8',
           fontSize: 24,
           fontWeight: 600,
           lineHeight: '28px',
@@ -121,7 +121,7 @@ export default function BrandsSelection({
           top: `calc(env(safe-area-inset-top, 0px) + 114px)`,
           left: 16,
           right: 16,
-          color: '#dedfe1',
+          color: '#C9C4BA',
           fontSize: 15,
           lineHeight: '21px',
           margin: 0,
@@ -184,7 +184,7 @@ export default function BrandsSelection({
         <div style={{ padding: 16 }}>
           <p
             style={{
-              color: '#f7f7f7',
+              color: '#F5F0E8',
               fontSize: 16,
               fontWeight: 500,
               lineHeight: '20px',
@@ -203,7 +203,7 @@ export default function BrandsSelection({
           >
             <span
               style={{
-                color: '#dedfe1',
+                color: '#C9C4BA',
                 fontSize: 14,
                 lineHeight: '20px',
               }}
@@ -212,7 +212,7 @@ export default function BrandsSelection({
             </span>
             <span
               style={{
-                color: '#dedfe1',
+                color: '#C9C4BA',
                 fontSize: 14,
                 lineHeight: '20px',
                 fontWeight: 600,
@@ -279,7 +279,7 @@ export default function BrandsSelection({
         >
           <span
             className="material-symbols-rounded"
-            style={{ fontSize: 18, color: 'white' }}
+            style={{ fontSize: 18, color: '#F5F0E8' }}
           >
             info
           </span>
@@ -293,17 +293,17 @@ export default function BrandsSelection({
               top: 24,
               left: 24,
               zIndex: 10,
-              background: 'rgba(255, 255, 255, 0.15)',
+              background: 'rgba(245, 240, 232, 0.15)',
               backdropFilter: 'blur(10px)',
               WebkitBackdropFilter: 'blur(10px)',
-              color: '#ffffff',
+              color: '#F5F0E8',
               padding: '6px 14px',
               borderRadius: 8,
               fontSize: 13,
               fontWeight: 600,
               letterSpacing: '0.06em',
               transform: 'rotate(-12deg)',
-              border: '1px solid rgba(255, 255, 255, 0.25)',
+              border: '1px solid rgba(245, 240, 232, 0.25)',
             }}
           >
             LIKE
@@ -316,17 +316,17 @@ export default function BrandsSelection({
               top: 24,
               right: 24,
               zIndex: 10,
-              background: 'rgba(255, 255, 255, 0.15)',
+              background: 'rgba(245, 240, 232, 0.15)',
               backdropFilter: 'blur(10px)',
               WebkitBackdropFilter: 'blur(10px)',
-              color: '#ffffff',
+              color: '#F5F0E8',
               padding: '6px 14px',
               borderRadius: 8,
               fontSize: 13,
               fontWeight: 600,
               letterSpacing: '0.06em',
               transform: 'rotate(12deg)',
-              border: '1px solid rgba(255, 255, 255, 0.25)',
+              border: '1px solid rgba(245, 240, 232, 0.25)',
             }}
           >
             SKIP
@@ -369,7 +369,7 @@ export default function BrandsSelection({
         <div style={{ height: CARD_BOTTOM_H, padding: 16 }}>
           <p
             style={{
-              color: '#f7f7f7',
+              color: '#F5F0E8',
               fontSize: 16,
               fontWeight: 500,
               lineHeight: '20px',
@@ -388,7 +388,7 @@ export default function BrandsSelection({
           >
             <span
               style={{
-                color: '#dedfe1',
+                color: '#C9C4BA',
                 fontSize: 14,
                 lineHeight: '20px',
               }}
@@ -397,7 +397,7 @@ export default function BrandsSelection({
             </span>
             <span
               style={{
-                color: '#dedfe1',
+                color: '#C9C4BA',
                 fontSize: 14,
                 lineHeight: '20px',
                 fontWeight: 600,
@@ -427,7 +427,7 @@ export default function BrandsSelection({
           border: 'none',
           padding: 0,
           transition: 'all 0.2s',
-          background: '#f6f6f6',
+          background: '#EDE8DC',
           color: '#121212',
           cursor: 'pointer',
           animation: 'fadeInUp 350ms ease-out 400ms both',
@@ -472,7 +472,7 @@ export default function BrandsSelection({
           >
             <p
               style={{
-                color: 'white',
+                color: '#F5F0E8',
                 fontSize: 14,
                 lineHeight: '20px',
                 margin: 0,
@@ -487,7 +487,7 @@ export default function BrandsSelection({
                 height: 40,
                 borderRadius: 9999,
                 background: '#3f3f3f',
-                color: '#f8f8f8',
+                color: '#F5F0E8',
                 fontSize: 16,
                 fontWeight: 500,
                 display: 'flex',

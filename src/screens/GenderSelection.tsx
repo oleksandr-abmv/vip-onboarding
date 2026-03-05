@@ -16,7 +16,7 @@ export default function GenderSelection({ onNext }: Props) {
           top: `calc(env(safe-area-inset-top, 0px) + 72px)`,
           left: 16,
           right: 16,
-          color: 'white',
+          color: '#F5F0E8',
           fontSize: 24,
           fontWeight: 600,
           lineHeight: '28px',
@@ -33,7 +33,7 @@ export default function GenderSelection({ onNext }: Props) {
           top: `calc(env(safe-area-inset-top, 0px) + 114px)`,
           left: 16,
           right: 16,
-          color: '#dedfe1',
+          color: '#C9C4BA',
           fontSize: 15,
           lineHeight: '21px',
           margin: 0,
@@ -68,7 +68,7 @@ export default function GenderSelection({ onNext }: Props) {
             background: '#1a1a1a',
             border:
               selected === 'male'
-                ? '2px solid #f0f0f0'
+                ? '2px solid #EDE8DC'
                 : '2px solid #494949',
             cursor: 'pointer',
             transition: 'border-color 0.2s',
@@ -77,7 +77,7 @@ export default function GenderSelection({ onNext }: Props) {
         >
           <span
             className="material-symbols-rounded"
-            style={{ fontSize: 27, color: '#f6f6f6', opacity: 0.4 }}
+            style={{ fontSize: 27, color: '#F5F0E8', opacity: 0.4 }}
           >
             male
           </span>
@@ -85,7 +85,7 @@ export default function GenderSelection({ onNext }: Props) {
             style={{
               fontSize: 17,
               fontWeight: 500,
-              color: '#f7f7f7',
+              color: '#F5F0E8',
               textAlign: 'left',
             }}
           >
@@ -107,7 +107,7 @@ export default function GenderSelection({ onNext }: Props) {
             background: '#1a1a1a',
             border:
               selected === 'female'
-                ? '2px solid #f0f0f0'
+                ? '2px solid #EDE8DC'
                 : '2px solid #494949',
             cursor: 'pointer',
             transition: 'border-color 0.2s',
@@ -116,7 +116,7 @@ export default function GenderSelection({ onNext }: Props) {
         >
           <span
             className="material-symbols-rounded"
-            style={{ fontSize: 27, color: '#f6f6f6', opacity: 0.4 }}
+            style={{ fontSize: 27, color: '#F5F0E8', opacity: 0.4 }}
           >
             female
           </span>
@@ -124,7 +124,7 @@ export default function GenderSelection({ onNext }: Props) {
             style={{
               fontSize: 17,
               fontWeight: 500,
-              color: '#f7f7f7',
+              color: '#F5F0E8',
               textAlign: 'left',
             }}
           >
@@ -145,7 +145,7 @@ export default function GenderSelection({ onNext }: Props) {
           border: 'none',
           cursor: 'pointer',
           fontSize: 16,
-          color: '#f7f7f7',
+          color: '#F5F0E8',
           textAlign: 'center',
           padding: 0,
           animation: 'fadeInUp 350ms ease-out 380ms both',
@@ -164,7 +164,7 @@ export default function GenderSelection({ onNext }: Props) {
           right: 16,
           height: 48,
           borderRadius: 9999,
-          background: '#f6f6f6',
+          background: '#EDE8DC',
           border: 'none',
           cursor: 'pointer',
           fontSize: 16,

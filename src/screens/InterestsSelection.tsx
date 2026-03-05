@@ -45,7 +45,7 @@ export default function InterestsSelection({
           top: `calc(env(safe-area-inset-top, 0px) + 72px)`,
           left: 16,
           right: 16,
-          color: 'white',
+          color: '#F5F0E8',
           fontSize: 24,
           fontWeight: 600,
           lineHeight: '28px',
@@ -62,7 +62,7 @@ export default function InterestsSelection({
           top: `calc(env(safe-area-inset-top, 0px) + 114px)`,
           left: 16,
           right: 16,
-          color: '#dedfe1',
+          color: '#C9C4BA',
           fontSize: 15,
           lineHeight: '21px',
           margin: 0,
@@ -103,9 +103,9 @@ export default function InterestsSelection({
                 lineHeight: '22px',
                 cursor: 'pointer',
                 transition: 'background 0.2s, color 0.2s, border-color 0.2s',
-                background: isSelected ? '#f7f7f7' : '#1a1a1a',
-                color: isSelected ? '#121212' : '#f7f7f7',
-                border: isSelected ? '1px solid #f7f7f7' : '1px solid #494949',
+                background: isSelected ? '#EDE8DC' : '#1a1a1a',
+                color: isSelected ? '#121212' : '#F5F0E8',
+                border: isSelected ? '1px solid #EDE8DC' : '1px solid #494949',
                 animation: `fadeInUp 350ms ease-out ${240 + index * 40}ms both`,
               }}
             >
@@ -114,7 +114,7 @@ export default function InterestsSelection({
                 style={{
                   fontSize: 22,
                   lineHeight: '22px',
-                  color: isSelected ? '#121212' : 'white',
+                  color: isSelected ? '#121212' : '#F5F0E8',
                 }}
               >
                 {icon}
@@ -135,7 +135,7 @@ export default function InterestsSelection({
           right: 16,
           height: 48,
           borderRadius: 9999,
-          background: '#f6f6f6',
+          background: '#EDE8DC',
           border: 'none',
           cursor: 'pointer',
           fontSize: 16,

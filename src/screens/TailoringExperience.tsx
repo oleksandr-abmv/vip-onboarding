@@ -70,7 +70,7 @@ export default function TailoringExperience() {
               style={{
                 height: '100%',
                 width: `${progress}%`,
-                background: 'white',
+                background: '#F5F0E8',
                 borderRadius: 3,
                 transition: 'width 75ms linear',
               }}
@@ -80,7 +80,7 @@ export default function TailoringExperience() {
           <p
             style={{
               textAlign: 'center',
-              color: 'rgba(255, 255, 255, 0.9)',
+              color: 'rgba(245, 240, 232, 0.9)',
               fontSize: 15,
               margin: 0,
             }}
