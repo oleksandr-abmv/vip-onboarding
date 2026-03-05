@@ -252,6 +252,10 @@ export default function HowToSelect({ onClose }: Props) {
               fill="none"
               style={{ flexShrink: 0 }}
             >
+              {/* Tap rings */}
+              <circle cx="20" cy="12" r="4.5" stroke="white" strokeWidth="1" opacity="0.3" fill="none" />
+              <circle cx="20" cy="12" r="8" stroke="white" strokeWidth="0.8" opacity="0.15" fill="none" />
+              {/* Hand */}
               <path d="M26.017 43.8381C26.1664 42.1576 25.5974 38.0776 22.1259 35.2024C18.6544 32.3272 20.6357 27.8858 24.2822 24.2514M24.2822 24.2514L23.5191 30.7354M24.2822 24.2514L24.6978 12.1857C24.7365 11.0637 25.7104 10.2051 26.8283 10.3073C27.8245 10.3984 28.5909 11.2273 28.6039 12.2275L28.7415 22.8042C29.3883 22.1572 31.0333 21.34 32.4389 23.2468C33.4452 22.6922 35.6444 22.1623 36.3903 24.4791C37.8961 23.7645 40.5613 24.0154 39.1759 30.7361" stroke="white" strokeWidth="1.28571" strokeLinecap="round" strokeLinejoin="round" fill="none" />
             </svg>
             <div style={{ flex: 1 }}>
