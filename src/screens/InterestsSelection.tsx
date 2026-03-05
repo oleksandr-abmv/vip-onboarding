@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ScreenLayout from '../components/ScreenLayout';
+import { colors, safeTop, safeBottom } from '../theme';
 
 const INTERESTS = [
   { icon: 'directions_car', label: 'Vehicles' },
@@ -14,17 +15,14 @@ const INTERESTS = [
   { icon: 'directions_boat', label: 'Yachts' },
   { icon: 'helicopter', label: 'Private Aviation' },
   { icon: 'inventory_2', label: 'Collectibles' },
-];
+] as const;
 
 interface Props {
   onNext: () => void;
   onSelectionsChange: (interests: Set<string>) => void;
 }
 
-export default function InterestsSelection({
-  onNext,
-  onSelectionsChange,
-}: Props) {
+export default function InterestsSelection({ onNext, onSelectionsChange }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const toggle = (label: string) => {
@@ -42,10 +40,10 @@ export default function InterestsSelection({
       <h1
         style={{
           position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 72px)`,
+          top: safeTop(72),
           left: 16,
           right: 16,
-          color: '#F5F0E8',
+          color: colors.ivory,
           fontSize: 24,
           fontWeight: 600,
           lineHeight: '28px',
@@ -59,10 +57,10 @@ export default function InterestsSelection({
       <p
         style={{
           position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 114px)`,
+          top: safeTop(114),
           left: 16,
           right: 16,
-          color: '#C9C4BA',
+          color: colors.ivoryMuted,
           fontSize: 15,
           lineHeight: '21px',
           margin: 0,
@@ -76,7 +74,7 @@ export default function InterestsSelection({
       <div
         style={{
           position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 177px)`,
+          top: safeTop(177),
           left: 16,
           right: 16,
           display: 'flex',
@@ -94,18 +92,15 @@ export default function InterestsSelection({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 4,
-                paddingLeft: 12,
-                paddingRight: 12,
-                paddingTop: 8,
-                paddingBottom: 8,
+                padding: '8px 12px',
                 borderRadius: 9999,
                 fontSize: 16,
                 lineHeight: '22px',
                 cursor: 'pointer',
                 transition: 'background 0.2s, color 0.2s, border-color 0.2s',
-                background: isSelected ? '#EDE8DC' : '#1a1a1a',
-                color: isSelected ? '#121212' : '#F5F0E8',
-                border: isSelected ? '1px solid #EDE8DC' : '1px solid #494949',
+                background: isSelected ? colors.ivoryDeep : colors.bgCard,
+                color: isSelected ? colors.textDark : colors.ivory,
+                border: `1px solid ${isSelected ? colors.ivoryDeep : colors.borderPrimary}`,
                 animation: `fadeInUp 350ms ease-out ${240 + index * 40}ms both`,
               }}
             >
@@ -114,7 +109,7 @@ export default function InterestsSelection({
                 style={{
                   fontSize: 22,
                   lineHeight: '22px',
-                  color: isSelected ? '#121212' : '#F5F0E8',
+                  color: isSelected ? colors.textDark : colors.ivory,
                 }}
               >
                 {icon}
@@ -125,22 +120,21 @@ export default function InterestsSelection({
         })}
       </div>
 
-      {/* Continue button */}
       <button
         onClick={onNext}
         style={{
           position: 'absolute',
-          bottom: `calc(24px + env(safe-area-inset-bottom, 0px))`,
+          bottom: safeBottom(24),
           left: 16,
           right: 16,
           height: 48,
           borderRadius: 9999,
-          background: '#EDE8DC',
+          background: colors.ivoryDeep,
           border: 'none',
           cursor: 'pointer',
           fontSize: 16,
           fontWeight: 500,
-          color: '#121212',
+          color: colors.textDark,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

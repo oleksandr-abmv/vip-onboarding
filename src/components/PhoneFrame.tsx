@@ -5,26 +5,25 @@ const DESIGN_W = 375;
 const DESIGN_H = 812;
 const MOBILE_BREAKPOINT = 500;
 
+function calcScale() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const padding = 32;
+  return Math.min((vw - padding) / DESIGN_W, (vh - padding) / DESIGN_H, 1);
+}
+
 export default function PhoneFrame({ children }: { children: ReactNode }) {
-  const [scale, setScale] = useState(1);
-  const [isMobile, setIsMobile] = useState(false);
+  // Lazy initializers avoid a flash of the wrong layout on first render
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= MOBILE_BREAKPOINT);
+  const [scale, setScale] = useState(() => calcScale());
 
   const update = useCallback(() => {
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const mobile = vw <= MOBILE_BREAKPOINT;
+    const mobile = window.innerWidth <= MOBILE_BREAKPOINT;
     setIsMobile(mobile);
-
-    if (mobile) {
-      setScale(1); // No scaling on mobile — use real viewport
-    } else {
-      const padding = 32;
-      setScale(Math.min((vw - padding) / DESIGN_W, (vh - padding) / DESIGN_H, 1));
-    }
+    setScale(mobile ? 1 : calcScale());
   }, []);
 
   useEffect(() => {
-    update();
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, [update]);

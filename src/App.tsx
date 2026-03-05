@@ -5,6 +5,7 @@ import InterestsSelection from './screens/InterestsSelection';
 import BrandsSelection from './screens/BrandsSelection';
 import HowToSelect from './screens/HowToSelect';
 import TailoringExperience from './screens/TailoringExperience';
+import { colors, safeTop } from './theme';
 
 type Screen = 'gender' | 'interests' | 'brands' | 'tailoring';
 
@@ -16,9 +17,7 @@ function App() {
   const [exitingScreen, setExitingScreen] = useState<Screen | null>(null);
   const [direction, setDirection] = useState<'forward' | 'back'>('forward');
   const transitionRef = useRef<number | null>(null);
-  const [selectedInterests, setSelectedInterests] = useState<Set<string>>(
-    new Set(),
-  );
+  const [selectedInterests, setSelectedInterests] = useState<Set<string>>(new Set());
 
   const currentIndex = SCREENS.indexOf(screen);
 
@@ -28,9 +27,7 @@ function App() {
       setDirection(dir);
       setExitingScreen(screen);
       setScreen(next);
-      if (next === 'brands') {
-        setTimeout(() => setShowHowTo(true), 350);
-      }
+      if (next === 'brands') setTimeout(() => setShowHowTo(true), 350);
       transitionRef.current = window.setTimeout(() => {
         setExitingScreen(null);
         transitionRef.current = null;
@@ -50,11 +47,8 @@ function App() {
   }, [currentIndex, goTo]);
 
   const handleSkip = useCallback(() => {
-    if (screen === 'brands') {
-      goTo('tailoring', 'forward');
-    } else {
-      handleNext();
-    }
+    if (screen === 'brands') goTo('tailoring', 'forward');
+    else handleNext();
   }, [screen, goTo, handleNext]);
 
   const showBack = screen !== 'tailoring';
@@ -65,43 +59,24 @@ function App() {
       case 'gender':
         return <GenderSelection onNext={handleNext} />;
       case 'interests':
-        return (
-          <InterestsSelection
-            onNext={handleNext}
-            onSelectionsChange={setSelectedInterests}
-          />
-        );
+        return <InterestsSelection onNext={handleNext} onSelectionsChange={setSelectedInterests} />;
       case 'brands':
-        return (
-          <BrandsSelection
-            onNext={handleNext}
-            selectedInterests={selectedInterests}
-          />
-        );
+        return <BrandsSelection onNext={handleNext} selectedInterests={selectedInterests} />;
       case 'tailoring':
         return <TailoringExperience />;
     }
   };
 
-  const enterAnim =
-    direction === 'forward' ? 'screenEnterFromRight' : 'screenEnterFromLeft';
-  const exitAnim =
-    direction === 'forward' ? 'screenExitToLeft' : 'screenExitToRight';
+  const enterAnim = direction === 'forward' ? 'screenEnterFromRight' : 'screenEnterFromLeft';
+  const exitAnim  = direction === 'forward' ? 'screenExitToLeft'    : 'screenExitToRight';
 
   return (
     <PhoneFrame>
-      {/* Persistent background */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'linear-gradient(143.5deg, #111111 21%, #0c0c0c 83%)',
-        }}
-      />
+      {/* Persistent background — visible during screen transitions */}
+      <div style={{ position: 'absolute', inset: 0, background: colors.gradient }} />
 
       {/* Screen content area */}
       <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-        {/* Exiting screen */}
         {exitingScreen && (
           <div
             key={`exit-${exitingScreen}`}
@@ -116,8 +91,6 @@ function App() {
             {renderScreen(exitingScreen)}
           </div>
         )}
-
-        {/* Current screen */}
         <div
           key={screen}
           style={{
@@ -138,7 +111,7 @@ function App() {
         onClick={handleBack}
         style={{
           position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 20px)`,
+          top: safeTop(20),
           left: 20,
           width: 28,
           height: 22,
@@ -171,14 +144,14 @@ function App() {
         onClick={handleSkip}
         style={{
           position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 20px)`,
+          top: safeTop(20),
           right: 20,
           background: 'none',
           border: 'none',
           cursor: showSkip ? 'pointer' : 'default',
           fontSize: 16,
           fontWeight: 500,
-          color: '#C9C4BA',
+          color: colors.ivoryMuted,
           lineHeight: '22px',
           zIndex: 30,
           padding: 0,
@@ -190,7 +163,6 @@ function App() {
         Skip
       </button>
 
-      {/* How to Select modal overlay */}
       {showHowTo && <HowToSelect onClose={() => setShowHowTo(false)} />}
     </PhoneFrame>
   );

@@ -1,16 +1,18 @@
 import { useState, useRef, useCallback, useMemo } from 'react';
 import ScreenLayout from '../components/ScreenLayout';
 import { getProductsForInterests } from '../data/products';
+import { colors, safeTop, safeBottom } from '../theme';
 
 interface Props {
   onNext: () => void;
   selectedInterests: Set<string>;
 }
 
-export default function BrandsSelection({
-  onNext,
-  selectedInterests,
-}: Props) {
+const CARD_TRANSITION = '0.45s cubic-bezier(0.16, 1, 0.3, 1)';
+const CARD_BOTTOM_H = 80;
+const INFO_SIZE = 40;
+
+export default function BrandsSelection({ onNext, selectedInterests }: Props) {
   const products = useMemo(
     () => getProductsForInterests(selectedInterests),
     [selectedInterests],
@@ -21,9 +23,7 @@ export default function BrandsSelection({
   const [showInfo, setShowInfo] = useState(false);
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [exitDirection, setExitDirection] = useState<
-    'left' | 'right' | null
-  >(null);
+  const [exitDirection, setExitDirection] = useState<'left' | 'right' | null>(null);
   const [promoting, setPromoting] = useState(false);
   const [settled, setSettled] = useState(true);
   const startXRef = useRef(0);
@@ -32,28 +32,29 @@ export default function BrandsSelection({
   const currentItem = products[currentIndex % products.length];
   const nextItem = products[(currentIndex + 1) % products.length];
 
-  const handleSwipe = useCallback(
-    (direction: 'left' | 'right') => {
-      setExitDirection(direction);
-      setPromoting(true);
-      setSettled(false);
-      if (direction === 'right') {
-        setSelectedCount((c) => c + 1);
-      }
-      setTimeout(() => {
-        skipTransitionRef.current = true;
-        setCurrentIndex((i) => i + 1);
-        setExitDirection(null);
-        setPromoting(false);
-        setDragX(0);
-        requestAnimationFrame(() => {
-          skipTransitionRef.current = false;
-          setSettled(true);
-        });
-      }, 450);
-    },
-    [],
-  );
+  // Card position definitions — y relative to safe area top
+  const FRONT = { x: 19, y: safeTop(200), w: 337, h: 382 };
+  const BACK  = { x: 29, y: safeTop(232), w: 317, h: 359 };
+
+  const backPos = promoting ? FRONT : BACK;
+
+  const handleSwipe = useCallback((direction: 'left' | 'right') => {
+    setExitDirection(direction);
+    setPromoting(true);
+    setSettled(false);
+    if (direction === 'right') setSelectedCount((c) => c + 1);
+    setTimeout(() => {
+      skipTransitionRef.current = true;
+      setCurrentIndex((i) => i + 1);
+      setExitDirection(null);
+      setPromoting(false);
+      setDragX(0);
+      requestAnimationFrame(() => {
+        skipTransitionRef.current = false;
+        setSettled(true);
+      });
+    }, 450);
+  }, []);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     setIsDragging(true);
@@ -77,34 +78,23 @@ export default function BrandsSelection({
   };
 
   const getCardTransform = () => {
-    if (exitDirection === 'left')
-      return 'translateX(-150%) rotate(-20deg)';
-    if (exitDirection === 'right')
-      return 'translateX(150%) rotate(20deg)';
-    if (dragX !== 0)
-      return `translateX(${dragX}px) rotate(${dragX * 0.08}deg)`;
+    if (exitDirection === 'left')  return 'translateX(-150%) rotate(-20deg)';
+    if (exitDirection === 'right') return 'translateX(150%) rotate(20deg)';
+    if (dragX !== 0) return `translateX(${dragX}px) rotate(${dragX * 0.08}deg)`;
     return 'translateX(0)';
   };
 
-  // Card dimensions — y values offset by safe-area-inset-top
-  const safeTop = 'env(safe-area-inset-top, 0px)';
-  const FRONT = { x: 19, y: `calc(${safeTop} + 200px)`, w: 337, h: 382 };
-  const BACK = { x: 29, y: `calc(${safeTop} + 232px)`, w: 317, h: 359 };
-  const INFO_SIZE = 40;
-  const CARD_BOTTOM_H = 80;
-
-  // Back card transitions to front position during promotion
-  const backPos = promoting ? FRONT : BACK;
+  const infoButtonVisible = settled && !isDragging && Math.abs(dragX) <= 5;
 
   return (
     <ScreenLayout>
       <h1
         style={{
           position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 72px)`,
+          top: safeTop(72),
           left: 16,
           right: 16,
-          color: '#F5F0E8',
+          color: colors.ivory,
           fontSize: 24,
           fontWeight: 600,
           lineHeight: '28px',
@@ -118,10 +108,10 @@ export default function BrandsSelection({
       <p
         style={{
           position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 114px)`,
+          top: safeTop(114),
           left: 16,
           right: 16,
-          color: '#C9C4BA',
+          color: colors.ivoryMuted,
           fontSize: 15,
           lineHeight: '21px',
           margin: 0,
@@ -141,17 +131,17 @@ export default function BrandsSelection({
           width: backPos.w,
           height: backPos.h,
           borderRadius: 16,
-          border: '1px solid #313131',
-          background: '#0c0c0c',
+          border: `1px solid ${colors.borderSecondary}`,
+          background: colors.bgPrimary,
           overflow: 'hidden',
           transition: promoting
-            ? 'top 0.45s cubic-bezier(0.16, 1, 0.3, 1), left 0.45s cubic-bezier(0.16, 1, 0.3, 1), width 0.45s cubic-bezier(0.16, 1, 0.3, 1), height 0.45s cubic-bezier(0.16, 1, 0.3, 1)'
+            ? `top ${CARD_TRANSITION}, left ${CARD_TRANSITION}, width ${CARD_TRANSITION}, height ${CARD_TRANSITION}`
             : 'none',
         }}
       >
         <div
           style={{
-            background: '#1a1a1a',
+            background: colors.bgCard,
             height: `calc(100% - ${CARD_BOTTOM_H}px)`,
             display: 'flex',
             alignItems: 'center',
@@ -164,67 +154,34 @@ export default function BrandsSelection({
           <img
             src={nextItem.image}
             alt={nextItem.name}
-            style={{
-              maxHeight: '100%',
-              maxWidth: '100%',
-              objectFit: 'contain',
-            }}
+            style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}
             draggable={false}
           />
           <div
             style={{
               position: 'absolute',
               inset: 0,
-              background:
-                'radial-gradient(ellipse 70% 65% at center 45%, transparent 35%, #1a1a1a 90%)',
+              background: `radial-gradient(ellipse 70% 65% at center 45%, transparent 35%, ${colors.bgCard} 90%)`,
               pointerEvents: 'none',
             }}
           />
         </div>
         <div style={{ padding: 16 }}>
-          <p
-            style={{
-              color: '#F5F0E8',
-              fontSize: 16,
-              fontWeight: 500,
-              lineHeight: '20px',
-              margin: 0,
-            }}
-          >
+          <p style={{ color: colors.ivory, fontSize: 16, fontWeight: 500, lineHeight: '20px', margin: 0 }}>
             {nextItem.name}
           </p>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginTop: 8,
-            }}
-          >
-            <span
-              style={{
-                color: '#C9C4BA',
-                fontSize: 14,
-                lineHeight: '20px',
-              }}
-            >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+            <span style={{ color: colors.ivoryMuted, fontSize: 14, lineHeight: '20px' }}>
               {nextItem.brand}
             </span>
-            <span
-              style={{
-                color: '#C9C4BA',
-                fontSize: 14,
-                lineHeight: '20px',
-                fontWeight: 600,
-              }}
-            >
+            <span style={{ color: colors.ivoryMuted, fontSize: 14, lineHeight: '20px', fontWeight: 600 }}>
               {nextItem.price}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Front card — no key, DOM persists across swipes for seamless transitions */}
+      {/* Front card — DOM persists across swipes for seamless transitions */}
       <div
         style={{
           position: 'absolute',
@@ -233,16 +190,15 @@ export default function BrandsSelection({
           width: FRONT.w,
           height: FRONT.h,
           borderRadius: 16,
-          border: '1px solid #313131',
-          background: '#0c0c0c',
+          border: `1px solid ${colors.borderSecondary}`,
+          background: colors.bgPrimary,
           overflow: 'hidden',
           cursor: isDragging ? 'grabbing' : 'grab',
           touchAction: 'none',
           transform: getCardTransform(),
-          transition:
-            isDragging || skipTransitionRef.current
-              ? 'none'
-              : 'transform 0.45s cubic-bezier(0.16, 1, 0.3, 1)',
+          transition: isDragging || skipTransitionRef.current
+            ? 'none'
+            : `transform ${CARD_TRANSITION}`,
           zIndex: 5,
         }}
         onPointerDown={handlePointerDown}
@@ -251,10 +207,7 @@ export default function BrandsSelection({
       >
         {/* Info button */}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowInfo(true);
-          }}
+          onClick={(e) => { e.stopPropagation(); setShowInfo(true); }}
           onPointerDown={(e) => e.stopPropagation()}
           style={{
             position: 'absolute',
@@ -264,78 +217,34 @@ export default function BrandsSelection({
             width: INFO_SIZE,
             height: INFO_SIZE,
             borderRadius: 9999,
-            background: '#181818',
-            border: '1px solid #494949',
+            background: colors.bgElevated,
+            border: `1px solid ${colors.borderPrimary}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
             padding: 0,
-            opacity: !settled || isDragging || Math.abs(dragX) > 5 ? 0 : 1,
+            opacity: infoButtonVisible ? 1 : 0,
             transition: settled ? 'opacity 0.35s ease-out' : 'opacity 0.15s ease-out',
-            pointerEvents:
-              !settled || isDragging || Math.abs(dragX) > 5 ? 'none' : 'auto',
+            pointerEvents: infoButtonVisible ? 'auto' : 'none',
           }}
         >
-          <span
-            className="material-symbols-rounded"
-            style={{ fontSize: 18, color: '#F5F0E8' }}
-          >
+          <span className="material-symbols-rounded" style={{ fontSize: 18, color: colors.ivory }}>
             info
           </span>
         </button>
 
         {/* Swipe indicators */}
         {dragX > 40 && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 24,
-              left: 24,
-              zIndex: 10,
-              background: 'rgba(245, 240, 232, 0.15)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              color: '#F5F0E8',
-              padding: '6px 14px',
-              borderRadius: 8,
-              fontSize: 13,
-              fontWeight: 600,
-              letterSpacing: '0.06em',
-              transform: 'rotate(-12deg)',
-              border: '1px solid rgba(245, 240, 232, 0.25)',
-            }}
-          >
-            LIKE
-          </div>
+          <SwipeLabel label="LIKE" side="left" rotation="-12deg" />
         )}
         {dragX < -40 && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 24,
-              right: 24,
-              zIndex: 10,
-              background: 'rgba(245, 240, 232, 0.15)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              color: '#F5F0E8',
-              padding: '6px 14px',
-              borderRadius: 8,
-              fontSize: 13,
-              fontWeight: 600,
-              letterSpacing: '0.06em',
-              transform: 'rotate(12deg)',
-              border: '1px solid rgba(245, 240, 232, 0.25)',
-            }}
-          >
-            SKIP
-          </div>
+          <SwipeLabel label="SKIP" side="right" rotation="12deg" />
         )}
 
         <div
           style={{
-            background: '#1e1e1e',
+            background: colors.bgCardFront,
             height: `calc(100% - ${CARD_BOTTOM_H}px)`,
             display: 'flex',
             alignItems: 'center',
@@ -348,61 +257,27 @@ export default function BrandsSelection({
           <img
             src={currentItem.image}
             alt={currentItem.name}
-            style={{
-              maxHeight: '100%',
-              maxWidth: '100%',
-              objectFit: 'contain',
-              pointerEvents: 'none',
-            }}
+            style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain', pointerEvents: 'none' }}
             draggable={false}
           />
           <div
             style={{
               position: 'absolute',
               inset: 0,
-              background:
-                'radial-gradient(ellipse 70% 65% at center 45%, transparent 35%, #1e1e1e 90%)',
+              background: `radial-gradient(ellipse 70% 65% at center 45%, transparent 35%, ${colors.bgCardFront} 90%)`,
               pointerEvents: 'none',
             }}
           />
         </div>
         <div style={{ height: CARD_BOTTOM_H, padding: 16 }}>
-          <p
-            style={{
-              color: '#F5F0E8',
-              fontSize: 16,
-              fontWeight: 500,
-              lineHeight: '20px',
-              margin: 0,
-            }}
-          >
+          <p style={{ color: colors.ivory, fontSize: 16, fontWeight: 500, lineHeight: '20px', margin: 0 }}>
             {currentItem.name}
           </p>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginTop: 8,
-            }}
-          >
-            <span
-              style={{
-                color: '#C9C4BA',
-                fontSize: 14,
-                lineHeight: '20px',
-              }}
-            >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+            <span style={{ color: colors.ivoryMuted, fontSize: 14, lineHeight: '20px' }}>
               {currentItem.brand}
             </span>
-            <span
-              style={{
-                color: '#C9C4BA',
-                fontSize: 14,
-                lineHeight: '20px',
-                fontWeight: 600,
-              }}
-            >
+            <span style={{ color: colors.ivoryMuted, fontSize: 14, lineHeight: '20px', fontWeight: 600 }}>
               {currentItem.price}
             </span>
           </div>
@@ -414,7 +289,7 @@ export default function BrandsSelection({
         onClick={onNext}
         style={{
           position: 'absolute',
-          bottom: `calc(24px + env(safe-area-inset-bottom, 0px))`,
+          bottom: safeBottom(24),
           left: 16,
           right: 16,
           height: 48,
@@ -427,8 +302,8 @@ export default function BrandsSelection({
           border: 'none',
           padding: 0,
           transition: 'all 0.2s',
-          background: '#EDE8DC',
-          color: '#121212',
+          background: colors.ivoryDeep,
+          color: colors.textDark,
           cursor: 'pointer',
           animation: 'fadeInUp 350ms ease-out 400ms both',
         }}
@@ -438,15 +313,7 @@ export default function BrandsSelection({
 
       {/* Info overlay */}
       {showInfo && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 30,
-            display: 'flex',
-            alignItems: 'flex-end',
-          }}
-        >
+        <div style={{ position: 'absolute', inset: 0, zIndex: 30, display: 'flex', alignItems: 'flex-end' }}>
           <div
             style={{
               position: 'absolute',
@@ -459,7 +326,7 @@ export default function BrandsSelection({
           <div
             style={{
               position: 'relative',
-              background: '#1a1a1a',
+              background: colors.bgCard,
               borderRadius: 24,
               width: 'calc(100% - 32px)',
               margin: `0 16px calc(20px + env(safe-area-inset-bottom, 0px))`,
@@ -470,14 +337,7 @@ export default function BrandsSelection({
               animation: 'slideUpModal 300ms ease-out both',
             }}
           >
-            <p
-              style={{
-                color: '#F5F0E8',
-                fontSize: 14,
-                lineHeight: '20px',
-                margin: 0,
-              }}
-            >
+            <p style={{ color: colors.ivory, fontSize: 14, lineHeight: '20px', margin: 0 }}>
               {currentItem.description}
             </p>
             <button
@@ -487,7 +347,7 @@ export default function BrandsSelection({
                 height: 40,
                 borderRadius: 9999,
                 background: '#3f3f3f',
-                color: '#F5F0E8',
+                color: colors.ivory,
                 fontSize: 16,
                 fontWeight: 500,
                 display: 'flex',
@@ -504,5 +364,41 @@ export default function BrandsSelection({
         </div>
       )}
     </ScreenLayout>
+  );
+}
+
+// ─── Helper ──────────────────────────────────────────────────────────────────
+
+function SwipeLabel({
+  label,
+  side,
+  rotation,
+}: {
+  label: string;
+  side: 'left' | 'right';
+  rotation: string;
+}) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 24,
+        [side]: 24,
+        zIndex: 10,
+        background: 'rgba(245, 240, 232, 0.15)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        color: colors.ivory,
+        padding: '6px 14px',
+        borderRadius: 8,
+        fontSize: 13,
+        fontWeight: 600,
+        letterSpacing: '0.06em',
+        transform: `rotate(${rotation})`,
+        border: '1px solid rgba(245, 240, 232, 0.25)',
+      }}
+    >
+      {label}
+    </div>
   );
 }

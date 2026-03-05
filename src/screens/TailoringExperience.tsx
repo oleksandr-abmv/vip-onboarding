@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { colors } from '../theme';
 
 export default function TailoringExperience() {
   const [progress, setProgress] = useState(0);
@@ -6,10 +7,7 @@ export default function TailoringExperience() {
   useEffect(() => {
     const interval = setInterval(() => {
       setProgress((p) => {
-        if (p >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
+        if (p >= 100) { clearInterval(interval); return 100; }
         return p + 0.5;
       });
     }, 30);
@@ -21,11 +19,10 @@ export default function TailoringExperience() {
       style={{
         position: 'absolute',
         inset: 0,
-        background: 'linear-gradient(143.5deg, #111111 21%, #0c0c0c 83%)',
+        background: colors.gradient,
         overflow: 'hidden',
       }}
     >
-      {/* Centered content */}
       <div
         style={{
           position: 'absolute',
@@ -40,12 +37,7 @@ export default function TailoringExperience() {
         }}
       >
         <div style={{ animation: 'fadeInUp 350ms ease-out 80ms both' }}>
-          <img
-            src="/vip-logo.svg"
-            alt="VIP"
-            style={{ width: 48, height: 48 }}
-            draggable={false}
-          />
+          <img src="/vip-logo.svg" alt="VIP" style={{ width: 48, height: 48 }} draggable={false} />
         </div>
 
         <div
@@ -70,7 +62,7 @@ export default function TailoringExperience() {
               style={{
                 height: '100%',
                 width: `${progress}%`,
-                background: '#F5F0E8',
+                background: colors.ivory,
                 borderRadius: 3,
                 transition: 'width 75ms linear',
               }}

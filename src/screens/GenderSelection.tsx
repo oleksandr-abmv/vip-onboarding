@@ -1,22 +1,30 @@
 import { useState } from 'react';
 import ScreenLayout from '../components/ScreenLayout';
+import { colors, safeTop, safeBottom } from '../theme';
 
 interface Props {
   onNext: () => void;
 }
 
+const GENDERS = [
+  { value: 'male', label: 'Male', icon: 'male' },
+  { value: 'female', label: 'Female', icon: 'female' },
+] as const;
+
+type Gender = (typeof GENDERS)[number]['value'];
+
 export default function GenderSelection({ onNext }: Props) {
-  const [selected, setSelected] = useState<'male' | 'female' | null>(null);
+  const [selected, setSelected] = useState<Gender | null>(null);
 
   return (
     <ScreenLayout>
       <h1
         style={{
           position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 72px)`,
+          top: safeTop(72),
           left: 16,
           right: 16,
-          color: '#F5F0E8',
+          color: colors.ivory,
           fontSize: 24,
           fontWeight: 600,
           lineHeight: '28px',
@@ -30,10 +38,10 @@ export default function GenderSelection({ onNext }: Props) {
       <p
         style={{
           position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 114px)`,
+          top: safeTop(114),
           left: 16,
           right: 16,
-          color: '#C9C4BA',
+          color: colors.ivoryMuted,
           fontSize: 15,
           lineHeight: '21px',
           margin: 0,
@@ -47,105 +55,58 @@ export default function GenderSelection({ onNext }: Props) {
       <div
         style={{
           position: 'absolute',
-          top: `calc(env(safe-area-inset-top, 0px) + 178px)`,
+          top: safeTop(178),
           left: 16,
           right: 16,
           display: 'flex',
           gap: 12,
         }}
       >
-        <button
-          onClick={() => setSelected('male')}
-          style={{
-            flex: 1,
-            height: 142,
-            borderRadius: 16,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            padding: 16,
-            background: '#1a1a1a',
-            border:
-              selected === 'male'
-                ? '2px solid #EDE8DC'
-                : '2px solid #494949',
-            cursor: 'pointer',
-            transition: 'border-color 0.2s',
-            animation: 'fadeInUp 350ms ease-out 240ms both',
-          }}
-        >
-          <span
-            className="material-symbols-rounded"
-            style={{ fontSize: 27, color: '#F5F0E8', opacity: 0.4 }}
-          >
-            male
-          </span>
-          <span
+        {GENDERS.map(({ value, label, icon }, i) => (
+          <button
+            key={value}
+            onClick={() => setSelected(value)}
             style={{
-              fontSize: 17,
-              fontWeight: 500,
-              color: '#F5F0E8',
-              textAlign: 'left',
+              flex: 1,
+              height: 142,
+              borderRadius: 16,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              padding: 16,
+              background: colors.bgCard,
+              border: `2px solid ${selected === value ? colors.ivoryDeep : colors.borderPrimary}`,
+              cursor: 'pointer',
+              transition: 'border-color 0.2s',
+              animation: `fadeInUp 350ms ease-out ${240 + i * 60}ms both`,
             }}
           >
-            Male
-          </span>
-        </button>
-
-        <button
-          onClick={() => setSelected('female')}
-          style={{
-            flex: 1,
-            height: 142,
-            borderRadius: 16,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            padding: 16,
-            background: '#1a1a1a',
-            border:
-              selected === 'female'
-                ? '2px solid #EDE8DC'
-                : '2px solid #494949',
-            cursor: 'pointer',
-            transition: 'border-color 0.2s',
-            animation: 'fadeInUp 350ms ease-out 300ms both',
-          }}
-        >
-          <span
-            className="material-symbols-rounded"
-            style={{ fontSize: 27, color: '#F5F0E8', opacity: 0.4 }}
-          >
-            female
-          </span>
-          <span
-            style={{
-              fontSize: 17,
-              fontWeight: 500,
-              color: '#F5F0E8',
-              textAlign: 'left',
-            }}
-          >
-            Female
-          </span>
-        </button>
+            <span
+              className="material-symbols-rounded"
+              style={{ fontSize: 27, color: colors.ivory, opacity: 0.4 }}
+            >
+              {icon}
+            </span>
+            <span style={{ fontSize: 17, fontWeight: 500, color: colors.ivory }}>
+              {label}
+            </span>
+          </button>
+        ))}
       </div>
 
-      {/* "I'd rather not to say" */}
       <button
         onClick={onNext}
         style={{
           position: 'absolute',
-          bottom: `calc(24px + env(safe-area-inset-bottom, 0px) + 68px)`,
+          bottom: safeBottom(92),
           left: 0,
           right: 0,
           background: 'none',
           border: 'none',
           cursor: 'pointer',
           fontSize: 16,
-          color: '#F5F0E8',
+          color: colors.ivory,
           textAlign: 'center',
           padding: 0,
           animation: 'fadeInUp 350ms ease-out 380ms both',
@@ -154,22 +115,21 @@ export default function GenderSelection({ onNext }: Props) {
         I'd rather not to say
       </button>
 
-      {/* Continue button */}
       <button
         onClick={onNext}
         style={{
           position: 'absolute',
-          bottom: `calc(24px + env(safe-area-inset-bottom, 0px))`,
+          bottom: safeBottom(24),
           left: 16,
           right: 16,
           height: 48,
           borderRadius: 9999,
-          background: '#EDE8DC',
+          background: colors.ivoryDeep,
           border: 'none',
           cursor: 'pointer',
           fontSize: 16,
           fontWeight: 500,
-          color: '#121212',
+          color: colors.textDark,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
