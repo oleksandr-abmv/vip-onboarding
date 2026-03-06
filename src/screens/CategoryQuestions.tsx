@@ -88,7 +88,6 @@ const CategoryQuestions = forwardRef<CategoryQuestionsHandle, CategoryQuestionsP
 
   useImperativeHandle(ref, () => ({ goBack }));
 
-  const isLast = currentIdx === total - 1;
 
   const toggleChip = (
     questionIdx: number,

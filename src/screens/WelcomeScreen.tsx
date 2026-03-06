@@ -1,5 +1,4 @@
 import { useRef, useCallback } from 'react';
-import { theme } from '../theme';
 
 
 interface WelcomeScreenProps {

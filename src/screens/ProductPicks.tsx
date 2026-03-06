@@ -300,13 +300,14 @@ export default function ProductPicks({
             marginBottom: 4,
             background: theme.colors.ctaPrimary,
             color: theme.colors.ctaPrimaryText,
-            animation: ctaBouncing ? 'ctaBounce 400ms ease' : undefined,
             border: 'none',
             borderRadius: 100,
             fontSize: 16,
             fontWeight: 500,
             cursor: 'pointer',
-            animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 320ms both',
+            animation: ctaBouncing
+              ? 'ctaBounce 400ms ease'
+              : 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 320ms both',
           }}
         >
           Continue
