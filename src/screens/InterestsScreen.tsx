@@ -70,12 +70,12 @@ export default function InterestsScreen({
       >
         <h1
           style={{
-            fontSize: 20,
+            fontSize: 24,
             fontWeight: 700,
             color: theme.colors.textPrimary,
-            lineHeight: '26px',
+            lineHeight: '32px',
             margin: 0,
-            marginBottom: 6,
+            marginBottom: 8,
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 80ms both',
           }}
         >
@@ -83,11 +83,11 @@ export default function InterestsScreen({
         </h1>
         <p
           style={{
-            fontSize: 13,
+            fontSize: 15,
             color: theme.colors.textMuted,
             margin: 0,
             marginBottom: 24,
-            lineHeight: '18px',
+            lineHeight: '22px',
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 160ms both',
           }}
         >
@@ -99,8 +99,8 @@ export default function InterestsScreen({
           style={{
             display: 'flex',
             flexWrap: 'wrap',
-            gap: 8,
-            paddingBottom: 8,
+            gap: 10,
+            paddingBottom: 10,
             alignContent: 'flex-start',
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 240ms both',
           }}
@@ -115,11 +115,11 @@ export default function InterestsScreen({
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 6,
-                  background: selected ? '#222' : theme.colors.surface,
+                  gap: 8,
+                  background: selected ? '#1a1a1a' : theme.colors.surface,
                   border: `1.5px solid ${selected ? '#fff' : '#333'}`,
-                  borderRadius: 20,
-                  padding: '8px 14px',
+                  borderRadius: 24,
+                  padding: '10px 16px',
                   cursor: 'pointer',
                   transition: 'background 150ms ease, border-color 150ms ease, transform 150ms',
                   transform: isTapped ? 'scale(0.95)' : 'scale(1)',
@@ -127,13 +127,13 @@ export default function InterestsScreen({
                   flexShrink: 0,
                 }}
               >
-                <span className="material-symbols-rounded" style={{ fontSize: 16, color: selected ? '#fff' : '#888', transition: 'color 150ms ease' }}>{cat.icon}</span>
+                <span className="material-symbols-rounded" style={{ fontSize: 20, color: selected ? '#fff' : '#888', transition: 'color 150ms ease' }}>{cat.icon}</span>
                 <span
                   style={{
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: 500,
                     color: selected ? '#fff' : '#bbb',
-                    lineHeight: '16px',
+                    lineHeight: '18px',
                     transition: 'color 150ms ease',
                   }}
                 >
@@ -156,12 +156,12 @@ export default function InterestsScreen({
         {/* Selection count */}
         <p
           style={{
-            fontSize: 13,
+            fontSize: 14,
             color: theme.colors.textTertiary,
             textAlign: 'center',
             margin: 0,
-            marginBottom: 8,
-            height: 18,
+            marginBottom: 10,
+            height: 20,
             opacity: count > 0 ? 1 : 0,
             transition: 'opacity 200ms ease',
           }}
@@ -175,13 +175,13 @@ export default function InterestsScreen({
           disabled={count < 1}
           style={{
             width: '100%',
-            height: 48,
+            height: 52,
             marginBottom: 4,
             background: count >= 1 ? theme.colors.ctaPrimary : '#252525',
             color: count >= 1 ? theme.colors.ctaPrimaryText : theme.colors.textTertiary,
             border: 'none',
             borderRadius: 100,
-            fontSize: 16,
+            fontSize: 17,
             fontWeight: 500,
             cursor: count >= 1 ? 'pointer' : 'default',
             transition: 'background 200ms ease, color 200ms ease',

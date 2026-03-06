@@ -31,7 +31,7 @@ function filterProducts(interests: string[]): typeof PRODUCTS {
     return (ai >= 0 ? ai : 999) - (bi >= 0 ? bi : 999);
   });
 
-  return filtered.slice(0, 8);
+  return filtered;
 }
 
 export default function ProductPicks({
@@ -45,8 +45,8 @@ export default function ProductPicks({
   const [sheetProduct, setSheetProduct] = useState<Product | null>(null);
   const [sheetClosing, setSheetClosing] = useState(false);
   const [flyingHearts, setFlyingHearts] = useState<{ id: number; x: number; y: number }[]>([]);
-  const [ctaBouncing, setCtaBouncing] = useState(false);
-  const ctaRef = useRef<HTMLButtonElement>(null);
+  const [counterBouncing, setCounterBouncing] = useState(false);
+  const counterRef = useRef<HTMLParagraphElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const heartIdRef = useRef(0);
   const products = filterProducts(selectedInterests);
@@ -83,10 +83,10 @@ export default function ProductPicks({
         const id = ++heartIdRef.current;
         setFlyingHearts((prev) => [...prev, { id, x, y }]);
 
-        // Bounce CTA when heart arrives
+        // Bounce counter when heart arrives
         setTimeout(() => {
-          setCtaBouncing(true);
-          setTimeout(() => setCtaBouncing(false), 400);
+          setCounterBouncing(true);
+          setTimeout(() => setCounterBouncing(false), 400);
         }, 450);
 
         // Remove flying heart after animation
@@ -125,12 +125,12 @@ export default function ProductPicks({
       >
         <h1
           style={{
-            fontSize: 20,
+            fontSize: 24,
             fontWeight: 700,
             color: theme.colors.textPrimary,
-            lineHeight: '26px',
+            lineHeight: '32px',
             margin: 0,
-            marginBottom: 6,
+            marginBottom: 8,
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 80ms both',
           }}
         >
@@ -138,11 +138,11 @@ export default function ProductPicks({
         </h1>
         <p
           style={{
-            fontSize: 13,
+            fontSize: 15,
             color: theme.colors.textMuted,
-            lineHeight: '18px',
+            lineHeight: '22px',
             margin: 0,
-            marginBottom: 18,
+            marginBottom: 20,
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 160ms both',
           }}
         >
@@ -154,9 +154,9 @@ export default function ProductPicks({
           style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: 12,
+            gap: 14,
             alignContent: 'start',
-            paddingBottom: 8,
+            paddingBottom: 10,
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 240ms both',
           }}
         >
@@ -169,7 +169,7 @@ export default function ProductPicks({
                 key={product.name}
                 style={{
                   background: theme.colors.surface,
-                  borderRadius: 14,
+                  borderRadius: 16,
                   overflow: 'hidden',
                   position: 'relative',
                 }}
@@ -178,7 +178,7 @@ export default function ProductPicks({
                 <div
                   onClick={() => openSheet(product)}
                   style={{
-                    height: 72,
+                    height: 110,
                     background: theme.colors.surfaceElevated,
                     overflow: 'hidden',
                     cursor: 'pointer',
@@ -200,10 +200,10 @@ export default function ProductPicks({
                   onClick={(e) => toggleLike(product.name, e)}
                   style={{
                     position: 'absolute',
-                    top: 6,
-                    right: 6,
-                    width: 28,
-                    height: 28,
+                    top: 8,
+                    right: 8,
+                    width: 36,
+                    height: 36,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -219,7 +219,7 @@ export default function ProductPicks({
                   <span
                     className="material-symbols-rounded"
                     style={{
-                      fontSize: 16,
+                      fontSize: 20,
                       fontVariationSettings: liked ? "'FILL' 1" : "'FILL' 0",
                     }}
                   >
@@ -228,32 +228,32 @@ export default function ProductPicks({
                 </button>
 
                 {/* Info */}
-                <div style={{ padding: '6px 10px 8px' }}>
+                <div style={{ padding: '8px 12px 10px' }}>
                   <div
                     style={{
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: 500,
                       color: '#bbb',
-                      lineHeight: '14px',
+                      lineHeight: '16px',
                     }}
                   >
                     {product.brand}
                   </div>
                   <div
                     style={{
-                      fontSize: 10,
+                      fontSize: 13,
                       color: theme.colors.textSecondary,
-                      lineHeight: '14px',
-                      marginTop: 1,
+                      lineHeight: '18px',
+                      marginTop: 2,
                     }}
                   >
                     {product.name}
                   </div>
                   <div
                     style={{
-                      fontSize: 9,
+                      fontSize: 12,
                       color: theme.colors.textTertiary,
-                      lineHeight: '12px',
+                      lineHeight: '16px',
                       marginTop: 3,
                     }}
                   >
@@ -276,15 +276,18 @@ export default function ProductPicks({
       >
         {/* Like count */}
         <p
+          ref={counterRef}
           style={{
-            fontSize: 13,
-            color: theme.colors.textTertiary,
+            fontSize: 15,
+            fontWeight: 600,
+            color: theme.colors.textPrimary,
             textAlign: 'center',
             margin: 0,
-            marginBottom: 8,
-            height: 18,
+            marginBottom: 10,
+            height: 22,
             opacity: likeCount > 0 ? 1 : 0,
             transition: 'opacity 200ms ease',
+            animation: counterBouncing ? 'ctaBounce 400ms ease' : undefined,
           }}
         >
           {likeCount} liked
@@ -292,22 +295,19 @@ export default function ProductPicks({
 
         {/* CTA */}
         <button
-          ref={ctaRef}
           onClick={onNext}
           style={{
             width: '100%',
-            height: 48,
+            height: 52,
             marginBottom: 4,
             background: theme.colors.ctaPrimary,
             color: theme.colors.ctaPrimaryText,
             border: 'none',
             borderRadius: 100,
-            fontSize: 16,
+            fontSize: 17,
             fontWeight: 500,
             cursor: 'pointer',
-            animation: ctaBouncing
-              ? 'ctaBounce 400ms ease'
-              : 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 320ms both',
+            animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 320ms both',
           }}
         >
           Continue
@@ -316,13 +316,13 @@ export default function ProductPicks({
 
       {/* Flying hearts */}
       {flyingHearts.map((heart) => {
-        const ctaEl = ctaRef.current;
+        const counterEl = counterRef.current;
         const containerEl = containerRef.current;
-        if (!ctaEl || !containerEl) return null;
-        const ctaRect = ctaEl.getBoundingClientRect();
+        if (!counterEl || !containerEl) return null;
+        const counterRect = counterEl.getBoundingClientRect();
         const containerRect = containerEl.getBoundingClientRect();
-        const targetX = ctaRect.left + ctaRect.width / 2 - containerRect.left;
-        const targetY = ctaRect.top + ctaRect.height / 2 - containerRect.top;
+        const targetX = counterRect.left + counterRect.width / 2 - containerRect.left;
+        const targetY = counterRect.top + counterRect.height / 2 - containerRect.top;
         return (
           <span
             key={heart.id}
@@ -332,18 +332,16 @@ export default function ProductPicks({
               left: heart.x,
               top: heart.y,
               zIndex: 200,
-              fontSize: 20,
+              fontSize: 22,
               color: theme.colors.heartActive,
               fontVariationSettings: "'FILL' 1",
               pointerEvents: 'none',
               animation: 'flyToButton 500ms cubic-bezier(0.4, 0, 0.2, 1) forwards',
               transition: 'left 500ms cubic-bezier(0.4, 0, 0.2, 1), top 500ms cubic-bezier(0.4, 0, 0.2, 1)',
-              // Move to CTA center
               ...({ '--target-x': `${targetX}px`, '--target-y': `${targetY}px` } as React.CSSProperties),
             }}
             ref={(el) => {
               if (el) {
-                // Animate position to CTA center
                 requestAnimationFrame(() => {
                   el.style.left = `${targetX}px`;
                   el.style.top = `${targetY}px`;
@@ -375,34 +373,34 @@ export default function ProductPicks({
           <div
             style={{
               position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
+              bottom: 16,
+              left: 16,
+              right: 16,
               zIndex: 101,
               background: theme.colors.surface,
-              borderRadius: '20px 20px 0 0',
-              maxHeight: '75%',
+              borderRadius: 20,
+              maxHeight: 'calc(75% - 32px)',
               display: 'flex',
               flexDirection: 'column',
               animation: `${sheetClosing ? 'sheetSlideDown' : 'sheetSlideUp'} 300ms cubic-bezier(0.25, 0.1, 0.25, 1) both`,
             }}
           >
             {/* Handle */}
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: '#444' }} />
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 6px' }}>
+              <div style={{ width: 40, height: 4, borderRadius: 2, background: '#444' }} />
             </div>
 
             {/* Content */}
-            <div style={{ overflow: 'auto', padding: '0 20px 20px' }}>
+            <div style={{ overflow: 'auto', padding: '0 24px 24px' }}>
               {/* Large image */}
               <div
                 style={{
                   width: '100%',
                   aspectRatio: '4/3',
-                  borderRadius: 14,
+                  borderRadius: 16,
                   overflow: 'hidden',
                   background: theme.colors.surfaceElevated,
-                  marginBottom: 16,
+                  marginBottom: 18,
                 }}
               >
                 <img
@@ -415,12 +413,12 @@ export default function ProductPicks({
               {/* Brand */}
               <div
                 style={{
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: 600,
                   color: theme.colors.textTertiary,
                   textTransform: 'uppercase',
                   letterSpacing: '0.8px',
-                  marginBottom: 4,
+                  marginBottom: 6,
                 }}
               >
                 {sheetProduct.brand}
@@ -429,11 +427,11 @@ export default function ProductPicks({
               {/* Name */}
               <div
                 style={{
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: 700,
                   color: theme.colors.textPrimary,
-                  lineHeight: '24px',
-                  marginBottom: 4,
+                  lineHeight: '26px',
+                  marginBottom: 6,
                 }}
               >
                 {sheetProduct.name}
@@ -442,26 +440,26 @@ export default function ProductPicks({
               {/* Price */}
               <div
                 style={{
-                  fontSize: 14,
+                  fontSize: 16,
                   fontWeight: 500,
                   color: theme.colors.textSecondary,
-                  marginBottom: 14,
+                  marginBottom: 16,
                 }}
               >
                 {sheetProduct.price}
               </div>
 
               {/* Divider */}
-              <div style={{ height: 1, background: '#333', marginBottom: 14 }} />
+              <div style={{ height: 1, background: '#333', marginBottom: 16 }} />
 
               {/* Description */}
               <p
                 style={{
-                  fontSize: 13,
+                  fontSize: 15,
                   color: theme.colors.textMuted,
-                  lineHeight: '20px',
+                  lineHeight: '22px',
                   margin: 0,
-                  marginBottom: 20,
+                  marginBottom: 24,
                 }}
               >
                 {sheetProduct.description}
@@ -472,12 +470,12 @@ export default function ProductPicks({
                 onClick={closeSheet}
                 style={{
                   width: '100%',
-                  height: 44,
+                  height: 48,
                   background: theme.colors.surfaceElevated,
                   color: theme.colors.textPrimary,
                   border: 'none',
                   borderRadius: 100,
-                  fontSize: 14,
+                  fontSize: 16,
                   fontWeight: 500,
                   cursor: 'pointer',
                   marginBottom: `env(safe-area-inset-bottom, 0px)`,

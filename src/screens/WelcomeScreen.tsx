@@ -87,9 +87,9 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
           src="/vip-logo.svg"
           alt="VIP"
           style={{
-            width: 56,
-            height: 56,
-            marginBottom: 28,
+            width: 64,
+            height: 64,
+            marginBottom: 32,
             animation: 'fadeIn 600ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
           }}
         />
@@ -97,13 +97,13 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
         {/* Title */}
         <h1
           style={{
-            fontSize: 24,
+            fontSize: 28,
             fontWeight: 700,
             color: '#fff',
             textAlign: 'center',
-            lineHeight: '30px',
+            lineHeight: '36px',
             margin: 0,
-            marginBottom: 8,
+            marginBottom: 10,
             letterSpacing: '-0.3px',
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 200ms both',
           }}
@@ -115,13 +115,13 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
         {/* Subtitle */}
         <p
           style={{
-            fontSize: 13,
+            fontSize: 15,
             color: 'rgba(255,255,255,0.7)',
             textAlign: 'center',
-            lineHeight: '20px',
+            lineHeight: '22px',
             margin: 0,
             marginBottom: 40,
-            maxWidth: 260,
+            maxWidth: 290,
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 300ms both',
           }}
         >
@@ -135,7 +135,7 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
             flexDirection: 'column',
             alignItems: 'stretch',
             width: '100%',
-            maxWidth: 280,
+            maxWidth: 300,
           }}
         >
           {BENEFITS.map((benefit, i) => (
@@ -152,14 +152,14 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 14,
-                  padding: '14px 8px',
+                  gap: 16,
+                  padding: '16px 8px',
                 }}
               >
                 <span
                   className="material-symbols-rounded"
                   style={{
-                    fontSize: 18,
+                    fontSize: 22,
                     color: 'rgba(255,255,255,0.9)',
                     flexShrink: 0,
                   }}
@@ -168,10 +168,10 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
                 </span>
                 <span
                   style={{
-                    fontSize: 13,
+                    fontSize: 15,
                     fontWeight: 500,
                     color: 'rgba(255,255,255,0.8)',
-                    lineHeight: '18px',
+                    lineHeight: '20px',
                     letterSpacing: '0.1px',
                   }}
                 >
@@ -190,14 +190,14 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
           onClick={onNext}
           style={{
             width: '100%',
-            maxWidth: 280,
-            height: 48,
+            maxWidth: 300,
+            height: 52,
             flexShrink: 0,
             background: 'rgba(255,255,255,0.95)',
             color: '#0A0A0A',
             border: 'none',
             borderRadius: 100,
-            fontSize: 16,
+            fontSize: 17,
             fontWeight: 600,
             cursor: 'pointer',
             backdropFilter: 'blur(8px)',
@@ -210,12 +210,12 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
         {/* Terms */}
         <p
           style={{
-            fontSize: 10,
+            fontSize: 12,
             color: 'rgba(255,255,255,0.35)',
             textAlign: 'center',
-            lineHeight: '14px',
+            lineHeight: '16px',
             margin: 0,
-            marginTop: 12,
+            marginTop: 14,
             flexShrink: 0,
             marginBottom: `env(safe-area-inset-bottom, 0px)`,
             animation: 'fadeIn 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 800ms both',

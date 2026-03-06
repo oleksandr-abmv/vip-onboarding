@@ -69,7 +69,7 @@ export function computeProfile(
     const config = categoryConfigs[catId];
     if (!config) return;
     const tier = config.budgetTiers.find((t) => t.id === answers.budget);
-    if (tier) highlights.push(`${config.name} \u2014 ${tier.label}`);
+    if (tier) highlights.push(`${config.name}: ${tier.label}`);
   });
 
   return { vibeLabel, description, highlights: highlights.slice(0, 4) };

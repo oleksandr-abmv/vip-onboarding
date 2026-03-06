@@ -45,7 +45,7 @@ export default function TasteProfile({
       const answers = categoryAnswers[id];
       if (!config || !answers?.budget) return null;
       const tier = config.budgetTiers.find((t) => t.id === answers.budget);
-      return tier ? `${config.name} \u2014 ${tier.label}` : null;
+      return tier ? `${config.name}: ${tier.label}` : null;
     })
     .filter(Boolean) as string[];
 
@@ -78,7 +78,7 @@ export default function TasteProfile({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '0 20px 18px',
+        padding: '0 24px 20px',
         background: 'transparent',
         overflow: 'hidden',
       }}
@@ -95,7 +95,7 @@ export default function TasteProfile({
               position: 'absolute',
               left: `${12 + i * 15}%`,
               top: '55%',
-              fontSize: 14,
+              fontSize: 16,
               color: 'rgba(255, 255, 255, 0.15)',
               animation: `floatUp 2.5s ease-out ${600 + i * 200}ms both`,
             }}
@@ -110,13 +110,13 @@ export default function TasteProfile({
 
       <h1
         style={{
-          fontSize: 22,
+          fontSize: 26,
           fontWeight: 700,
           color: theme.colors.textPrimary,
           textAlign: 'center',
-          lineHeight: '28px',
+          lineHeight: '34px',
           margin: 0,
-          marginBottom: 20,
+          marginBottom: 22,
           zIndex: 1,
           animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
         }}
@@ -131,7 +131,7 @@ export default function TasteProfile({
           background: `linear-gradient(135deg, ${theme.colors.profileGradientStart}, ${theme.colors.profileGradientEnd})`,
           border: '1px solid rgba(255,255,255,0.12)',
           borderRadius: 18,
-          padding: '24px 20px',
+          padding: '28px 24px',
           width: '100%',
           maxWidth: 340,
           zIndex: 1,
@@ -165,13 +165,13 @@ export default function TasteProfile({
         {/* Vibe label */}
         <h2
           style={{
-            fontSize: 22,
+            fontSize: 26,
             fontWeight: 700,
             color: theme.colors.textPrimary,
             textAlign: 'center',
-            lineHeight: '28px',
+            lineHeight: '34px',
             margin: 0,
-            marginBottom: 16,
+            marginBottom: 18,
             minHeight: '1.4em',
           }}
         >
@@ -202,14 +202,14 @@ export default function TasteProfile({
               style={{
                 background: theme.colors.tagBg,
                 borderRadius: 10,
-                padding: '8px 10px',
+                padding: '10px 12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 animation: `scaleIn 300ms ${theme.animation.spring} ${500 + i * 80}ms both`,
               }}
             >
-              <span className="material-symbols-rounded" style={{ fontSize: 18, color: '#bbb' }}>{icon}</span>
+              <span className="material-symbols-rounded" style={{ fontSize: 22, color: '#bbb' }}>{icon}</span>
             </span>
           ))}
         </div>
@@ -218,7 +218,7 @@ export default function TasteProfile({
         {categorySummaries.length > 0 && (
           <p
             style={{
-              fontSize: 12,
+              fontSize: 14,
               color: '#999',
               textAlign: 'center',
               lineHeight: 1.6,
@@ -250,10 +250,10 @@ export default function TasteProfile({
                   background: theme.colors.tagBg,
                   border: `1px solid ${theme.colors.tagBorder}`,
                   borderRadius: 100,
-                  padding: '5px 14px',
-                  fontSize: 11,
+                  padding: '6px 16px',
+                  fontSize: 13,
                   color: '#bbb',
-                  lineHeight: '16px',
+                  lineHeight: '18px',
                 }}
               >
                 {h}
@@ -265,10 +265,10 @@ export default function TasteProfile({
         {/* Description */}
         <p
           style={{
-            fontSize: 13,
+            fontSize: 15,
             color: theme.colors.textMuted,
             textAlign: 'center',
-            lineHeight: '20px',
+            lineHeight: '22px',
             margin: 0,
             marginBottom: likedProducts.length > 0 ? 12 : 0,
             animation: 'fadeIn 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 900ms both',
@@ -281,15 +281,15 @@ export default function TasteProfile({
         {likedProducts.length > 0 && (
           <p
             style={{
-              fontSize: 12,
+              fontSize: 14,
               color: theme.colors.textTertiary,
               textAlign: 'center',
-              lineHeight: '16px',
+              lineHeight: '20px',
               margin: 0,
               animation: 'fadeIn 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 1000ms both',
             }}
           >
-            You liked {likedProducts.length} items — we'll use these as taste anchors
+            {likedProducts.length} items liked, shaping your taste profile
           </p>
         )}
       </div>
@@ -303,14 +303,14 @@ export default function TasteProfile({
         style={{
           width: '100%',
           maxWidth: 340,
-          height: 52,
+          height: 56,
           flexShrink: 0,
           zIndex: 1,
           background: theme.colors.ctaPrimary,
           color: theme.colors.ctaPrimaryText,
           border: 'none',
           borderRadius: 100,
-          fontSize: 17,
+          fontSize: 18,
           fontWeight: 600,
           cursor: 'pointer',
           letterSpacing: '-0.2px',

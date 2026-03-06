@@ -380,8 +380,8 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
     budgetTiers: [
       { id: 'charter', price: 'Charter / membership', label: 'Pay per flight' },
       { id: 'fractional', price: 'Fractional ownership', label: 'Shared asset' },
-      { id: 'turboprop', price: 'Full ownership \u2014 turboprop', label: 'Entry ownership' },
-      { id: 'jet', price: 'Full ownership \u2014 jet', label: 'Private jet' },
+      { id: 'turboprop', price: 'Full ownership, turboprop', label: 'Entry ownership' },
+      { id: 'jet', price: 'Full ownership, jet', label: 'Private jet' },
     ],
     questions: [
       {

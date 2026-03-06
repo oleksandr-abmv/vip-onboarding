@@ -3,9 +3,9 @@
 export const theme = {
   colors: {
     background: '#0A0A0A',
-    surface: '#1A1A1A',
-    surfaceElevated: '#222222',
-    surfaceHover: '#1e1e1e',
+    surface: '#141414',
+    surfaceElevated: '#1C1C1C',
+    surfaceHover: '#181818',
     border: 'rgba(255, 255, 255, 0.06)',
     borderSelected: '#FFFFFF',
     borderGlow: '0 0 12px rgba(255, 255, 255, 0.08)',
@@ -19,11 +19,11 @@ export const theme = {
     heartActive: '#E53935',
     progressBg: '#333333',
     progressFill: '#FFFFFF',
-    tagBg: '#2A2A2A',
-    tagBorder: '#3A3A3A',
+    tagBg: '#1E1E1E',
+    tagBorder: '#2A2A2A',
     tagText: '#BBBBBB',
-    profileGradientStart: '#1A1A1A',
-    profileGradientEnd: '#252525',
+    profileGradientStart: '#131313',
+    profileGradientEnd: '#1A1A1A',
   },
   radii: {
     card: '10px',
@@ -34,9 +34,9 @@ export const theme = {
     phone: '32px',
   },
   spacing: {
-    screenPadding: '18px',
-    cardGap: '8px',
-    sectionGap: '14px',
+    screenPadding: '24px',
+    cardGap: '10px',
+    sectionGap: '18px',
   },
   animation: {
     cardBounce: 'cubic-bezier(0.34, 1.56, 0.64, 1)',

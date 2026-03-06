@@ -342,6 +342,144 @@ const PRODUCTS: Product[] = [
     description: 'PSA-graded vintage baseball card of the Yankees legend in near-mint condition.',
     category: 'Collectibles',
   },
+
+  // Additional Watches
+  {
+    name: 'Nautilus 5711/1A',
+    brand: 'Patek Philippe',
+    price: '$35,000',
+    image: 'https://images.unsplash.com/photo-1587836374828-4dbafa94cf0e?w=600&h=600&fit=crop',
+    description: 'Legendary luxury sports watch with olive-green dial, self-winding calibre 26-330 SC movement.',
+    category: 'Watches',
+  },
+  {
+    name: 'Tank Française',
+    brand: 'Cartier',
+    price: '$4,150',
+    image: 'https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?w=600&h=600&fit=crop',
+    description: 'Elegant rectangular watch in stainless steel with chain-link bracelet and silvered dial.',
+    category: 'Watches',
+  },
+
+  // Additional Jewelry
+  {
+    name: 'Tiffany T Wire Bracelet',
+    brand: 'Tiffany & Co.',
+    price: '$1,350',
+    image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600&h=600&fit=crop',
+    description: 'Modern wire bracelet in 18k rose gold with clean geometric T motif at both ends.',
+    category: 'Jewelry',
+  },
+  {
+    name: 'B.zero1 Ring',
+    brand: 'Bulgari',
+    price: '$1,080',
+    image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600&h=600&fit=crop',
+    description: 'Signature spiral ring in 18kt white gold inspired by the Colosseum architecture.',
+    category: 'Jewelry',
+  },
+
+  // Additional Vehicles
+  {
+    name: 'Cayenne Turbo GT',
+    brand: 'Porsche',
+    price: '$185,000',
+    image: 'https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=600&h=600&fit=crop',
+    description: 'Performance SUV with twin-turbo V8 producing 631 hp and active roll stabilization.',
+    category: 'Vehicles',
+  },
+  {
+    name: 'DBX707',
+    brand: 'Aston Martin',
+    price: '$239,000',
+    image: 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=600&h=600&fit=crop',
+    description: 'Ultra-luxury SUV with 697 hp twin-turbo V8 and bespoke hand-stitched leather interior.',
+    category: 'Vehicles',
+  },
+
+  // Additional Handbags
+  {
+    name: 'Peekaboo ISeeU Medium',
+    brand: 'Fendi',
+    price: '$5,200',
+    image: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=600&h=600&fit=crop',
+    description: 'Structured leather handbag with iconic twist-lock closure and dual-compartment interior.',
+    category: 'Handbags',
+  },
+  {
+    name: 'Puzzle Bag',
+    brand: 'Loewe',
+    price: '$3,650',
+    image: 'https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=600&h=600&fit=crop',
+    description: 'Geometric paneled calfskin bag that can be worn multiple ways, crafted in Spain.',
+    category: 'Handbags',
+  },
+
+  // Additional Fine Wine
+  {
+    name: 'Opus One 2019',
+    brand: 'Opus One',
+    price: '$450',
+    image: 'https://images.unsplash.com/photo-1586370434639-0fe43b2d32d6?w=600&h=600&fit=crop',
+    description: 'Napa Valley Bordeaux blend with cassis, dark chocolate, and violet. A joint Mondavi-Rothschild venture.',
+    category: 'Fine Wine',
+  },
+  {
+    name: 'Cristal 2014',
+    brand: 'Louis Roederer',
+    price: '$310',
+    image: 'https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=600&h=600&fit=crop',
+    description: 'Prestige champagne in crystal-clear bottle with chalky minerality and white fruit complexity.',
+    category: 'Fine Wine',
+  },
+
+  // Additional Fashion
+  {
+    name: 'Silk Pajama Set',
+    brand: 'Tom Ford',
+    price: '$3,290',
+    image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=600&h=600&fit=crop',
+    description: 'Pure silk lounge set with contrast piping and signature TF monogram on breast pocket.',
+    category: 'Fashion',
+  },
+  {
+    name: 'Reversible Belt',
+    brand: 'Hermès',
+    price: '$1,075',
+    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600&h=600&fit=crop',
+    description: 'Reversible leather belt in Togo and Swift calfskin with iconic H buckle in brushed palladium.',
+    category: 'Fashion',
+  },
+
+  // Additional Sunglasses
+  {
+    name: 'Wayfarer Classic',
+    brand: 'Ray-Ban',
+    price: '$178',
+    image: 'https://images.unsplash.com/photo-1577803645773-f96470509666?w=600&h=600&fit=crop',
+    description: 'Iconic trapezoidal sunglasses with acetate frame and crystal green G-15 lenses.',
+    category: 'Sunglasses',
+  },
+
+  // Additional Fine Art
+  {
+    name: 'Neon Light Installation',
+    brand: 'Pace Gallery',
+    price: '$22,000',
+    image: 'https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?w=600&h=600&fit=crop',
+    description: 'Contemporary neon artwork exploring color and form, hand-bent glass tubes with argon gas.',
+    category: 'Fine Art',
+  },
+
+  // Additional Cigars
+  {
+    name: 'Lusitania Gran Reserva',
+    brand: 'Partagás',
+    price: '$65',
+    image: 'https://images.unsplash.com/photo-1507652313519-d4e9174996dd?w=600&h=600&fit=crop',
+    description: 'Full-bodied double corona with earthy notes of leather, dark chocolate, and roasted coffee.',
+    category: 'Cigars',
+  },
 ];
 
 export function getProductsForInterests(interests: Set<string>): Product[] {

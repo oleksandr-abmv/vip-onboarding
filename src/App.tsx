@@ -207,8 +207,8 @@ function App() {
         <button
           onClick={handleBack}
           style={{
-            width: 28,
-            height: 22,
+            width: 44,
+            height: 44,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -221,11 +221,11 @@ function App() {
             pointerEvents: showBack ? 'auto' : 'none',
           }}
         >
-          <svg width="8" height="15" viewBox="0 0 8 15" fill="none">
+          <svg width="10" height="18" viewBox="0 0 10 18" fill="none">
             <path
-              d="M7 1L1 7.5L7 14"
+              d="M9 1L1 9L9 17"
               stroke="rgba(255,255,255,0.8)"
-              strokeWidth="1.5"
+              strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
@@ -242,8 +242,9 @@ function App() {
             fontSize: 16,
             fontWeight: 500,
             color: theme.colors.textMuted,
-            lineHeight: '22px',
-            padding: 0,
+            lineHeight: '44px',
+            padding: '0 4px',
+            minHeight: 44,
             opacity: showSkip ? 1 : 0,
             transition: 'opacity 0.3s ease',
             pointerEvents: showSkip ? 'auto' : 'none',

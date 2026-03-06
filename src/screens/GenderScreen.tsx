@@ -45,12 +45,12 @@ export default function GenderScreen({
 
       <h1
         style={{
-          fontSize: 20,
+          fontSize: 24,
           fontWeight: 700,
           color: theme.colors.textPrimary,
-          lineHeight: '26px',
+          lineHeight: '32px',
           margin: 0,
-          marginBottom: 6,
+          marginBottom: 8,
           animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
         }}
       >
@@ -59,9 +59,9 @@ export default function GenderScreen({
 
       <p
         style={{
-          fontSize: 13,
+          fontSize: 15,
           color: theme.colors.textMuted,
-          lineHeight: '18px',
+          lineHeight: '22px',
           margin: 0,
           marginBottom: 28,
           animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 80ms both',
@@ -90,11 +90,11 @@ export default function GenderScreen({
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: 10,
-                background: selected ? '#1e1e1e' : theme.colors.surface,
+                gap: 12,
+                background: selected ? '#1a1a1a' : theme.colors.surface,
                 border: `1.5px solid ${selected ? '#fff' : '#333'}`,
-                borderRadius: 14,
-                padding: '20px 12px',
+                borderRadius: 16,
+                padding: '24px 16px',
                 cursor: 'pointer',
                 transition: 'background 150ms ease, border-color 150ms ease, transform 150ms',
                 transform: isTapped ? 'scale(0.96)' : 'scale(1)',
@@ -104,7 +104,7 @@ export default function GenderScreen({
               <span
                 className="material-symbols-rounded"
                 style={{
-                  fontSize: 28,
+                  fontSize: 32,
                   color: selected ? '#fff' : '#666',
                   transition: 'color 150ms ease',
                 }}
@@ -113,10 +113,10 @@ export default function GenderScreen({
               </span>
               <span
                 style={{
-                  fontSize: 13,
+                  fontSize: 15,
                   fontWeight: 500,
                   color: selected ? '#fff' : '#999',
-                  lineHeight: '16px',
+                  lineHeight: '20px',
                   transition: 'color 150ms ease',
                 }}
               >
@@ -137,10 +137,10 @@ export default function GenderScreen({
           background: 'none',
           border: 'none',
           cursor: 'pointer',
-          fontSize: 13,
+          fontSize: 15,
           color: gender === 'prefer-not' ? theme.colors.textPrimary : theme.colors.textTertiary,
           textAlign: 'center',
-          padding: '8px 0',
+          padding: '12px 0',
           marginBottom: 12,
           transition: 'color 150ms ease',
           animation: 'fadeIn 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 240ms both',
@@ -155,14 +155,14 @@ export default function GenderScreen({
         disabled={!gender}
         style={{
           width: '100%',
-          height: 48,
+          height: 52,
           flexShrink: 0,
           marginBottom: `calc(4px + env(safe-area-inset-bottom, 0px))`,
           background: gender ? theme.colors.ctaPrimary : '#252525',
           color: gender ? theme.colors.ctaPrimaryText : theme.colors.textTertiary,
           border: 'none',
           borderRadius: 100,
-          fontSize: 16,
+          fontSize: 17,
           fontWeight: 500,
           cursor: gender ? 'pointer' : 'default',
           transition: 'background 200ms ease, color 200ms ease',

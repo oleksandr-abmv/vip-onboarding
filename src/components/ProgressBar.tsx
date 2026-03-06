@@ -15,7 +15,7 @@ export default function ProgressBar({ step, totalSteps = 7 }: ProgressBarProps) 
         top: 0,
         left: 0,
         right: 0,
-        height: 2,
+        height: 3,
         background: theme.colors.progressBg,
         zIndex: 50,
       }}
