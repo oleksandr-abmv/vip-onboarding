@@ -1,25 +1,42 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import PhoneFrame from './components/PhoneFrame';
-import GenderSelection from './screens/GenderSelection';
-import InterestsSelection from './screens/InterestsSelection';
-import BrandsSelection from './screens/BrandsSelection';
-import HowToSelect from './screens/HowToSelect';
-import TailoringExperience from './screens/TailoringExperience';
-import { colors, safeTop } from './theme';
+import WelcomeScreen from './screens/WelcomeScreen';
+import GenderScreen from './screens/GenderScreen';
+import InterestsScreen from './screens/InterestsScreen';
+import CategoryQuestions from './screens/CategoryQuestions';
+import type { CategoryQuestionsHandle } from './screens/CategoryQuestions';
+import ProductPicks from './screens/ProductPicks';
+import TasteProfile from './screens/TasteProfile';
+import TailoringScreen from './screens/TailoringScreen';
+import { theme, safeTop } from './theme';
+import { computeProfile } from './utils/profileLogic';
+import type { CategoryAnswerSet } from './utils/profileLogic';
 
-type Screen = 'gender' | 'interests' | 'brands' | 'tailoring';
 
-const SCREENS: Screen[] = ['gender', 'interests', 'brands', 'tailoring'];
+type Screen = 'welcome' | 'gender' | 'interests' | 'categoryQuestions' | 'products' | 'profile' | 'tailoring';
+
+const SCREEN_ORDER: Screen[] = ['welcome', 'gender', 'interests', 'categoryQuestions', 'products', 'profile', 'tailoring'];
 
 function App() {
-  const [screen, setScreen] = useState<Screen>('gender');
-  const [showHowTo, setShowHowTo] = useState(false);
+  const [screen, setScreen] = useState<Screen>('welcome');
   const [exitingScreen, setExitingScreen] = useState<Screen | null>(null);
   const [direction, setDirection] = useState<'forward' | 'back'>('forward');
   const transitionRef = useRef<number | null>(null);
-  const [selectedInterests, setSelectedInterests] = useState<Set<string>>(new Set());
+  const categoryQuestionsRef = useRef<CategoryQuestionsHandle>(null);
 
-  const currentIndex = SCREENS.indexOf(screen);
+  // Onboarding state
+  const [gender, setGender] = useState<string | null>(null);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [categoryAnswers, setCategoryAnswers] = useState<Record<string, CategoryAnswerSet>>({});
+  const [likedProducts, setLikedProducts] = useState<string[]>([]);
+
+  // Dynamic total steps: gender + interests + N category pages + products + profile
+  const totalSteps = 2 + Math.max(selectedInterests.length, 1) + 2;
+
+  const profile = useMemo(
+    () => computeProfile(categoryAnswers, likedProducts, selectedInterests),
+    [categoryAnswers, likedProducts, selectedInterests],
+  );
 
   const goTo = useCallback(
     (next: Screen, dir: 'forward' | 'back') => {
@@ -27,53 +44,117 @@ function App() {
       setDirection(dir);
       setExitingScreen(screen);
       setScreen(next);
-      if (next === 'brands') setTimeout(() => setShowHowTo(true), 350);
       transitionRef.current = window.setTimeout(() => {
         setExitingScreen(null);
         transitionRef.current = null;
-      }, 350);
+      }, 400);
     },
     [screen],
   );
 
-  const handleNext = useCallback(() => {
-    const next = SCREENS[currentIndex + 1];
-    if (next) goTo(next, 'forward');
-  }, [currentIndex, goTo]);
-
-  const handleBack = useCallback(() => {
-    const prev = SCREENS[currentIndex - 1];
-    if (prev) goTo(prev, 'back');
-  }, [currentIndex, goTo]);
+  // Navigation handlers
+  const handleWelcomeNext = useCallback(() => goTo('gender', 'forward'), [goTo]);
+  const handleGenderNext = useCallback(() => goTo('interests', 'forward'), [goTo]);
+  const handleGenderBack = useCallback(() => goTo('welcome', 'back'), [goTo]);
+  const handleInterestsNext = useCallback(() => goTo('categoryQuestions', 'forward'), [goTo]);
+  const handleInterestsBack = useCallback(() => goTo('gender', 'back'), [goTo]);
+  const handleCategoryNext = useCallback(() => goTo('products', 'forward'), [goTo]);
+  const handleCategoryBack = useCallback(() => goTo('interests', 'back'), [goTo]);
+  const handleProductsNext = useCallback(() => goTo('profile', 'forward'), [goTo]);
+  const handleProductsBack = useCallback(() => goTo('categoryQuestions', 'back'), [goTo]);
+  const handleProfileNext = useCallback(() => goTo('tailoring', 'forward'), [goTo]);
 
   const handleSkip = useCallback(() => {
-    if (screen === 'brands') goTo('tailoring', 'forward');
-    else handleNext();
-  }, [screen, goTo, handleNext]);
+    const idx = SCREEN_ORDER.indexOf(screen);
+    const next = SCREEN_ORDER[idx + 1];
+    if (next) goTo(next, 'forward');
+  }, [screen, goTo]);
 
-  const showBack = screen !== 'tailoring';
-  const showSkip = screen !== 'tailoring';
+  // Nav visibility — hidden on welcome, profile, and tailoring
+  const showBack = screen !== 'welcome' && screen !== 'tailoring';
+  const showSkip = screen !== 'welcome' && screen !== 'gender' && screen !== 'profile' && screen !== 'tailoring';
+
+  const handleBack = useCallback(() => {
+    switch (screen) {
+      case 'gender': handleGenderBack(); break;
+      case 'interests': handleInterestsBack(); break;
+      case 'categoryQuestions': categoryQuestionsRef.current?.goBack(); break;
+      case 'products': handleProductsBack(); break;
+      case 'profile': goTo('products', 'back'); break;
+    }
+  }, [screen, handleGenderBack, handleInterestsBack, handleCategoryBack, handleProductsBack]);
+
+  const handleTailoringComplete = useCallback(() => {
+    /* Navigate to chat or next experience */
+  }, []);
 
   const renderScreen = (s: Screen) => {
     switch (s) {
+      case 'welcome':
+        return <WelcomeScreen onNext={handleWelcomeNext} />;
       case 'gender':
-        return <GenderSelection onNext={handleNext} />;
+        return (
+          <GenderScreen
+            onNext={handleGenderNext}
+            gender={gender}
+            onGenderChange={setGender}
+            totalSteps={totalSteps}
+          />
+        );
       case 'interests':
-        return <InterestsSelection onNext={handleNext} onSelectionsChange={setSelectedInterests} />;
-      case 'brands':
-        return <BrandsSelection onNext={handleNext} selectedInterests={selectedInterests} />;
+        return (
+          <InterestsScreen
+            onNext={handleInterestsNext}
+            selectedInterests={selectedInterests}
+            onSelectionsChange={setSelectedInterests}
+            totalSteps={totalSteps}
+          />
+        );
+      case 'categoryQuestions':
+        return (
+          <CategoryQuestions
+            ref={categoryQuestionsRef}
+            selectedInterests={selectedInterests}
+            categoryAnswers={categoryAnswers}
+            onCategoryAnswersChange={setCategoryAnswers}
+            onNext={handleCategoryNext}
+            onBack={handleCategoryBack}
+            totalSteps={totalSteps}
+          />
+        );
+      case 'products':
+        return (
+          <ProductPicks
+            onNext={handleProductsNext}
+            selectedInterests={selectedInterests}
+            likedProducts={likedProducts}
+            onLikedChange={setLikedProducts}
+            totalSteps={totalSteps}
+          />
+        );
+      case 'profile':
+        return (
+          <TasteProfile
+            profile={profile}
+            selectedInterests={selectedInterests}
+            categoryAnswers={categoryAnswers}
+            likedProducts={likedProducts}
+            onFinish={handleProfileNext}
+            totalSteps={totalSteps}
+          />
+        );
       case 'tailoring':
-        return <TailoringExperience />;
+        return <TailoringScreen onComplete={handleTailoringComplete} />;
     }
   };
 
   const enterAnim = direction === 'forward' ? 'screenEnterFromRight' : 'screenEnterFromLeft';
-  const exitAnim  = direction === 'forward' ? 'screenExitToLeft'    : 'screenExitToRight';
+  const exitAnim = direction === 'forward' ? 'screenExitToLeft' : 'screenExitToRight';
 
   return (
     <PhoneFrame>
-      {/* Persistent background — visible during screen transitions */}
-      <div style={{ position: 'absolute', inset: 0, background: colors.gradient }} />
+      {/* Persistent background */}
+      <div style={{ position: 'absolute', inset: 0, background: theme.colors.background }} />
 
       {/* Screen content area */}
       <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
@@ -83,7 +164,7 @@ function App() {
             style={{
               position: 'absolute',
               inset: 0,
-              animation: `${exitAnim} 0.35s cubic-bezier(0.25, 0.1, 0.25, 1) forwards`,
+              animation: `${exitAnim} 0.4s cubic-bezier(0.25, 0.1, 0.25, 1) forwards`,
               pointerEvents: 'none',
               zIndex: 1,
             }}
@@ -97,7 +178,7 @@ function App() {
             position: 'absolute',
             inset: 0,
             animation: exitingScreen
-              ? `${enterAnim} 0.35s cubic-bezier(0.25, 0.1, 0.25, 1) forwards`
+              ? `${enterAnim} 0.4s cubic-bezier(0.25, 0.1, 0.25, 1) forwards`
               : 'none',
             zIndex: 2,
           }}
@@ -106,64 +187,71 @@ function App() {
         </div>
       </div>
 
-      {/* Persistent back button */}
-      <button
-        onClick={handleBack}
+      {/* Persistent top nav bar with gradient background */}
+      <div
         style={{
           position: 'absolute',
-          top: safeTop(20),
-          left: 20,
-          width: 28,
-          height: 22,
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 30,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          background: 'none',
-          border: 'none',
-          cursor: showBack ? 'pointer' : 'default',
-          zIndex: 30,
-          padding: 0,
-          opacity: showBack ? 1 : 0,
-          transition: 'opacity 0.3s ease',
-          pointerEvents: showBack ? 'auto' : 'none',
+          justifyContent: 'space-between',
+          padding: `${safeTop(16)} 20px 12px`,
+          background: `linear-gradient(to bottom, ${theme.colors.background} 60%, transparent)`,
+          pointerEvents: 'none',
         }}
       >
-        <svg width="8" height="15" viewBox="0 0 8 15" fill="none">
-          <path
-            d="M7 1L1 7.5L7 14"
-            stroke="rgba(245,240,232,0.8)"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
+        {/* Back button */}
+        <button
+          onClick={handleBack}
+          style={{
+            width: 28,
+            height: 22,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'none',
+            border: 'none',
+            cursor: showBack ? 'pointer' : 'default',
+            padding: 0,
+            opacity: showBack ? 1 : 0,
+            transition: 'opacity 0.3s ease',
+            pointerEvents: showBack ? 'auto' : 'none',
+          }}
+        >
+          <svg width="8" height="15" viewBox="0 0 8 15" fill="none">
+            <path
+              d="M7 1L1 7.5L7 14"
+              stroke="rgba(255,255,255,0.8)"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
 
-      {/* Persistent skip button */}
-      <button
-        onClick={handleSkip}
-        style={{
-          position: 'absolute',
-          top: safeTop(20),
-          right: 20,
-          background: 'none',
-          border: 'none',
-          cursor: showSkip ? 'pointer' : 'default',
-          fontSize: 16,
-          fontWeight: 500,
-          color: colors.ivoryMuted,
-          lineHeight: '22px',
-          zIndex: 30,
-          padding: 0,
-          opacity: showSkip ? 1 : 0,
-          transition: 'opacity 0.3s ease',
-          pointerEvents: showSkip ? 'auto' : 'none',
-        }}
-      >
-        Skip
-      </button>
-
-      {showHowTo && <HowToSelect onClose={() => setShowHowTo(false)} />}
+        {/* Skip button */}
+        <button
+          onClick={handleSkip}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: showSkip ? 'pointer' : 'default',
+            fontSize: 16,
+            fontWeight: 500,
+            color: theme.colors.textMuted,
+            lineHeight: '22px',
+            padding: 0,
+            opacity: showSkip ? 1 : 0,
+            transition: 'opacity 0.3s ease',
+            pointerEvents: showSkip ? 'auto' : 'none',
+          }}
+        >
+          Skip
+        </button>
+      </div>
     </PhoneFrame>
   );
 }

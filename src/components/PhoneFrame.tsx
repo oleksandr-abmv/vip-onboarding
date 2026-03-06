@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useState, useEffect, useCallback } from 'react';
+import { theme } from '../theme';
 
 const DESIGN_W = 375;
 const DESIGN_H = 812;
@@ -31,11 +32,12 @@ export default function PhoneFrame({ children }: { children: ReactNode }) {
   if (isMobile) {
     return (
       <div
+        className="grain-bg"
         style={{
           position: 'relative',
           width: '100%',
           height: '100dvh',
-          background: '#111111',
+          background: theme.colors.background,
           overflow: 'hidden',
         }}
       >
@@ -52,11 +54,12 @@ export default function PhoneFrame({ children }: { children: ReactNode }) {
         justifyContent: 'center',
         height: '100%',
         width: '100%',
-        background: '#111111',
+        background: theme.colors.background,
         overflow: 'hidden',
       }}
     >
       <div
+        className="grain-bg"
         style={{
           position: 'relative',
           width: DESIGN_W,
@@ -65,7 +68,7 @@ export default function PhoneFrame({ children }: { children: ReactNode }) {
           transform: `scale(${scale})`,
           transformOrigin: 'center center',
           borderRadius: 40,
-          border: '1px solid #333',
+          border: '1px solid rgba(255,255,255,0.1)',
           boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
         }}
       >
