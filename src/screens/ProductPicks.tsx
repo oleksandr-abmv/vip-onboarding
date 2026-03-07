@@ -321,7 +321,7 @@ export default function ProductPicks({
             animation: counterBouncing ? 'ctaBounce 400ms ease' : undefined,
           }}
         >
-          {likeCount} liked
+          {likeCount}/10 liked
         </p>
 
         {/* CTA */}
