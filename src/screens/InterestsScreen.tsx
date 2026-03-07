@@ -64,7 +64,7 @@ export default function InterestsScreen({
           flex: 1,
           overflow: 'auto',
           padding: theme.spacing.screenPadding,
-          paddingTop: safeTop(52),
+          paddingTop: safeTop(68),
           paddingBottom: 0,
         }}
       >

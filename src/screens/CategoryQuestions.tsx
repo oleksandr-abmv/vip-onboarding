@@ -1,12 +1,14 @@
-import { useState, useEffect, useImperativeHandle, forwardRef, useRef } from 'react';
+import { useState, useEffect, useImperativeHandle, forwardRef, useRef, useCallback } from 'react';
 import { theme, safeTop } from '../theme';
 import ProgressBar from '../components/ProgressBar';
+import BudgetRangeSlider from '../components/BudgetRangeSlider';
 import { categoryConfigs, genericBudgetTiers } from '../data/categoryConfig';
 import type { CategoryAnswerSet } from '../utils/profileLogic';
 
 
 export interface CategoryQuestionsHandle {
   goBack: () => void;
+  getCurrentIdx: () => number;
 }
 
 interface CategoryQuestionsProps {
@@ -16,6 +18,7 @@ interface CategoryQuestionsProps {
   onNext: () => void;
   onBack: () => void;
   totalSteps: number;
+  onCategoryIdxChange?: (idx: number) => void;
 }
 
 const CategoryQuestions = forwardRef<CategoryQuestionsHandle, CategoryQuestionsProps>(function CategoryQuestions({
@@ -25,6 +28,7 @@ const CategoryQuestions = forwardRef<CategoryQuestionsHandle, CategoryQuestionsP
   onNext,
   onBack,
   totalSteps,
+  onCategoryIdxChange,
 }, ref) {
   const categories = selectedInterests.length > 0 ? selectedInterests : ['_generic'];
   const isGeneric = categories[0] === '_generic';
@@ -40,23 +44,38 @@ const CategoryQuestions = forwardRef<CategoryQuestionsHandle, CategoryQuestionsP
   const budgetTiers = config ? config.budgetTiers : genericBudgetTiers;
 
   const existing = categoryAnswers[currentCat];
-  const [selectedBudget, setSelectedBudget] = useState<string | null>(existing?.budget ?? null);
+
+  // Parse existing budget into range indices
+  const parseBudgetRange = (budget: CategoryAnswerSet['budget']): [number, number] => {
+    if (Array.isArray(budget)) return budget;
+    return [0, budgetTiers.length - 1]; // default: full range
+  };
+
+  const [budgetRange, setBudgetRange] = useState<[number, number]>(() => parseBudgetRange(existing?.budget));
   const [q1Answer, setQ1Answer] = useState<string | string[] | null>(existing?.q1 ?? null);
   const [q2Answer, setQ2Answer] = useState<string | string[] | null>(existing?.q2 ?? null);
 
   // Restore answers and scroll to top when navigating between categories
   useEffect(() => {
     const ex = categoryAnswers[categories[currentIdx]];
-    setSelectedBudget(ex?.budget ?? null);
+    const tiers = (isGeneric ? null : categoryConfigs[categories[currentIdx]])
+      ? categoryConfigs[categories[currentIdx]].budgetTiers
+      : genericBudgetTiers;
+    if (ex?.budget && Array.isArray(ex.budget)) {
+      setBudgetRange(ex.budget);
+    } else {
+      setBudgetRange([0, tiers.length - 1]);
+    }
     setQ1Answer(ex?.q1 ?? null);
     setQ2Answer(ex?.q2 ?? null);
     scrollRef.current?.scrollTo(0, 0);
-  }, [currentIdx, categoryAnswers, categories]);
+    onCategoryIdxChange?.(currentIdx);
+  }, [currentIdx, categoryAnswers, categories, onCategoryIdxChange, isGeneric]);
 
   const saveCurrentAnswers = () => {
     const updated = {
       ...categoryAnswers,
-      [currentCat]: { budget: selectedBudget, q1: q1Answer, q2: q2Answer },
+      [currentCat]: { budget: budgetRange as [number, number], q1: q1Answer, q2: q2Answer },
     };
     onCategoryAnswersChange(updated);
     return updated;
@@ -88,8 +107,11 @@ const CategoryQuestions = forwardRef<CategoryQuestionsHandle, CategoryQuestionsP
     }
   };
 
-  useImperativeHandle(ref, () => ({ goBack }));
+  useImperativeHandle(ref, () => ({ goBack, getCurrentIdx: () => currentIdx }));
 
+  const handleBudgetChange = useCallback((min: number, max: number) => {
+    setBudgetRange([min, max]);
+  }, []);
 
   const toggleChip = (
     questionIdx: number,
@@ -131,28 +153,6 @@ const CategoryQuestions = forwardRef<CategoryQuestionsHandle, CategoryQuestionsP
     >
       <ProgressBar step={progressStep} totalSteps={totalSteps} />
 
-      {/* Sub-progress step indicator — positioned to align with back/skip nav */}
-      {total > 1 && (
-        <p
-          style={{
-            position: 'absolute',
-            top: safeTop(18),
-            left: 0,
-            right: 0,
-            textAlign: 'center',
-            fontSize: 14,
-            fontWeight: 500,
-            color: theme.colors.textSecondary,
-            margin: 0,
-            zIndex: 31,
-            pointerEvents: 'none',
-            animation: 'fadeIn 400ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
-          }}
-        >
-          {currentIdx + 1} of {total}
-        </p>
-      )}
-
       {/* Scrollable content */}
       <div
         ref={scrollRef}
@@ -160,32 +160,10 @@ const CategoryQuestions = forwardRef<CategoryQuestionsHandle, CategoryQuestionsP
           flex: 1,
           overflow: 'auto',
           padding: theme.spacing.screenPadding,
-          paddingTop: safeTop(52),
+          paddingTop: safeTop(68),
           paddingBottom: 0,
         }}
       >
-        {/* Category badge */}
-        {!isGeneric && config && (
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              background: theme.colors.surface,
-              border: '1px solid #333',
-              borderRadius: 16,
-              padding: '6px 14px',
-              marginBottom: 16,
-              animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
-            }}
-          >
-            <span className="material-symbols-rounded" style={{ fontSize: 18, color: theme.colors.textSecondary }}>{config.icon}</span>
-            <span style={{ fontSize: 13, color: theme.colors.textSecondary }}>
-              {config.name}
-            </span>
-          </div>
-        )}
-
         <div
           key={currentIdx}
           style={{
@@ -222,84 +200,27 @@ const CategoryQuestions = forwardRef<CategoryQuestionsHandle, CategoryQuestionsP
               : 'This helps us find the best matches for you.'}
           </p>
 
-          {/* Budget tiers */}
+          {/* Budget range slider */}
           <div style={{ marginBottom: 24 }}>
             <p
               style={{
-                fontSize: 12,
-                fontWeight: 500,
-                color: theme.colors.textTertiary,
+                fontSize: 14,
+                fontWeight: 600,
+                color: theme.colors.textSecondary,
                 margin: 0,
-                marginBottom: 8,
+                marginBottom: 10,
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
               }}
             >
               Budget range
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {budgetTiers.map((tier) => {
-                const sel = selectedBudget === tier.id;
-                return (
-                  <button
-                    key={tier.id}
-                    onClick={() => setSelectedBudget(sel ? null : tier.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      background: sel ? '#1a1a1a' : theme.colors.surface,
-                      border: `1.5px solid ${sel ? '#fff' : '#333'}`,
-                      borderRadius: 10,
-                      padding: '14px 16px',
-                      cursor: 'pointer',
-                      transition: 'border-color 150ms ease, background 150ms ease',
-                    }}
-                  >
-                    <div style={{ textAlign: 'left' }}>
-                      <div
-                        style={{
-                          fontSize: 15,
-                          fontWeight: 600,
-                          color: theme.colors.textPrimary,
-                          lineHeight: '20px',
-                        }}
-                      >
-                        {tier.price}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 13,
-                          color: theme.colors.textMuted,
-                          lineHeight: '18px',
-                          marginTop: 2,
-                        }}
-                      >
-                        {tier.label}
-                      </div>
-                    </div>
-                    {sel && (
-                      <div
-                        style={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: '50%',
-                          background: '#fff',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <span className="material-symbols-rounded" style={{ fontSize: 16, color: '#000' }}>
-                          check
-                        </span>
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+            <BudgetRangeSlider
+              tiers={budgetTiers}
+              selectedMin={budgetRange[0]}
+              selectedMax={budgetRange[1]}
+              onChange={handleBudgetChange}
+            />
           </div>
 
           {/* Context questions */}
@@ -307,11 +228,11 @@ const CategoryQuestions = forwardRef<CategoryQuestionsHandle, CategoryQuestionsP
             <div key={question.id} style={{ marginBottom: 24 }}>
               <p
                 style={{
-                  fontSize: 10,
-                  fontWeight: 500,
-                  color: theme.colors.textTertiary,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: theme.colors.textSecondary,
                   margin: 0,
-                  marginBottom: 6,
+                  marginBottom: 10,
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
                 }}

@@ -37,7 +37,7 @@ export default function GenderScreen({
         display: 'flex',
         flexDirection: 'column',
         padding: theme.spacing.screenPadding,
-        paddingTop: safeTop(52),
+        paddingTop: safeTop(68),
         background: 'transparent',
       }}
     >

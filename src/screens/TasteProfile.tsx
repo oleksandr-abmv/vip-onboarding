@@ -44,6 +44,14 @@ export default function TasteProfile({
       const config = categoryConfigs[id];
       const answers = categoryAnswers[id];
       if (!config || !answers?.budget) return null;
+      if (Array.isArray(answers.budget)) {
+        const minTier = config.budgetTiers[answers.budget[0]];
+        const maxTier = config.budgetTiers[answers.budget[1]];
+        if (!minTier || !maxTier) return null;
+        return answers.budget[0] === answers.budget[1]
+          ? `${config.name}: ${minTier.label}`
+          : `${config.name}: ${minTier.label} to ${maxTier.label}`;
+      }
       const tier = config.budgetTiers.find((t) => t.id === answers.budget);
       return tier ? `${config.name}: ${tier.label}` : null;
     })

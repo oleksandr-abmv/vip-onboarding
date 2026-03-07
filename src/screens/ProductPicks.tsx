@@ -12,23 +12,16 @@ interface ProductPicksProps {
 }
 
 function filterProducts(interests: string[]): typeof PRODUCTS {
-  let filtered = PRODUCTS;
+  if (interests.length === 0) return PRODUCTS;
 
-  if (interests.length > 0) {
-    const byInterest = filtered.filter((p) => interests.includes(p.category));
-    if (byInterest.length >= 6) {
-      filtered = byInterest;
-    } else if (byInterest.length > 0) {
-      const rest = filtered.filter((p) => !interests.includes(p.category));
-      filtered = [...byInterest, ...rest];
-    }
-  }
+  // Only show products matching selected interests
+  const filtered = PRODUCTS.filter((p) => interests.includes(p.category));
 
   // Sort by interest priority
   filtered.sort((a, b) => {
     const ai = interests.indexOf(a.category);
     const bi = interests.indexOf(b.category);
-    return (ai >= 0 ? ai : 999) - (bi >= 0 ? bi : 999);
+    return ai - bi;
   });
 
   return filtered;
@@ -119,7 +112,7 @@ export default function ProductPicks({
           flex: 1,
           overflow: 'auto',
           padding: theme.spacing.screenPadding,
-          paddingTop: safeTop(52),
+          paddingTop: safeTop(68),
           paddingBottom: 0,
         }}
       >
@@ -385,9 +378,31 @@ export default function ProductPicks({
               animation: `${sheetClosing ? 'sheetSlideDown' : 'sheetSlideUp'} 300ms cubic-bezier(0.25, 0.1, 0.25, 1) both`,
             }}
           >
-            {/* Handle */}
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 6px' }}>
+            {/* Handle + Close button */}
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '12px 0 6px', position: 'relative' }}>
               <div style={{ width: 40, height: 4, borderRadius: 2, background: '#444' }} />
+              <button
+                onClick={closeSheet}
+                style={{
+                  position: 'absolute',
+                  right: 12,
+                  top: 8,
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  background: theme.colors.surfaceElevated,
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
+              >
+                <span className="material-symbols-rounded" style={{ fontSize: 18, color: theme.colors.textMuted }}>
+                  close
+                </span>
+              </button>
             </div>
 
             {/* Content */}

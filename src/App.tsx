@@ -11,6 +11,7 @@ import TailoringScreen from './screens/TailoringScreen';
 import { theme, safeTop } from './theme';
 import { computeProfile } from './utils/profileLogic';
 import type { CategoryAnswerSet } from './utils/profileLogic';
+import { categoryConfigs } from './data/categoryConfig';
 
 
 type Screen = 'welcome' | 'gender' | 'interests' | 'categoryQuestions' | 'products' | 'profile' | 'tailoring';
@@ -29,6 +30,7 @@ function App() {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [categoryAnswers, setCategoryAnswers] = useState<Record<string, CategoryAnswerSet>>({});
   const [likedProducts, setLikedProducts] = useState<string[]>([]);
+  const [currentCategoryIdx, setCurrentCategoryIdx] = useState(0);
 
   // Dynamic total steps: gender + interests + N category pages + products + profile
   const totalSteps = 2 + Math.max(selectedInterests.length, 1) + 2;
@@ -120,6 +122,7 @@ function App() {
             onNext={handleCategoryNext}
             onBack={handleCategoryBack}
             totalSteps={totalSteps}
+            onCategoryIdxChange={setCurrentCategoryIdx}
           />
         );
       case 'products':
@@ -199,7 +202,7 @@ function App() {
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: `${safeTop(16)} 20px 12px`,
-          background: `linear-gradient(to bottom, ${theme.colors.background} 60%, transparent)`,
+          background: screen === 'welcome' ? 'transparent' : `linear-gradient(to bottom, ${theme.colors.background} 60%, transparent)`,
           pointerEvents: 'none',
         }}
       >
@@ -231,6 +234,23 @@ function App() {
             />
           </svg>
         </button>
+
+        {/* Category label in nav center */}
+        {screen === 'categoryQuestions' && (
+          <span
+            style={{
+              fontSize: 15,
+              fontWeight: 600,
+              color: theme.colors.textSecondary,
+              pointerEvents: 'none',
+              position: 'absolute',
+              left: '50%',
+              transform: 'translateX(-50%)',
+            }}
+          >
+            {categoryConfigs[selectedInterests[currentCategoryIdx] ?? '']?.name ?? ''}
+          </span>
+        )}
 
         {/* Skip button */}
         <button
