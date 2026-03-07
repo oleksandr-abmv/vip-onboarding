@@ -35,7 +35,7 @@ export default function ProductPicks({
   const [visibleCount, setVisibleCount] = useState(8);
   const [loadingMore, setLoadingMore] = useState(false);
   const [revealedCount, setRevealedCount] = useState(8);
-  const [animating, setAnimating] = useState<string | null>(null);
+  const [animating, setAnimating] = useState<{ name: string; type: 'like' | 'unlike' } | null>(null);
   const [sheetProduct, setSheetProduct] = useState<Product | null>(null);
   const [sheetClosing, setSheetClosing] = useState(false);
   const [flyingHearts, setFlyingHearts] = useState<{ id: number; x: number; y: number }[]>([]);
@@ -88,7 +88,7 @@ export default function ProductPicks({
 
   const toggleLike = (productName: string, e: React.MouseEvent) => {
     const isLiked = likedProducts.includes(productName);
-    setAnimating(productName);
+    setAnimating({ name: productName, type: isLiked ? 'unlike' : 'like' });
     setTimeout(() => setAnimating(null), 300);
 
     if (isLiked) {
@@ -184,7 +184,7 @@ export default function ProductPicks({
         >
           {products.map((product, idx) => {
             const liked = likedProducts.includes(product.name);
-            const isAnimating = animating === product.name && liked;
+            const heartAnim = animating?.name === product.name ? animating.type : null;
             const isNewlyRevealed = idx >= revealedCount - 8 && idx >= 8;
             const staggerDelay = isNewlyRevealed ? `${(idx % 8) * 60}ms` : undefined;
 
@@ -237,7 +237,7 @@ export default function ProductPicks({
                     borderRadius: '50%',
                     cursor: 'pointer',
                     color: liked ? theme.colors.heartActive : 'rgba(255,255,255,0.7)',
-                    animation: isAnimating ? 'heartPop 300ms ease' : 'none',
+                    animation: heartAnim === 'like' ? 'heartPop 300ms ease' : heartAnim === 'unlike' ? 'heartShrink 300ms ease' : 'none',
                     padding: 0,
                   }}
                 >
@@ -382,7 +382,7 @@ export default function ProductPicks({
             animation: counterBouncing ? 'ctaBounce 400ms ease' : undefined,
           }}
         >
-          {likeCount}/10 liked
+          {likeCount >= 10 ? 'Your AI Concierge is ready' : `${likeCount}/10 liked`}
         </p>
 
         {/* CTA */}
