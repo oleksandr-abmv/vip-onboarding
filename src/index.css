@@ -145,6 +145,18 @@ html, body, #root {
   to { opacity: 0; }
 }
 
+/* Premium word rotation — masked crop reveal */
+@keyframes wordRevealIn {
+  0% { transform: translateY(100%); opacity: 0; filter: blur(4px); }
+  60% { opacity: 1; filter: blur(1px); }
+  100% { transform: translateY(0); opacity: 1; filter: blur(0); }
+}
+@keyframes wordRevealOut {
+  0% { transform: translateY(0); opacity: 1; filter: blur(0); }
+  40% { filter: blur(1px); }
+  100% { transform: translateY(-100%); opacity: 0; filter: blur(4px); }
+}
+
 /* Floating particles for celebration */
 @keyframes floatUp {
   0% { opacity: 0; transform: translateY(20px) scale(0); }

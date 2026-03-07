@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { theme } from '../theme';
-import ProgressBar from '../components/ProgressBar';
 import { categoryConfigs } from '../data/categoryConfig';
 import type { TasteProfile as TasteProfileType } from '../utils/profileLogic';
 import type { CategoryAnswerSet } from '../utils/profileLogic';
@@ -44,14 +43,6 @@ export default function TasteProfile({
       const config = categoryConfigs[id];
       const answers = categoryAnswers[id];
       if (!config || !answers?.budget) return null;
-      if (Array.isArray(answers.budget)) {
-        const minTier = config.budgetTiers[answers.budget[0]];
-        const maxTier = config.budgetTiers[answers.budget[1]];
-        if (!minTier || !maxTier) return null;
-        return answers.budget[0] === answers.budget[1]
-          ? `${config.name}: ${minTier.label}`
-          : `${config.name}: ${minTier.label} to ${maxTier.label}`;
-      }
       const tier = config.budgetTiers.find((t) => t.id === answers.budget);
       return tier ? `${config.name}: ${tier.label}` : null;
     })
@@ -91,8 +82,6 @@ export default function TasteProfile({
         overflow: 'hidden',
       }}
     >
-      <ProgressBar step={totalSteps} totalSteps={totalSteps} />
-
       {/* Celebration particles */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
         {PARTICLES.map((icon, i) => (

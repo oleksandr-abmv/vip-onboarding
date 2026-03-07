@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { theme, safeTop } from '../theme';
-import ProgressBar from '../components/ProgressBar';
 
 
 interface GenderScreenProps {
@@ -41,8 +40,6 @@ export default function GenderScreen({
         background: 'transparent',
       }}
     >
-      <ProgressBar step={1} totalSteps={totalSteps} />
-
       <h1
         style={{
           fontSize: 24,

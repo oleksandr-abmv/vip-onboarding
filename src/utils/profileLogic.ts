@@ -1,7 +1,7 @@
 import { categoryConfigs } from '../data/categoryConfig';
 
 export interface CategoryAnswerSet {
-  budget: string | [number, number] | null;
+  budget: string | null;
   q1: string | string[] | null;
   q2: string | string[] | null;
 }
@@ -28,14 +28,8 @@ export function computeProfile(
     totalAnswered++;
     const config = categoryConfigs[catId];
     if (!config) return;
-    // budget can be [minIdx, maxIdx] range or legacy string id
-    let topTierIdx: number;
-    if (Array.isArray(answers.budget)) {
-      topTierIdx = answers.budget[1];
-    } else {
-      topTierIdx = config.budgetTiers.findIndex((t) => t.id === answers.budget);
-    }
-    if (topTierIdx >= config.budgetTiers.length - 2) highTierCount++;
+    const tierIdx = config.budgetTiers.findIndex((t) => t.id === answers.budget);
+    if (tierIdx >= config.budgetTiers.length - 2) highTierCount++;
 
     const allResponses = [answers.q1, answers.q2].flat().filter(Boolean) as string[];
     if (allResponses.includes('collection') || allResponses.includes('investment'))
@@ -74,18 +68,8 @@ export function computeProfile(
   Object.entries(categoryAnswers).forEach(([catId, answers]) => {
     const config = categoryConfigs[catId];
     if (!config) return;
-    if (Array.isArray(answers.budget)) {
-      const minTier = config.budgetTiers[answers.budget[0]];
-      const maxTier = config.budgetTiers[answers.budget[1]];
-      if (minTier && maxTier) {
-        highlights.push(answers.budget[0] === answers.budget[1]
-          ? `${config.name}: ${minTier.label}`
-          : `${config.name}: ${minTier.label} to ${maxTier.label}`);
-      }
-    } else {
-      const tier = config.budgetTiers.find((t) => t.id === answers.budget);
-      if (tier) highlights.push(`${config.name}: ${tier.label}`);
-    }
+    const tier = config.budgetTiers.find((t) => t.id === answers.budget);
+    if (tier) highlights.push(`${config.name}: ${tier.label}`);
   });
 
   return { vibeLabel, description, highlights: highlights.slice(0, 4) };

@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 
 
 interface WelcomeScreenProps {
@@ -13,9 +13,25 @@ const BENEFITS = [
   { icon: 'lock', text: 'Private, invitation-only access' },
 ];
 
+const ROTATING_WORDS = ['curated', 'personalized', 'tailored'];
+
 export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const partIndex = useRef(0);
+  const [wordIdx, setWordIdx] = useState(0);
+  const [prevWordIdx, setPrevWordIdx] = useState<number | null>(null);
+  const wordKey = useRef(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPrevWordIdx(wordIdx);
+      setWordIdx((i) => (i + 1) % ROTATING_WORDS.length);
+      wordKey.current++;
+      // Clear exiting word after animation
+      setTimeout(() => setPrevWordIdx(null), 400);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [wordIdx]);
 
   const handleEnded = useCallback(() => {
     partIndex.current = (partIndex.current + 1) % VIDEO_PARTS.length;
@@ -109,7 +125,42 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
           }}
         >
           Your luxury world,{' '}
-          <span style={{ color: 'rgba(255,255,255,0.7)' }}>curated</span>
+          <span
+            style={{
+              display: 'inline-block',
+              position: 'relative',
+              overflow: 'hidden',
+              verticalAlign: 'bottom',
+              height: '1.3em',
+            }}
+          >
+            {prevWordIdx !== null && (
+              <span
+                key={`out-${wordKey.current}`}
+                style={{
+                  display: 'block',
+                  position: 'absolute',
+                  inset: 0,
+                  color: 'rgba(255,255,255,0.7)',
+                  animation: 'wordRevealOut 400ms cubic-bezier(0.4, 0, 0.2, 1) forwards',
+                }}
+              >
+                {ROTATING_WORDS[prevWordIdx]}
+              </span>
+            )}
+            <span
+              key={`in-${wordKey.current}`}
+              style={{
+                display: 'block',
+                color: 'rgba(255,255,255,0.7)',
+                animation: prevWordIdx !== null
+                  ? 'wordRevealIn 400ms cubic-bezier(0.4, 0, 0.2, 1) both'
+                  : undefined,
+              }}
+            >
+              {ROTATING_WORDS[wordIdx]}
+            </span>
+          </span>
         </h1>
 
         {/* Subtitle */}

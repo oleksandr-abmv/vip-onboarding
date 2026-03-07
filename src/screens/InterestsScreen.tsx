@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { theme, safeTop } from '../theme';
-import ProgressBar from '../components/ProgressBar';
 
 
 interface InterestsScreenProps {
@@ -56,8 +55,6 @@ export default function InterestsScreen({
         background: 'transparent',
       }}
     >
-      <ProgressBar step={2} totalSteps={totalSteps} />
-
       {/* Scrollable content */}
       <div
         style={{
@@ -99,7 +96,7 @@ export default function InterestsScreen({
           style={{
             display: 'flex',
             flexWrap: 'wrap',
-            gap: 10,
+            gap: 8,
             paddingBottom: 10,
             alignContent: 'flex-start',
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 240ms both',
@@ -115,11 +112,11 @@ export default function InterestsScreen({
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 8,
+                  gap: 7,
                   background: selected ? '#1a1a1a' : theme.colors.surface,
                   border: `1.5px solid ${selected ? '#fff' : '#333'}`,
-                  borderRadius: 24,
-                  padding: '10px 16px',
+                  borderRadius: 22,
+                  padding: '9px 15px',
                   cursor: 'pointer',
                   transition: 'background 150ms ease, border-color 150ms ease, transform 150ms',
                   transform: isTapped ? 'scale(0.95)' : 'scale(1)',
@@ -127,7 +124,7 @@ export default function InterestsScreen({
                   flexShrink: 0,
                 }}
               >
-                <span className="material-symbols-rounded" style={{ fontSize: 20, color: selected ? '#fff' : '#888', transition: 'color 150ms ease' }}>{cat.icon}</span>
+                <span className="material-symbols-rounded" style={{ fontSize: 19, color: selected ? '#fff' : '#888', transition: 'color 150ms ease' }}>{cat.icon}</span>
                 <span
                   style={{
                     fontSize: 14,

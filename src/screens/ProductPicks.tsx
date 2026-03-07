@@ -1,6 +1,5 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { theme, safeTop } from '../theme';
-import ProgressBar from '../components/ProgressBar';
 import PRODUCTS, { type Product } from '../data/products';
 
 interface ProductPicksProps {
@@ -11,20 +10,64 @@ interface ProductPicksProps {
   totalSteps: number;
 }
 
-function filterProducts(interests: string[]): typeof PRODUCTS {
-  if (interests.length === 0) return PRODUCTS;
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
-  // Only show products matching selected interests
-  const filtered = PRODUCTS.filter((p) => interests.includes(p.category));
+function filterProducts(interests: string[]): Product[] {
+  if (interests.length === 0) return shuffle(PRODUCTS);
 
-  // Sort by interest priority
-  filtered.sort((a, b) => {
-    const ai = interests.indexOf(a.category);
-    const bi = interests.indexOf(b.category);
-    return ai - bi;
-  });
+  const MIN_TOTAL = 8;
+  const MIN_PER_CAT = 4;
 
-  return filtered;
+  // Group products by category
+  const byCategory = new Map<string, Product[]>();
+  for (const p of PRODUCTS) {
+    const list = byCategory.get(p.category) || [];
+    list.push(p);
+    byCategory.set(p.category, list);
+  }
+
+  // Take at least MIN_PER_CAT from each selected interest
+  const result: Product[] = [];
+  const used = new Set<string>();
+
+  for (const cat of interests) {
+    const catProducts = byCategory.get(cat) || [];
+    for (const p of catProducts.slice(0, MIN_PER_CAT)) {
+      result.push(p);
+      used.add(p.name);
+    }
+  }
+
+  // If still under MIN_TOTAL, fill from selected categories first, then others
+  if (result.length < MIN_TOTAL) {
+    for (const cat of interests) {
+      for (const p of byCategory.get(cat) || []) {
+        if (result.length >= MIN_TOTAL) break;
+        if (!used.has(p.name)) {
+          result.push(p);
+          used.add(p.name);
+        }
+      }
+    }
+  }
+  if (result.length < MIN_TOTAL) {
+    for (const p of PRODUCTS) {
+      if (result.length >= MIN_TOTAL) break;
+      if (!used.has(p.name)) {
+        result.push(p);
+        used.add(p.name);
+      }
+    }
+  }
+
+  return shuffle(result);
 }
 
 export default function ProductPicks({
@@ -42,7 +85,7 @@ export default function ProductPicks({
   const counterRef = useRef<HTMLParagraphElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const heartIdRef = useRef(0);
-  const products = filterProducts(selectedInterests);
+  const products = useMemo(() => filterProducts(selectedInterests), [selectedInterests]);
 
   const openSheet = useCallback((product: Product) => {
     setSheetProduct(product);
@@ -104,8 +147,6 @@ export default function ProductPicks({
         background: 'transparent',
       }}
     >
-      <ProgressBar step={progressStep} totalSteps={totalSteps} />
-
       {/* Scrollable content */}
       <div
         style={{
@@ -267,17 +308,16 @@ export default function ProductPicks({
           background: `linear-gradient(to top, ${theme.colors.background} 70%, transparent)`,
         }}
       >
-        {/* Like count */}
+        {/* Like counter */}
         <p
           ref={counterRef}
           style={{
-            fontSize: 15,
+            fontSize: 14,
             fontWeight: 600,
-            color: theme.colors.textPrimary,
+            color: theme.colors.textMuted,
             textAlign: 'center',
             margin: 0,
             marginBottom: 10,
-            height: 22,
             opacity: likeCount > 0 ? 1 : 0,
             transition: 'opacity 200ms ease',
             animation: counterBouncing ? 'ctaBounce 400ms ease' : undefined,
@@ -372,50 +412,27 @@ export default function ProductPicks({
               zIndex: 101,
               background: theme.colors.surface,
               borderRadius: 20,
-              maxHeight: 'calc(75% - 32px)',
               display: 'flex',
               flexDirection: 'column',
               animation: `${sheetClosing ? 'sheetSlideDown' : 'sheetSlideUp'} 300ms cubic-bezier(0.25, 0.1, 0.25, 1) both`,
             }}
           >
-            {/* Handle + Close button */}
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '12px 0 6px', position: 'relative' }}>
+            {/* Handle */}
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 6px' }}>
               <div style={{ width: 40, height: 4, borderRadius: 2, background: '#444' }} />
-              <button
-                onClick={closeSheet}
-                style={{
-                  position: 'absolute',
-                  right: 12,
-                  top: 8,
-                  width: 32,
-                  height: 32,
-                  borderRadius: '50%',
-                  background: theme.colors.surfaceElevated,
-                  border: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  padding: 0,
-                }}
-              >
-                <span className="material-symbols-rounded" style={{ fontSize: 18, color: theme.colors.textMuted }}>
-                  close
-                </span>
-              </button>
             </div>
 
             {/* Content */}
-            <div style={{ overflow: 'auto', padding: '0 24px 24px' }}>
+            <div style={{ padding: '0 24px' }}>
               {/* Large image */}
               <div
                 style={{
                   width: '100%',
-                  aspectRatio: '4/3',
+                  height: 160,
                   borderRadius: 16,
                   overflow: 'hidden',
                   background: theme.colors.surfaceElevated,
-                  marginBottom: 18,
+                  marginBottom: 14,
                 }}
               >
                 <img
@@ -433,54 +450,59 @@ export default function ProductPicks({
                   color: theme.colors.textTertiary,
                   textTransform: 'uppercase',
                   letterSpacing: '0.8px',
-                  marginBottom: 6,
+                  marginBottom: 4,
                 }}
               >
                 {sheetProduct.brand}
               </div>
 
-              {/* Name */}
+              {/* Name + Price row */}
               <div
                 style={{
-                  fontSize: 20,
-                  fontWeight: 700,
-                  color: theme.colors.textPrimary,
-                  lineHeight: '26px',
-                  marginBottom: 6,
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  marginBottom: 12,
                 }}
               >
-                {sheetProduct.name}
+                <div
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: theme.colors.textPrimary,
+                    lineHeight: '24px',
+                  }}
+                >
+                  {sheetProduct.name}
+                </div>
+                <div
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 500,
+                    color: theme.colors.textSecondary,
+                    flexShrink: 0,
+                  }}
+                >
+                  {sheetProduct.price}
+                </div>
               </div>
-
-              {/* Price */}
-              <div
-                style={{
-                  fontSize: 16,
-                  fontWeight: 500,
-                  color: theme.colors.textSecondary,
-                  marginBottom: 16,
-                }}
-              >
-                {sheetProduct.price}
-              </div>
-
-              {/* Divider */}
-              <div style={{ height: 1, background: '#333', marginBottom: 16 }} />
 
               {/* Description */}
               <p
                 style={{
-                  fontSize: 15,
+                  fontSize: 14,
                   color: theme.colors.textMuted,
-                  lineHeight: '22px',
+                  lineHeight: '20px',
                   margin: 0,
-                  marginBottom: 24,
                 }}
               >
                 {sheetProduct.description}
               </p>
+            </div>
 
-              {/* Close button */}
+            {/* Close button — sticky bottom */}
+            <div style={{ padding: '14px 24px calc(14px + env(safe-area-inset-bottom, 0px))' }}>
               <button
                 onClick={closeSheet}
                 style={{
@@ -493,7 +515,6 @@ export default function ProductPicks({
                   fontSize: 16,
                   fontWeight: 500,
                   cursor: 'pointer',
-                  marginBottom: `env(safe-area-inset-bottom, 0px)`,
                 }}
               >
                 Close

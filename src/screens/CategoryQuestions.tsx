@@ -1,7 +1,5 @@
-import { useState, useEffect, useImperativeHandle, forwardRef, useRef, useCallback } from 'react';
+import { useState, useEffect, useImperativeHandle, forwardRef, useRef } from 'react';
 import { theme, safeTop } from '../theme';
-import ProgressBar from '../components/ProgressBar';
-import BudgetRangeSlider from '../components/BudgetRangeSlider';
 import { categoryConfigs, genericBudgetTiers } from '../data/categoryConfig';
 import type { CategoryAnswerSet } from '../utils/profileLogic';
 
@@ -44,38 +42,24 @@ const CategoryQuestions = forwardRef<CategoryQuestionsHandle, CategoryQuestionsP
   const budgetTiers = config ? config.budgetTiers : genericBudgetTiers;
 
   const existing = categoryAnswers[currentCat];
-
-  // Parse existing budget into range indices
-  const parseBudgetRange = (budget: CategoryAnswerSet['budget']): [number, number] => {
-    if (Array.isArray(budget)) return budget;
-    return [0, budgetTiers.length - 1]; // default: full range
-  };
-
-  const [budgetRange, setBudgetRange] = useState<[number, number]>(() => parseBudgetRange(existing?.budget));
+  const [selectedBudget, setSelectedBudget] = useState<string | null>(existing?.budget ?? null);
   const [q1Answer, setQ1Answer] = useState<string | string[] | null>(existing?.q1 ?? null);
   const [q2Answer, setQ2Answer] = useState<string | string[] | null>(existing?.q2 ?? null);
 
   // Restore answers and scroll to top when navigating between categories
   useEffect(() => {
     const ex = categoryAnswers[categories[currentIdx]];
-    const tiers = (isGeneric ? null : categoryConfigs[categories[currentIdx]])
-      ? categoryConfigs[categories[currentIdx]].budgetTiers
-      : genericBudgetTiers;
-    if (ex?.budget && Array.isArray(ex.budget)) {
-      setBudgetRange(ex.budget);
-    } else {
-      setBudgetRange([0, tiers.length - 1]);
-    }
+    setSelectedBudget(ex?.budget ?? null);
     setQ1Answer(ex?.q1 ?? null);
     setQ2Answer(ex?.q2 ?? null);
     scrollRef.current?.scrollTo(0, 0);
     onCategoryIdxChange?.(currentIdx);
-  }, [currentIdx, categoryAnswers, categories, onCategoryIdxChange, isGeneric]);
+  }, [currentIdx, categoryAnswers, categories, onCategoryIdxChange]);
 
   const saveCurrentAnswers = () => {
     const updated = {
       ...categoryAnswers,
-      [currentCat]: { budget: budgetRange as [number, number], q1: q1Answer, q2: q2Answer },
+      [currentCat]: { budget: selectedBudget, q1: q1Answer, q2: q2Answer },
     };
     onCategoryAnswersChange(updated);
     return updated;
@@ -109,9 +93,6 @@ const CategoryQuestions = forwardRef<CategoryQuestionsHandle, CategoryQuestionsP
 
   useImperativeHandle(ref, () => ({ goBack, getCurrentIdx: () => currentIdx }));
 
-  const handleBudgetChange = useCallback((min: number, max: number) => {
-    setBudgetRange([min, max]);
-  }, []);
 
   const toggleChip = (
     questionIdx: number,
@@ -141,6 +122,20 @@ const CategoryQuestions = forwardRef<CategoryQuestionsHandle, CategoryQuestionsP
 
   const progressStep = 2 + currentIdx + 1;
 
+  const chipStyle = (sel: boolean): React.CSSProperties => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 7,
+    background: sel ? '#1a1a1a' : theme.colors.surface,
+    border: `1.5px solid ${sel ? '#fff' : '#333'}`,
+    borderRadius: 22,
+    padding: '9px 15px',
+    cursor: 'pointer',
+    transition: 'background 150ms ease, border-color 150ms ease',
+    boxShadow: sel ? '0 0 10px rgba(255,255,255,0.06)' : 'none',
+    flexShrink: 0,
+  });
+
   return (
     <div
       style={{
@@ -151,8 +146,6 @@ const CategoryQuestions = forwardRef<CategoryQuestionsHandle, CategoryQuestionsP
         background: 'transparent',
       }}
     >
-      <ProgressBar step={progressStep} totalSteps={totalSteps} />
-
       {/* Scrollable content */}
       <div
         ref={scrollRef}
@@ -174,6 +167,23 @@ const CategoryQuestions = forwardRef<CategoryQuestionsHandle, CategoryQuestionsP
                 : 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 80ms both',
           }}
         >
+          {/* Category headline */}
+          {!isGeneric && config && (
+            <p
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: theme.colors.textTertiary,
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                margin: 0,
+                marginBottom: 8,
+              }}
+            >
+              {config.name}
+            </p>
+          )}
+
           <h1
             style={{
               fontSize: 24,
@@ -181,18 +191,18 @@ const CategoryQuestions = forwardRef<CategoryQuestionsHandle, CategoryQuestionsP
               color: theme.colors.textPrimary,
               lineHeight: '32px',
               margin: 0,
-              marginBottom: 8,
+              marginBottom: 6,
             }}
           >
             {title}
           </h1>
           <p
             style={{
-              fontSize: 15,
+              fontSize: 14,
               color: theme.colors.textMuted,
-              lineHeight: '22px',
+              lineHeight: '20px',
               margin: 0,
-              marginBottom: 22,
+              marginBottom: 20,
             }}
           >
             {isGeneric
@@ -200,39 +210,57 @@ const CategoryQuestions = forwardRef<CategoryQuestionsHandle, CategoryQuestionsP
               : 'This helps us find the best matches for you.'}
           </p>
 
-          {/* Budget range slider */}
-          <div style={{ marginBottom: 24 }}>
+          {/* Budget tiers — chips */}
+          <div style={{ marginBottom: 18 }}>
             <p
               style={{
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: 600,
                 color: theme.colors.textSecondary,
                 margin: 0,
-                marginBottom: 10,
+                marginBottom: 8,
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
               }}
             >
               Budget range
             </p>
-            <BudgetRangeSlider
-              tiers={budgetTiers}
-              selectedMin={budgetRange[0]}
-              selectedMax={budgetRange[1]}
-              onChange={handleBudgetChange}
-            />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {budgetTiers.map((tier) => {
+                const sel = selectedBudget === tier.id;
+                return (
+                  <button
+                    key={tier.id}
+                    onClick={() => setSelectedBudget(sel ? null : tier.id)}
+                    style={chipStyle(sel)}
+                  >
+                    <span
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 500,
+                        color: sel ? '#fff' : '#bbb',
+                        lineHeight: '18px',
+                        transition: 'color 150ms ease',
+                      }}
+                    >
+                      {tier.price}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Context questions */}
+          {/* Context questions — chips */}
           {config?.questions.map((question, qi) => (
-            <div key={question.id} style={{ marginBottom: 24 }}>
+            <div key={question.id} style={{ marginBottom: 18 }}>
               <p
                 style={{
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: 600,
                   color: theme.colors.textSecondary,
                   margin: 0,
-                  marginBottom: 10,
+                  marginBottom: 8,
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
                 }}
@@ -240,37 +268,26 @@ const CategoryQuestions = forwardRef<CategoryQuestionsHandle, CategoryQuestionsP
                 {question.label}
                 {question.multiSelect && (
                   <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginLeft: 6, color: '#555' }}>
-                    select multiple
+                    pick any
                   </span>
                 )}
               </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {question.options.map((opt) => {
                   const sel = isChipSelected(qi, question.multiSelect, opt.id);
                   return (
                     <button
                       key={opt.id}
                       onClick={() => toggleChip(qi, question.multiSelect, opt.id)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                        background: sel ? '#1a1a1a' : theme.colors.surface,
-                        border: `1.5px solid ${sel ? '#fff' : '#333'}`,
-                        borderRadius: 12,
-                        padding: '14px 16px',
-                        cursor: 'pointer',
-                        transition: 'border-color 150ms ease, background 150ms ease',
-                      }}
+                      style={chipStyle(sel)}
                     >
                       {opt.icon && (
                         <span
                           className="material-symbols-rounded"
                           style={{
-                            fontSize: 22,
-                            color: sel ? '#fff' : '#666',
+                            fontSize: 19,
+                            color: sel ? '#fff' : '#888',
                             transition: 'color 150ms ease',
-                            flexShrink: 0,
                           }}
                         >
                           {opt.icon}
@@ -278,34 +295,15 @@ const CategoryQuestions = forwardRef<CategoryQuestionsHandle, CategoryQuestionsP
                       )}
                       <span
                         style={{
-                          fontSize: 15,
+                          fontSize: 14,
                           fontWeight: 500,
-                          color: sel ? theme.colors.textPrimary : '#bbb',
-                          lineHeight: '20px',
-                          flex: 1,
-                          textAlign: 'left',
+                          color: sel ? '#fff' : '#bbb',
+                          lineHeight: '18px',
+                          transition: 'color 150ms ease',
                         }}
                       >
                         {opt.label}
                       </span>
-                      {sel && (
-                        <div
-                          style={{
-                            width: 18,
-                            height: 18,
-                            borderRadius: '50%',
-                            background: '#fff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                          }}
-                        >
-                          <span className="material-symbols-rounded" style={{ fontSize: 16, color: '#000' }}>
-                            check
-                          </span>
-                        </div>
-                      )}
                     </button>
                   );
                 })}

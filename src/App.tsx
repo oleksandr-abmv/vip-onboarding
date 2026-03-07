@@ -32,8 +32,8 @@ function App() {
   const [likedProducts, setLikedProducts] = useState<string[]>([]);
   const [currentCategoryIdx, setCurrentCategoryIdx] = useState(0);
 
-  // Dynamic total steps: gender + interests + N category pages + products + profile
-  const totalSteps = 2 + Math.max(selectedInterests.length, 1) + 2;
+  // Total steps: gender + interests + categoryQuestions + products + profile
+  const totalSteps = 5;
 
   const profile = useMemo(
     () => computeProfile(categoryAnswers, likedProducts, selectedInterests),
@@ -159,6 +159,23 @@ function App() {
       {/* Persistent background */}
       <div style={{ position: 'absolute', inset: 0, background: theme.colors.background }} />
 
+      {/* Grid pattern overlay */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: 'none',
+          opacity: screen !== 'welcome' && screen !== 'tailoring' ? 1 : 0,
+          transition: 'opacity 600ms ease',
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
+          backgroundSize: '40px 40px',
+          maskImage: 'radial-gradient(ellipse 80% 70% at 50% 40%, black 20%, transparent 70%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 80% 70% at 50% 40%, black 20%, transparent 70%)',
+        }}
+      />
+
       {/* Screen content area */}
       <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
         {exitingScreen && (
@@ -235,22 +252,43 @@ function App() {
           </svg>
         </button>
 
-        {/* Category label in nav center */}
-        {screen === 'categoryQuestions' && (
-          <span
-            style={{
-              fontSize: 15,
-              fontWeight: 600,
-              color: theme.colors.textSecondary,
-              pointerEvents: 'none',
-              position: 'absolute',
-              left: '50%',
-              transform: 'translateX(-50%)',
-            }}
-          >
-            {categoryConfigs[selectedInterests[currentCategoryIdx] ?? '']?.name ?? ''}
-          </span>
-        )}
+        {/* Progress bar in nav center */}
+        {screen !== 'welcome' && screen !== 'tailoring' && (() => {
+          let currentStep = 0;
+          switch (screen) {
+            case 'gender': currentStep = 1; break;
+            case 'interests': currentStep = 2; break;
+            case 'categoryQuestions': currentStep = 3; break;
+            case 'products': currentStep = 4; break;
+            case 'profile': currentStep = 5; break;
+          }
+          const pct = (currentStep / totalSteps) * 100;
+          return (
+            <div
+              style={{
+                position: 'absolute',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 120,
+                height: 3,
+                borderRadius: 1.5,
+                background: '#333',
+                pointerEvents: 'none',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  width: `${pct}%`,
+                  borderRadius: 1.5,
+                  background: '#fff',
+                  transition: 'width 300ms ease',
+                }}
+              />
+            </div>
+          );
+        })()}
 
         {/* Skip button */}
         <button
