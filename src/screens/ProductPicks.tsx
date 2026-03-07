@@ -21,52 +21,9 @@ function shuffle<T>(arr: T[]): T[] {
 function filterProducts(interests: string[]): Product[] {
   if (interests.length === 0) return shuffle(PRODUCTS);
 
-  const MIN_TOTAL = 8;
-  const MIN_PER_CAT = 4;
-
-  // Group products by category
-  const byCategory = new Map<string, Product[]>();
-  for (const p of PRODUCTS) {
-    const list = byCategory.get(p.category) || [];
-    list.push(p);
-    byCategory.set(p.category, list);
-  }
-
-  // Take at least MIN_PER_CAT from each selected interest
-  const result: Product[] = [];
-  const used = new Set<string>();
-
-  for (const cat of interests) {
-    const catProducts = byCategory.get(cat) || [];
-    for (const p of catProducts.slice(0, MIN_PER_CAT)) {
-      result.push(p);
-      used.add(p.name);
-    }
-  }
-
-  // If still under MIN_TOTAL, fill from selected categories first, then others
-  if (result.length < MIN_TOTAL) {
-    for (const cat of interests) {
-      for (const p of byCategory.get(cat) || []) {
-        if (result.length >= MIN_TOTAL) break;
-        if (!used.has(p.name)) {
-          result.push(p);
-          used.add(p.name);
-        }
-      }
-    }
-  }
-  if (result.length < MIN_TOTAL) {
-    for (const p of PRODUCTS) {
-      if (result.length >= MIN_TOTAL) break;
-      if (!used.has(p.name)) {
-        result.push(p);
-        used.add(p.name);
-      }
-    }
-  }
-
-  return shuffle(result);
+  // Show only products from selected categories
+  const filtered = PRODUCTS.filter((p) => interests.includes(p.category));
+  return shuffle(filtered);
 }
 
 export default function ProductPicks({
@@ -75,6 +32,7 @@ export default function ProductPicks({
   likedProducts,
   onLikedChange,
 }: ProductPicksProps) {
+  const [visibleCount, setVisibleCount] = useState(8);
   const [animating, setAnimating] = useState<string | null>(null);
   const [sheetProduct, setSheetProduct] = useState<Product | null>(null);
   const [sheetClosing, setSheetClosing] = useState(false);
@@ -83,7 +41,9 @@ export default function ProductPicks({
   const counterRef = useRef<HTMLParagraphElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const heartIdRef = useRef(0);
-  const products = useMemo(() => filterProducts(selectedInterests), [selectedInterests]);
+  const allProducts = useMemo(() => filterProducts(selectedInterests), [selectedInterests]);
+  const products = allProducts.slice(0, visibleCount);
+  const hasMore = visibleCount < allProducts.length;
 
   const openSheet = useCallback((product: Product) => {
     setSheetProduct(product);
@@ -296,6 +256,33 @@ export default function ProductPicks({
             );
           })}
         </div>
+
+        {/* Load More */}
+        {hasMore && (
+          <button
+            onClick={() => setVisibleCount((c) => c + 8)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              width: '100%',
+              height: 44,
+              marginTop: 14,
+              marginBottom: 10,
+              background: theme.colors.surface,
+              border: `1px solid #333`,
+              borderRadius: 100,
+              fontSize: 14,
+              fontWeight: 500,
+              color: theme.colors.textSecondary,
+              cursor: 'pointer',
+            }}
+          >
+            <span className="material-symbols-rounded" style={{ fontSize: 18 }}>expand_more</span>
+            Show more
+          </button>
+        )}
       </div>
 
       {/* Sticky bottom */}
