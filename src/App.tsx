@@ -170,7 +170,7 @@ function App() {
           transition: 'opacity 600ms ease',
           backgroundImage:
             'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
+          backgroundSize: '14px 14px',
           maskImage: 'radial-gradient(ellipse 80% 70% at 50% 40%, black 20%, transparent 70%)',
           WebkitMaskImage: 'radial-gradient(ellipse 80% 70% at 50% 40%, black 20%, transparent 70%)',
         }}
