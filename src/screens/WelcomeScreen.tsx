@@ -16,8 +16,8 @@ const BENEFITS = [
 const ROTATING_WORDS = ['curated', 'personalized', 'tailored'];
 
 export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const partIndex = useRef(0);
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const [activeVideo, setActiveVideo] = useState(0);
   const [wordIdx, setWordIdx] = useState(0);
   const [prevWordIdx, setPrevWordIdx] = useState<number | null>(null);
   const wordKey = useRef(0);
@@ -42,13 +42,14 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
     return () => clearInterval(interval);
   }, [wordIdx]);
 
-  const handleEnded = useCallback(() => {
-    partIndex.current = (partIndex.current + 1) % VIDEO_PARTS.length;
-    const video = videoRef.current;
-    if (video) {
-      video.src = VIDEO_PARTS[partIndex.current];
-      video.play();
+  const handleEnded = useCallback((idx: number) => {
+    const next = (idx + 1) % VIDEO_PARTS.length;
+    const nextVideo = videoRefs.current[next];
+    if (nextVideo) {
+      nextVideo.currentTime = 0;
+      nextVideo.play();
     }
+    setActiveVideo(next);
   }, []);
 
   return (
@@ -62,23 +63,28 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
         overflow: 'hidden',
       }}
     >
-      {/* Background video — plays Part 1 → 2 → 3, then loops */}
-      <video
-        ref={videoRef}
-        src={VIDEO_PARTS[0]}
-        autoPlay
-        muted
-        playsInline
-        onEnded={handleEnded}
-        style={{
-          position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          zIndex: 0,
-        }}
-      />
+      {/* Background videos — preloaded, stacked, swap instantly */}
+      {VIDEO_PARTS.map((src, i) => (
+        <video
+          key={src}
+          ref={(el) => { videoRefs.current[i] = el; }}
+          src={src}
+          autoPlay={i === 0}
+          muted
+          playsInline
+          preload="auto"
+          onEnded={() => handleEnded(i)}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: 0,
+            opacity: activeVideo === i ? 1 : 0,
+          }}
+        />
+      ))}
 
       {/* Dark overlay for readability */}
       <div
