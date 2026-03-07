@@ -11,7 +11,6 @@ interface TasteProfileProps {
   categoryAnswers: Record<string, CategoryAnswerSet>;
   likedProducts: string[];
   onFinish: () => void;
-  totalSteps: number;
 }
 
 const PARTICLES = ['auto_awesome', 'diamond', 'stars', 'flare', 'auto_awesome', 'star'];
@@ -22,7 +21,6 @@ export default function TasteProfile({
   categoryAnswers,
   likedProducts,
   onFinish,
-  totalSteps,
 }: TasteProfileProps) {
   const [typedLabel, setTypedLabel] = useState('');
 

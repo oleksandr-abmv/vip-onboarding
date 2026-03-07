@@ -6,7 +6,6 @@ interface InterestsScreenProps {
   onNext: () => void;
   selectedInterests: string[];
   onSelectionsChange: (interests: string[]) => void;
-  totalSteps: number;
 }
 
 const CATEGORIES = [
@@ -28,7 +27,6 @@ export default function InterestsScreen({
   onNext,
   selectedInterests,
   onSelectionsChange,
-  totalSteps,
 }: InterestsScreenProps) {
   const [tapped, setTapped] = useState<string | null>(null);
 

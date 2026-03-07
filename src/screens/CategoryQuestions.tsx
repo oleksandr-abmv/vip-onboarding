@@ -15,7 +15,6 @@ interface CategoryQuestionsProps {
   onCategoryAnswersChange: (answers: Record<string, CategoryAnswerSet>) => void;
   onNext: () => void;
   onBack: () => void;
-  totalSteps: number;
   onCategoryIdxChange?: (idx: number) => void;
 }
 
@@ -25,7 +24,6 @@ const CategoryQuestions = forwardRef<CategoryQuestionsHandle, CategoryQuestionsP
   onCategoryAnswersChange,
   onNext,
   onBack,
-  totalSteps,
   onCategoryIdxChange,
 }, ref) {
   const categories = selectedInterests.length > 0 ? selectedInterests : ['_generic'];
@@ -120,7 +118,7 @@ const CategoryQuestions = forwardRef<CategoryQuestionsHandle, CategoryQuestionsP
     ? 'What feels right for a special piece?'
     : `Tell us about ${config!.name}`;
 
-  const progressStep = 2 + currentIdx + 1;
+
 
   const chipStyle = (sel: boolean): React.CSSProperties => ({
     display: 'inline-flex',

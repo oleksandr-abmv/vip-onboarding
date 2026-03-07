@@ -6,7 +6,6 @@ interface GenderScreenProps {
   onNext: () => void;
   gender: string | null;
   onGenderChange: (gender: string) => void;
-  totalSteps: number;
 }
 
 const GENDER_CARDS = [
@@ -18,7 +17,6 @@ export default function GenderScreen({
   onNext,
   gender,
   onGenderChange,
-  totalSteps,
 }: GenderScreenProps) {
   const [tapped, setTapped] = useState<string | null>(null);
 

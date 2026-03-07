@@ -11,7 +11,7 @@ import TailoringScreen from './screens/TailoringScreen';
 import { theme, safeTop } from './theme';
 import { computeProfile } from './utils/profileLogic';
 import type { CategoryAnswerSet } from './utils/profileLogic';
-import { categoryConfigs } from './data/categoryConfig';
+
 
 
 type Screen = 'welcome' | 'gender' | 'interests' | 'categoryQuestions' | 'products' | 'profile' | 'tailoring';
@@ -30,7 +30,7 @@ function App() {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [categoryAnswers, setCategoryAnswers] = useState<Record<string, CategoryAnswerSet>>({});
   const [likedProducts, setLikedProducts] = useState<string[]>([]);
-  const [currentCategoryIdx, setCurrentCategoryIdx] = useState(0);
+
 
   // Total steps: gender + interests + categoryQuestions + products + profile
   const totalSteps = 5;
@@ -100,7 +100,6 @@ function App() {
             onNext={handleGenderNext}
             gender={gender}
             onGenderChange={setGender}
-            totalSteps={totalSteps}
           />
         );
       case 'interests':
@@ -109,7 +108,6 @@ function App() {
             onNext={handleInterestsNext}
             selectedInterests={selectedInterests}
             onSelectionsChange={setSelectedInterests}
-            totalSteps={totalSteps}
           />
         );
       case 'categoryQuestions':
@@ -121,8 +119,6 @@ function App() {
             onCategoryAnswersChange={setCategoryAnswers}
             onNext={handleCategoryNext}
             onBack={handleCategoryBack}
-            totalSteps={totalSteps}
-            onCategoryIdxChange={setCurrentCategoryIdx}
           />
         );
       case 'products':
@@ -132,7 +128,6 @@ function App() {
             selectedInterests={selectedInterests}
             likedProducts={likedProducts}
             onLikedChange={setLikedProducts}
-            totalSteps={totalSteps}
           />
         );
       case 'profile':
@@ -143,7 +138,6 @@ function App() {
             categoryAnswers={categoryAnswers}
             likedProducts={likedProducts}
             onFinish={handleProfileNext}
-            totalSteps={totalSteps}
           />
         );
       case 'tailoring':

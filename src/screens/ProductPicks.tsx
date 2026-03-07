@@ -7,7 +7,6 @@ interface ProductPicksProps {
   selectedInterests: string[];
   likedProducts: string[];
   onLikedChange: (products: string[]) => void;
-  totalSteps: number;
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -75,7 +74,6 @@ export default function ProductPicks({
   selectedInterests,
   likedProducts,
   onLikedChange,
-  totalSteps,
 }: ProductPicksProps) {
   const [animating, setAnimating] = useState<string | null>(null);
   const [sheetProduct, setSheetProduct] = useState<Product | null>(null);
@@ -134,7 +132,7 @@ export default function ProductPicks({
   };
 
   const likeCount = likedProducts.length;
-  const progressStep = totalSteps - 1;
+
 
   return (
     <div
