@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { theme, safeTop } from '../theme';
 import PRODUCTS, { type Product } from '../data/products';
 
@@ -33,6 +33,8 @@ export default function ProductPicks({
   onLikedChange,
 }: ProductPicksProps) {
   const [visibleCount, setVisibleCount] = useState(8);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [revealedCount, setRevealedCount] = useState(8);
   const [animating, setAnimating] = useState<string | null>(null);
   const [sheetProduct, setSheetProduct] = useState<Product | null>(null);
   const [sheetClosing, setSheetClosing] = useState(false);
@@ -40,10 +42,36 @@ export default function ProductPicks({
   const [counterBouncing, setCounterBouncing] = useState(false);
   const counterRef = useRef<HTMLParagraphElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const heartIdRef = useRef(0);
   const allProducts = useMemo(() => filterProducts(selectedInterests), [selectedInterests]);
   const products = allProducts.slice(0, visibleCount);
   const hasMore = visibleCount < allProducts.length;
+
+  // Infinite scroll: detect when near bottom
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el || loadingMore || !hasMore) return;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
+    if (nearBottom) {
+      setLoadingMore(true);
+      setTimeout(() => {
+        setVisibleCount((c) => c + 8);
+        setTimeout(() => {
+          setLoadingMore(false);
+        }, 50);
+      }, 600);
+    }
+  }, [loadingMore, hasMore]);
+
+  // Update revealedCount after visibleCount changes (for staggered animation)
+  useEffect(() => {
+    if (visibleCount > revealedCount) {
+      // Small delay so cards animate in after skeletons disappear
+      const timer = setTimeout(() => setRevealedCount(visibleCount), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [visibleCount, revealedCount]);
 
   const openSheet = useCallback((product: Product) => {
     setSheetProduct(product);
@@ -107,6 +135,8 @@ export default function ProductPicks({
     >
       {/* Scrollable content */}
       <div
+        ref={scrollRef}
+        onScroll={handleScroll}
         style={{
           flex: 1,
           overflow: 'auto',
@@ -152,28 +182,31 @@ export default function ProductPicks({
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 240ms both',
           }}
         >
-          {products.map((product) => {
+          {products.map((product, idx) => {
             const liked = likedProducts.includes(product.name);
             const isAnimating = animating === product.name && liked;
+            const isNewlyRevealed = idx >= revealedCount - 8 && idx >= 8;
+            const staggerDelay = isNewlyRevealed ? `${(idx % 8) * 60}ms` : undefined;
 
             return (
               <div
                 key={product.name}
+                onClick={() => openSheet(product)}
                 style={{
                   background: theme.colors.surface,
                   borderRadius: 16,
                   overflow: 'hidden',
                   position: 'relative',
+                  cursor: 'pointer',
+                  animation: isNewlyRevealed ? `cardReveal 400ms cubic-bezier(0.25, 0.1, 0.25, 1) ${staggerDelay} both` : undefined,
                 }}
               >
-                {/* Image — tap to view details */}
+                {/* Image */}
                 <div
-                  onClick={() => openSheet(product)}
                   style={{
                     height: 110,
                     background: theme.colors.surfaceElevated,
                     overflow: 'hidden',
-                    cursor: 'pointer',
                   }}
                 >
                   <img
@@ -189,7 +222,7 @@ export default function ProductPicks({
 
                 {/* Heart */}
                 <button
-                  onClick={(e) => toggleLike(product.name, e)}
+                  onClick={(e) => { e.stopPropagation(); toggleLike(product.name, e); }}
                   style={{
                     position: 'absolute',
                     top: 8,
@@ -257,31 +290,72 @@ export default function ProductPicks({
           })}
         </div>
 
-        {/* Load More */}
-        {hasMore && (
-          <button
-            onClick={() => setVisibleCount((c) => c + 8)}
+        {/* Skeleton loading placeholders */}
+        {loadingMore && (
+          <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              width: '100%',
-              height: 44,
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 14,
               marginTop: 14,
-              marginBottom: 10,
-              background: theme.colors.surface,
-              border: `1px solid #333`,
-              borderRadius: 100,
-              fontSize: 14,
-              fontWeight: 500,
-              color: theme.colors.textSecondary,
-              cursor: 'pointer',
+              paddingBottom: 10,
             }}
           >
-            <span className="material-symbols-rounded" style={{ fontSize: 18 }}>expand_more</span>
-            Show more
-          </button>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={`skeleton-${i}`}
+                style={{
+                  background: theme.colors.surface,
+                  borderRadius: 16,
+                  overflow: 'hidden',
+                  animation: `fadeIn 300ms ease ${i * 80}ms both`,
+                }}
+              >
+                <div
+                  style={{
+                    height: 110,
+                    background: `linear-gradient(90deg, ${theme.colors.surfaceElevated} 25%, #2a2a2a 50%, ${theme.colors.surfaceElevated} 75%)`,
+                    backgroundSize: '200% 100%',
+                    animation: 'skeletonShimmer 1.5s ease-in-out infinite',
+                  }}
+                />
+                <div style={{ padding: '10px 12px 12px' }}>
+                  <div
+                    style={{
+                      height: 10,
+                      width: '50%',
+                      borderRadius: 5,
+                      background: `linear-gradient(90deg, ${theme.colors.surfaceElevated} 25%, #2a2a2a 50%, ${theme.colors.surfaceElevated} 75%)`,
+                      backgroundSize: '200% 100%',
+                      animation: 'skeletonShimmer 1.5s ease-in-out infinite',
+                      marginBottom: 8,
+                    }}
+                  />
+                  <div
+                    style={{
+                      height: 10,
+                      width: '75%',
+                      borderRadius: 5,
+                      background: `linear-gradient(90deg, ${theme.colors.surfaceElevated} 25%, #2a2a2a 50%, ${theme.colors.surfaceElevated} 75%)`,
+                      backgroundSize: '200% 100%',
+                      animation: 'skeletonShimmer 1.5s ease-in-out infinite',
+                      marginBottom: 8,
+                    }}
+                  />
+                  <div
+                    style={{
+                      height: 10,
+                      width: '35%',
+                      borderRadius: 5,
+                      background: `linear-gradient(90deg, ${theme.colors.surfaceElevated} 25%, #2a2a2a 50%, ${theme.colors.surfaceElevated} 75%)`,
+                      backgroundSize: '200% 100%',
+                      animation: 'skeletonShimmer 1.5s ease-in-out infinite',
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 

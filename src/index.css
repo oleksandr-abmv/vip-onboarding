@@ -175,6 +175,18 @@ html, body, #root {
   100% { width: 100%; }
 }
 
+/* Skeleton shimmer for loading placeholders */
+@keyframes skeletonShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Card reveal after skeleton */
+@keyframes cardReveal {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
 
 .material-symbols-rounded {
   font-family: 'Material Symbols Rounded';
