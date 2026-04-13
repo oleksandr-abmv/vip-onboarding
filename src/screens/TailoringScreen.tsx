@@ -28,8 +28,8 @@ export default function TailoringScreen({ onComplete }: TailoringScreenProps) {
         src="/vip-logo.svg"
         alt="VIP"
         style={{
-          width: 56,
-          height: 56,
+          width: 48,
+          height: 48,
           marginBottom: 32,
           animation: 'fadeIn 600ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
         }}
@@ -38,8 +38,8 @@ export default function TailoringScreen({ onComplete }: TailoringScreenProps) {
       {/* Progress bar */}
       <div
         style={{
-          width: 220,
-          height: 5,
+          width: 200,
+          height: 4,
           borderRadius: 3,
           background: '#232323',
           overflow: 'hidden',
@@ -61,15 +61,15 @@ export default function TailoringScreen({ onComplete }: TailoringScreenProps) {
       {/* Text */}
       <p
         style={{
-          fontSize: 17,
+          fontSize: 15,
           color: theme.colors.textPrimary,
           textAlign: 'center',
-          lineHeight: '24px',
+          lineHeight: 'normal',
           margin: 0,
           animation: 'fadeIn 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 300ms both',
         }}
       >
-        Tailoring experience...
+        Tailoring your concierge
       </p>
     </div>
   );

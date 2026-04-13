@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { theme, safeTop } from '../theme';
 
 
@@ -6,40 +6,68 @@ interface InterestsScreenProps {
   onNext: () => void;
   selectedInterests: string[];
   onSelectionsChange: (interests: string[]) => void;
+  gender: string | null;
 }
 
 const CATEGORIES = [
-  { id: 'Watches', icon: 'watch', label: 'Watches' },
-  { id: 'Jewelry', icon: 'diamond', label: 'Jewelry' },
-  { id: 'Fine Wine', icon: 'wine_bar', label: 'Fine Wine' },
-  { id: 'Handbags', icon: 'shopping_bag', label: 'Handbags' },
-  { id: 'Vehicles', icon: 'directions_car', label: 'Vehicles' },
-  { id: 'Fine Art', icon: 'palette', label: 'Fine Art' },
-  { id: 'Yachts', icon: 'sailing', label: 'Yachts' },
-  { id: 'Sunglasses', icon: 'sunny', label: 'Sunglasses' },
-  { id: 'Fashion', icon: 'checkroom', label: 'Fashion' },
-  { id: 'Cigars', icon: 'smoking_rooms', label: 'Cigars' },
-  { id: 'Private Aviation', icon: 'flight', label: 'Aviation' },
-  { id: 'Collectibles', icon: 'emoji_events', label: 'Collectibles' },
+  { id: 'Accessories', label: 'Accessories', imageFile: 'accessories.webp' },
+  { id: 'Handbags and Leather Goods', label: 'Bags', imageFile: 'bags.webp' },
+  { id: 'Vehicles', label: 'Cars', imageFile: 'cars.webp' },
+  { id: 'Fashion and Apparel', label: 'Clothing', imageFile: 'clothing.webp' },
+  { id: 'Fine Art', label: 'Fine Art', imageFile: 'fineart.webp' },
+  { id: 'Furniture', label: 'Furniture', imageFile: 'furniture.webp' },
+  { id: 'Jewellery', label: 'Jewelry', imageFile: 'jewelry.webp' },
+  { id: 'Footwear', label: 'Shoes', imageFile: 'shoes.webp' },
+  { id: 'Watches', label: 'Watches', imageFile: 'watches.webp' },
 ];
+
+interface Ripple {
+  id: string;
+  x: number;
+  y: number;
+  selecting: boolean;
+}
 
 export default function InterestsScreen({
   onNext,
   selectedInterests,
   onSelectionsChange,
+  gender,
 }: InterestsScreenProps) {
-  const [tapped, setTapped] = useState<string | null>(null);
+  const genderFolder = gender === 'female' ? 'women' : 'men';
+  const [ripples, setRipples] = useState<Record<string, Ripple>>({});
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const toggle = (id: string) => {
-    setTapped(id);
-    setTimeout(() => setTapped(null), 150);
+  const handleClick = useCallback((e: React.MouseEvent, catId: string) => {
+    const card = cardRefs.current[catId];
+    if (!card) return;
 
-    if (selectedInterests.includes(id)) {
-      onSelectionsChange(selectedInterests.filter((i) => i !== id));
-    } else {
-      onSelectionsChange([...selectedInterests, id]);
+    const rect = card.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+    const isSelected = selectedInterests.includes(catId);
+    const willSelect = !isSelected;
+
+    setRipples(prev => ({
+      ...prev,
+      [catId]: { id: catId, x, y, selecting: willSelect },
+    }));
+
+    if (isSelected) {
+      onSelectionsChange(selectedInterests.filter((i) => i !== catId));
+    } else if (selectedInterests.length < 5) {
+      onSelectionsChange([...selectedInterests, catId]);
     }
-  };
+
+    setTimeout(() => {
+      setRipples(prev => {
+        const next = { ...prev };
+        delete next[catId];
+        return next;
+      });
+    }, 500);
+  }, [selectedInterests, onSelectionsChange]);
 
   const count = selectedInterests.length;
 
@@ -58,78 +86,164 @@ export default function InterestsScreen({
         style={{
           flex: 1,
           overflow: 'auto',
-          padding: theme.spacing.screenPadding,
-          paddingTop: safeTop(68),
+          paddingTop: safeTop(100),
           paddingBottom: 0,
         }}
       >
         <h1
           style={{
-            fontSize: 24,
-            fontWeight: 700,
-            color: theme.colors.textPrimary,
-            lineHeight: '32px',
+            fontSize: 20,
+            fontWeight: 500,
+            color: '#fff',
+            lineHeight: '26px',
             margin: 0,
             marginBottom: 8,
+            padding: `0 16px`,
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 80ms both',
           }}
         >
-          What catches your eye?
+          Choose what interests you
         </h1>
         <p
           style={{
-            fontSize: 15,
-            color: theme.colors.textMuted,
+            fontSize: 14,
+            color: '#999',
             margin: 0,
-            marginBottom: 24,
-            lineHeight: '22px',
+            marginBottom: 20,
+            lineHeight: '20px',
+            padding: `0 14px`,
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 160ms both',
           }}
         >
-          Pick everything that interests you.
+          Select 3 to 5 categories
         </p>
 
-        {/* Chips */}
+        {/* 2-column category grid */}
         <div
           style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 8,
-            paddingBottom: 10,
-            alignContent: 'flex-start',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: 12,
+            padding: '0 16px',
+            paddingBottom: 24,
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 240ms both',
           }}
         >
           {CATEGORIES.map((cat) => {
             const selected = selectedInterests.includes(cat.id);
-            const isTapped = tapped === cat.id;
+            const ripple = ripples[cat.id];
             return (
               <button
                 key={cat.id}
-                onClick={() => toggle(cat.id)}
+                ref={(el) => { cardRefs.current[cat.id] = el as HTMLDivElement | null; }}
+                onClick={(e) => handleClick(e, cat.id)}
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 7,
-                  background: selected ? '#1a1a1a' : theme.colors.surface,
-                  border: `1.5px solid ${selected ? '#fff' : '#333'}`,
-                  borderRadius: 22,
-                  padding: '9px 15px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                  background: selected ? 'rgba(255,255,255,0.05)' : 'transparent',
+                  border: selected ? '1.5px solid #fff' : '1px solid #282828',
+                  borderRadius: 12,
+                  padding: 16,
                   cursor: 'pointer',
-                  transition: 'background 150ms ease, border-color 150ms ease, transform 150ms',
-                  transform: isTapped ? 'scale(0.95)' : 'scale(1)',
-                  boxShadow: selected ? '0 0 10px rgba(255,255,255,0.06)' : 'none',
-                  flexShrink: 0,
+                  WebkitTapHighlightColor: 'transparent',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transition: 'border-color 300ms ease, background 300ms ease',
                 }}
               >
-                <span className="material-symbols-rounded" style={{ fontSize: 19, color: selected ? '#fff' : '#888', transition: 'color 150ms ease' }}>{cat.icon}</span>
+                {/* Ripple effect — covers entire card */}
+                {ripple && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      pointerEvents: 'none',
+                      zIndex: 2,
+                      overflow: 'hidden',
+                      borderRadius: 12,
+                    }}
+                  >
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: `${ripple.x}%`,
+                        top: `${ripple.y}%`,
+                        width: '300%',
+                        height: '300%',
+                        marginLeft: '-150%',
+                        marginTop: '-150%',
+                        borderRadius: '50%',
+                        background: ripple.selecting
+                          ? 'rgba(255,255,255,0.15)'
+                          : 'rgba(0,0,0,0.3)',
+                        animation: 'rippleExpand 500ms cubic-bezier(0.2, 0, 0.0, 1) forwards',
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Image area */}
+                <div
+                  style={{
+                    width: '100%',
+                    aspectRatio: '164 / 123',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <img
+                    src={`/images/categories/${genderFolder}/${cat.imageFile}`}
+                    alt={cat.label}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'contain',
+                      display: 'block',
+                    }}
+                  />
+                </div>
+
+                {/* Checkmark — positioned on the card, over the image top-right */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 16,
+                    right: 16,
+                    width: 28,
+                    height: 28,
+                    borderRadius: '50%',
+                    background: selected ? '#fff' : 'transparent',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'background 300ms ease, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease',
+                    opacity: selected ? 1 : 0,
+                    transform: selected ? 'scale(1)' : 'scale(0.5)',
+                    zIndex: 3,
+                  }}
+                >
+                  <span
+                    className="material-symbols-rounded"
+                    style={{ fontSize: 18, color: '#0A0A0A' }}
+                  >
+                    check
+                  </span>
+                </div>
+
+                {/* Label */}
                 <span
                   style={{
-                    fontSize: 14,
-                    fontWeight: 500,
-                    color: selected ? '#fff' : '#bbb',
-                    lineHeight: '18px',
-                    transition: 'color 150ms ease',
+                    fontSize: 15,
+                    fontWeight: 600,
+                    color: '#fff',
+                    lineHeight: '22px',
+                    textAlign: 'left',
+                    width: '100%',
+                    wordBreak: 'break-word',
                   }}
                 >
                   {cat.label}
@@ -140,50 +254,64 @@ export default function InterestsScreen({
         </div>
       </div>
 
-      {/* Sticky bottom */}
+      {/* Sticky bottom bar */}
       <div
         style={{
           flexShrink: 0,
-          padding: `0 ${theme.spacing.screenPadding} calc(4px + env(safe-area-inset-bottom, 0px))`,
-          background: `linear-gradient(to top, ${theme.colors.background} 70%, transparent)`,
+          background: '#0d0d0d',
+          padding: `12px 16px calc(28px + env(safe-area-inset-bottom, 0px))`,
         }}
       >
-        {/* Selection count */}
-        <p
+        {/* Shield-check privacy note */}
+        <div
           style={{
-            fontSize: 14,
-            color: theme.colors.textTertiary,
-            textAlign: 'center',
-            margin: 0,
-            marginBottom: 10,
-            height: 20,
-            opacity: count > 0 ? 1 : 0,
-            transition: 'opacity 200ms ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            padding: '12px 0',
           }}
         >
-          {count} selected
-        </p>
+          <span
+            className="material-symbols-rounded"
+            style={{ fontSize: 20, color: '#fff', opacity: 0.7 }}
+          >
+            verified_user
+          </span>
+          <span
+            style={{
+              fontSize: 14,
+              fontWeight: 400,
+              color: '#999',
+              textAlign: 'center',
+            }}
+          >
+            Private to you. Easy to update anytime.
+          </span>
+        </div>
 
         {/* CTA */}
         <button
           onClick={onNext}
-          disabled={count < 1}
+          disabled={count < 3}
           style={{
             width: '100%',
-            height: 52,
-            marginBottom: 4,
-            background: count >= 1 ? theme.colors.ctaPrimary : '#252525',
-            color: count >= 1 ? theme.colors.ctaPrimaryText : theme.colors.textTertiary,
+            height: 48,
+            marginBottom: 8,
+            background: count >= 3 ? '#f6f6f6' : '#252525',
+            color: count >= 3 ? '#121212' : theme.colors.textTertiary,
             border: 'none',
             borderRadius: 100,
-            fontSize: 17,
+            fontSize: 16,
             fontWeight: 500,
-            cursor: count >= 1 ? 'pointer' : 'default',
+            cursor: count >= 3 ? 'pointer' : 'default',
             transition: 'background 200ms ease, color 200ms ease',
-            animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 320ms both',
           }}
         >
-          Continue
+          {count < 3
+            ? `Select ${3 - count} more`
+            : `Continue with ${count} categories`
+          }
         </button>
       </div>
     </div>

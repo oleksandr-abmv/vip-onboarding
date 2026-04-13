@@ -35,8 +35,8 @@ export const theme = {
   },
   spacing: {
     screenPadding: '24px',
-    cardGap: '10px',
-    sectionGap: '18px',
+    cardGap: '12px',
+    sectionGap: '20px',
   },
   animation: {
     cardBounce: 'cubic-bezier(0.34, 1.56, 0.64, 1)',

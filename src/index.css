@@ -18,6 +18,15 @@ html, body, #root {
   -webkit-user-select: none;
 }
 
+/* Hide scrollbars globally */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
 /* Premium grit texture applied to backgrounds */
 .grain-bg {
   background-color: #0A0A0A;
@@ -36,27 +45,63 @@ html, body, #root {
   background: radial-gradient(ellipse at 50% 40%, transparent 30%, rgba(0,0,0,0.4) 100%);
 }
 
+/* Forward: new screen rises from bottom, old fades out slightly upward */
 @keyframes screenEnterFromRight {
-  from { opacity: 0; transform: translateX(60px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { opacity: 0; transform: translateY(50px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes screenExitToLeft {
-  from { opacity: 1; transform: translateX(0); }
-  to { opacity: 0; transform: translateX(-30px); }
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-20px); }
 }
+/* Back: returning screen drops in from top, current slides down */
 @keyframes screenEnterFromLeft {
-  from { opacity: 0; transform: translateX(-60px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { opacity: 0; transform: translateY(-40px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes screenExitToRight {
-  from { opacity: 1; transform: translateX(0); }
-  to { opacity: 0; transform: translateX(30px); }
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(50px); }
+}
+
+/* Like button spark burst */
+@keyframes sparkBurst {
+  0%   { opacity: 1; transform: translate(0, 0) scale(1); }
+  50%  { opacity: 1; transform: translate(calc(var(--spark-tx) * 0.7), calc(var(--spark-ty) * 0.7)) scale(1.2); }
+  100% { opacity: 0; transform: translate(var(--spark-tx), var(--spark-ty)) scale(0); }
+}
+
+/* Detail view modal */
+@keyframes viewIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes viewOut {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.95); }
 }
 
 /* Staggered content fade-in with subtle upward movement */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Smooth slide transitions for multi-step screens */
+@keyframes screenSlideInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes screenSlideInLeft {
+  from { opacity: 0; transform: translateX(-30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Material ripple expand from click point */
+@keyframes rippleExpand {
+  0% { transform: scale(0); opacity: 1; }
+  60% { opacity: 0.7; }
+  100% { transform: scale(1); opacity: 0; }
 }
 
 /* Simple fade-in */
@@ -187,12 +232,27 @@ html, body, #root {
   100% { background-position: 200% 0; }
 }
 
+/* Swipe card appear — subtle scale up from behind position */
+@keyframes cardAppear {
+  from { transform: scale(0.96) translateY(6px); opacity: 0.8; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
 /* Card reveal after skeleton */
 @keyframes cardReveal {
   from { opacity: 0; transform: scale(0.95) translateY(8px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
+/* Marquee loop for auth screen image rows */
+@keyframes marqueeLeft {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes marqueeRight {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
 
 .material-symbols-rounded {
   font-family: 'Material Symbols Rounded';

@@ -1,44 +1,39 @@
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import PhoneFrame from './components/PhoneFrame';
 import WelcomeScreen from './screens/WelcomeScreen';
 import GenderScreen from './screens/GenderScreen';
+import LifestyleScreen from './screens/LifestyleScreen';
 import InterestsScreen from './screens/InterestsScreen';
-import CategoryQuestions from './screens/CategoryQuestions';
-import type { CategoryQuestionsHandle } from './screens/CategoryQuestions';
-import ProductPicks from './screens/ProductPicks';
-import TasteProfile from './screens/TasteProfile';
+import SubcategoryScreen from './screens/SubcategoryScreen';
+import RefineYourTaste from './screens/RefineYourTaste';
 import TailoringScreen from './screens/TailoringScreen';
 import { theme, safeTop } from './theme';
-import { computeProfile } from './utils/profileLogic';
-import type { CategoryAnswerSet } from './utils/profileLogic';
 
 
+type Screen = 'welcome' | 'gender' | 'lifestyle' | 'interests' | 'subcategory' | 'products' | 'tailoring';
 
-type Screen = 'welcome' | 'gender' | 'interests' | 'categoryQuestions' | 'products' | 'profile' | 'tailoring';
-
-const SCREEN_ORDER: Screen[] = ['welcome', 'gender', 'interests', 'categoryQuestions', 'products', 'profile', 'tailoring'];
+// Screen order for reference
+// const SCREEN_ORDER: Screen[] = ['welcome', 'gender', 'interests', 'subcategory', 'products', 'tailoring'];
 
 function App() {
   const [screen, setScreen] = useState<Screen>('welcome');
   const [exitingScreen, setExitingScreen] = useState<Screen | null>(null);
   const [direction, setDirection] = useState<'forward' | 'back'>('forward');
   const transitionRef = useRef<number | null>(null);
-  const categoryQuestionsRef = useRef<CategoryQuestionsHandle>(null);
-
   // Onboarding state
   const [gender, setGender] = useState<string | null>(null);
+  const [lifestyle, setLifestyle] = useState<string | null>(null);
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [categoryAnswers, setCategoryAnswers] = useState<Record<string, CategoryAnswerSet>>({});
+  const [subcategoriesByCategory, setSubcategoriesByCategory] = useState<Record<string, string[]>>({});
   const [likedProducts, setLikedProducts] = useState<string[]>([]);
+  const [overlayVisible, setOverlayVisible] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  // Track which interest category we're showing subcategories for
+  const [currentSubcategoryIndex, setCurrentSubcategoryIndex] = useState(0);
 
-
-  // Total steps: gender + interests + categoryQuestions + products + profile
-  const totalSteps = 5;
-
-  const profile = useMemo(
-    () => computeProfile(categoryAnswers, likedProducts, selectedInterests),
-    [categoryAnswers, likedProducts, selectedInterests],
-  );
+  // Total steps: gender + interests + (subcategory + products) per category
+  const catCount = Math.max(selectedInterests.length, 1);
+  const totalSteps = 3 + catCount + 1; // gender + lifestyle + interests + subcategories + products
 
   const goTo = useCallback(
     (next: Screen, dir: 'forward' | 'back') => {
@@ -46,6 +41,7 @@ function App() {
       setDirection(dir);
       setExitingScreen(screen);
       setScreen(next);
+      setOverlayVisible(false);
       transitionRef.current = window.setTimeout(() => {
         setExitingScreen(null);
         transitionRef.current = null;
@@ -56,39 +52,85 @@ function App() {
 
   // Navigation handlers
   const handleWelcomeNext = useCallback(() => goTo('gender', 'forward'), [goTo]);
-  const handleGenderNext = useCallback(() => goTo('interests', 'forward'), [goTo]);
+  const handleGenderNext = useCallback(() => goTo('lifestyle', 'forward'), [goTo]);
   const handleGenderBack = useCallback(() => goTo('welcome', 'back'), [goTo]);
-  const handleInterestsNext = useCallback(() => goTo('categoryQuestions', 'forward'), [goTo]);
-  const handleInterestsBack = useCallback(() => goTo('gender', 'back'), [goTo]);
-  const handleCategoryNext = useCallback(() => goTo('products', 'forward'), [goTo]);
-  const handleCategoryBack = useCallback(() => goTo('interests', 'back'), [goTo]);
-  const handleProductsNext = useCallback(() => goTo('profile', 'forward'), [goTo]);
-  const handleProductsBack = useCallback(() => goTo('categoryQuestions', 'back'), [goTo]);
-  const handleProfileNext = useCallback(() => goTo('tailoring', 'forward'), [goTo]);
+  const handleLifestyleNext = useCallback(() => goTo('interests', 'forward'), [goTo]);
+  const handleLifestyleBack = useCallback(() => goTo('gender', 'back'), [goTo]);
 
-  const handleSkip = useCallback(() => {
-    const idx = SCREEN_ORDER.indexOf(screen);
-    const next = SCREEN_ORDER[idx + 1];
-    if (next) goTo(next, 'forward');
-  }, [screen, goTo]);
+  const handleInterestsNext = useCallback(() => {
+    if (selectedInterests.length > 0) {
+      setCurrentSubcategoryIndex(0);
+      goTo('subcategory', 'forward');
+    } else {
+      goTo('products', 'forward');
+    }
+  }, [goTo, selectedInterests]);
 
-  // Nav visibility — hidden on welcome, profile, and tailoring
+  const handleInterestsBack = useCallback(() => goTo('lifestyle', 'back'), [goTo]);
+
+  // Flow: all subcategories first, then one products screen for everything
+
+  const handleSubcategoryNext = useCallback(() => {
+    // Move to next category's subcategory, or to products
+    if (currentSubcategoryIndex < selectedInterests.length - 1) {
+      setCurrentSubcategoryIndex(prev => prev + 1);
+      goTo('subcategory', 'forward');
+    } else {
+      goTo('products', 'forward');
+    }
+  }, [goTo, currentSubcategoryIndex, selectedInterests]);
+
+  const handleSubcategorySkip = useCallback(() => {
+    // Same as next — skip this category's subcategories
+    if (currentSubcategoryIndex < selectedInterests.length - 1) {
+      setCurrentSubcategoryIndex(prev => prev + 1);
+      goTo('subcategory', 'forward');
+    } else {
+      goTo('products', 'forward');
+    }
+  }, [goTo, currentSubcategoryIndex, selectedInterests]);
+
+  const handleSubcategoryBack = useCallback(() => {
+    if (currentSubcategoryIndex > 0) {
+      setCurrentSubcategoryIndex(prev => prev - 1);
+      goTo('subcategory', 'back');
+    } else {
+      goTo('interests', 'back');
+    }
+  }, [goTo, currentSubcategoryIndex]);
+
+  const handleProductsNext = useCallback(() => goTo('tailoring', 'forward'), [goTo]);
+
+  const handleProductsBack = useCallback(() => {
+    // Go back to last category's subcategory
+    if (selectedInterests.length > 0) {
+      setCurrentSubcategoryIndex(selectedInterests.length - 1);
+      goTo('subcategory', 'back');
+    } else {
+      goTo('interests', 'back');
+    }
+  }, [goTo, selectedInterests]);
+
+  // Nav visibility
   const showBack = screen !== 'welcome' && screen !== 'tailoring';
-  const showSkip = screen !== 'welcome' && screen !== 'gender' && screen !== 'profile' && screen !== 'tailoring';
+  const showHelp = screen !== 'welcome' && screen !== 'tailoring';
 
   const handleBack = useCallback(() => {
     switch (screen) {
       case 'gender': handleGenderBack(); break;
+      case 'lifestyle': handleLifestyleBack(); break;
       case 'interests': handleInterestsBack(); break;
-      case 'categoryQuestions': categoryQuestionsRef.current?.goBack(); break;
+      case 'subcategory': handleSubcategoryBack(); break;
       case 'products': handleProductsBack(); break;
-      case 'profile': goTo('products', 'back'); break;
     }
-  }, [screen, handleGenderBack, handleInterestsBack, handleCategoryBack, handleProductsBack]);
+  }, [screen, handleGenderBack, handleInterestsBack, handleSubcategoryBack, handleProductsBack]);
 
   const handleTailoringComplete = useCallback(() => {
     /* Navigate to chat or next experience */
   }, []);
+
+  // Current category for subcategory screen — memoized to prevent re-renders
+  const currentCategoryId = selectedInterests[currentSubcategoryIndex] || '';
 
   const renderScreen = (s: Screen) => {
     switch (s) {
@@ -102,47 +144,67 @@ function App() {
             onGenderChange={setGender}
           />
         );
+      case 'lifestyle':
+        return (
+          <LifestyleScreen
+            onNext={handleLifestyleNext}
+            lifestyle={lifestyle}
+            onLifestyleChange={setLifestyle}
+          />
+        );
       case 'interests':
         return (
           <InterestsScreen
             onNext={handleInterestsNext}
             selectedInterests={selectedInterests}
             onSelectionsChange={setSelectedInterests}
+            gender={gender}
           />
         );
-      case 'categoryQuestions':
+      case 'subcategory':
         return (
-          <CategoryQuestions
-            ref={categoryQuestionsRef}
-            selectedInterests={selectedInterests}
-            categoryAnswers={categoryAnswers}
-            onCategoryAnswersChange={setCategoryAnswers}
-            onNext={handleCategoryNext}
-            onBack={handleCategoryBack}
+          <SubcategoryScreen
+            key={currentCategoryId}
+            onNext={handleSubcategoryNext}
+            onSkip={handleSubcategorySkip}
+            categoryId={currentCategoryId}
+            selectedSubcategories={subcategoriesByCategory[currentCategoryId] || []}
+            onSelectionsChange={(subs) => setSubcategoriesByCategory(prev => ({ ...prev, [currentCategoryId]: subs }))}
+            gender={gender}
           />
         );
-      case 'products':
+      case 'products': {
         return (
-          <ProductPicks
+          <RefineYourTaste
+            key="all-products"
             onNext={handleProductsNext}
             selectedInterests={selectedInterests}
+            subcategoriesByCategory={subcategoriesByCategory}
             likedProducts={likedProducts}
             onLikedChange={setLikedProducts}
+            onOverlayChange={setOverlayVisible}
+            gender={gender}
           />
         );
-      case 'profile':
-        return (
-          <TasteProfile
-            profile={profile}
-            selectedInterests={selectedInterests}
-            categoryAnswers={categoryAnswers}
-            likedProducts={likedProducts}
-            onFinish={handleProfileNext}
-          />
-        );
+      }
       case 'tailoring':
         return <TailoringScreen onComplete={handleTailoringComplete} />;
     }
+  };
+
+  // Progress bar calculation
+  const getProgressPct = () => {
+    const base = (() => {
+      switch (screen) {
+        case 'gender': return 1;
+        case 'lifestyle': return 2;
+        case 'interests': return 3;
+        case 'subcategory': return 3 + currentSubcategoryIndex + 1;
+        case 'products': return totalSteps;
+        default: return 0;
+      }
+    })();
+    return (base / totalSteps) * 100;
   };
 
   const enterAnim = direction === 'forward' ? 'screenEnterFromRight' : 'screenEnterFromLeft';
@@ -152,23 +214,6 @@ function App() {
     <PhoneFrame>
       {/* Persistent background */}
       <div style={{ position: 'absolute', inset: 0, background: theme.colors.background }} />
-
-      {/* Grid pattern overlay */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          zIndex: 0,
-          pointerEvents: 'none',
-          opacity: screen !== 'welcome' && screen !== 'tailoring' ? 1 : 0,
-          transition: 'opacity 600ms ease',
-          backgroundImage:
-            'radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)',
-          backgroundSize: '14px 14px',
-          maskImage: 'radial-gradient(ellipse 80% 70% at 50% 40%, black 20%, transparent 70%)',
-          WebkitMaskImage: 'radial-gradient(ellipse 80% 70% at 50% 40%, black 20%, transparent 70%)',
-        }}
-      />
 
       {/* Screen content area */}
       <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
@@ -187,7 +232,7 @@ function App() {
           </div>
         )}
         <div
-          key={screen}
+          key={screen === 'subcategory' ? `${screen}-${currentCategoryId}` : screen}
           style={{
             position: 'absolute',
             inset: 0,
@@ -201,110 +246,195 @@ function App() {
         </div>
       </div>
 
-      {/* Persistent top nav bar with gradient background */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 30,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: `${safeTop(16)} 20px 12px`,
-          background: screen === 'welcome' ? 'transparent' : `linear-gradient(to bottom, ${theme.colors.background} 60%, transparent)`,
-          pointerEvents: 'none',
-        }}
-      >
-        {/* Back button */}
-        <button
-          onClick={handleBack}
+      {/* Persistent top nav bar — matches Figma: back arrow, center text, Help */}
+      {screen !== 'welcome' && screen !== 'tailoring' && (
+        <div
           style={{
-            width: 44,
-            height: 44,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'none',
-            border: 'none',
-            cursor: showBack ? 'pointer' : 'default',
-            padding: 0,
-            opacity: showBack ? 1 : 0,
-            transition: 'opacity 0.3s ease',
-            pointerEvents: showBack ? 'auto' : 'none',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 30,
+            background: theme.colors.background,
+            pointerEvents: 'none',
+            display: overlayVisible ? 'none' : 'block',
           }}
         >
-          <svg width="10" height="18" viewBox="0 0 10 18" fill="none">
-            <path
-              d="M9 1L1 9L9 17"
-              stroke="rgba(255,255,255,0.8)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-
-        {/* Progress bar in nav center */}
-        {screen !== 'welcome' && screen !== 'tailoring' && (() => {
-          let currentStep = 0;
-          switch (screen) {
-            case 'gender': currentStep = 1; break;
-            case 'interests': currentStep = 2; break;
-            case 'categoryQuestions': currentStep = 3; break;
-            case 'products': currentStep = 4; break;
-            case 'profile': currentStep = 5; break;
-          }
-          const pct = (currentStep / totalSteps) * 100;
-          return (
-            <div
+          {/* Nav row: back + center + help */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: `${safeTop(16)} 20px 12px`,
+            }}
+          >
+            {/* Back button */}
+            <button
+              onClick={handleBack}
               style={{
-                position: 'absolute',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: 120,
-                height: 3,
-                borderRadius: 1.5,
-                background: '#333',
-                pointerEvents: 'none',
-                overflow: 'hidden',
+                width: 44,
+                height: 44,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'none',
+                border: 'none',
+                cursor: showBack ? 'pointer' : 'default',
+                padding: 0,
+                opacity: showBack ? 1 : 0,
+                pointerEvents: showBack ? 'auto' : 'none',
               }}
             >
-              <div
-                style={{
-                  height: '100%',
-                  width: `${pct}%`,
-                  borderRadius: 1.5,
-                  background: '#fff',
-                  transition: 'width 300ms ease',
-                }}
-              />
-            </div>
-          );
-        })()}
+              <svg width="8" height="15" viewBox="0 0 8 15" fill="none">
+                <path
+                  d="M7 1L1 7.5L7 14"
+                  stroke="rgba(255,255,255,0.8)"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
 
-        {/* Skip button */}
-        <button
-          onClick={handleSkip}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: showSkip ? 'pointer' : 'default',
-            fontSize: 16,
-            fontWeight: 500,
-            color: theme.colors.textMuted,
-            lineHeight: '44px',
-            padding: '0 4px',
-            minHeight: 44,
-            opacity: showSkip ? 1 : 0,
-            transition: 'opacity 0.3s ease',
-            pointerEvents: showSkip ? 'auto' : 'none',
-          }}
-        >
-          Skip
-        </button>
-      </div>
+            {/* Center text — counter on products screen */}
+            <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+              {screen === 'products' && likedProducts.length > 0 && (
+                <span style={{ fontSize: 16, fontWeight: 500, color: '#fff' }}>
+                  {likedProducts.length} liked
+                </span>
+              )}
+            </div>
+
+            {/* Help button */}
+            <button
+              onClick={() => setHelpOpen(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 16,
+                fontWeight: 500,
+                color: '#cdcdcd',
+                lineHeight: '44px',
+                padding: '0 4px',
+                minHeight: 44,
+                opacity: showHelp ? 1 : 0,
+                pointerEvents: showHelp ? 'auto' : 'none',
+              }}
+            >
+              Help
+            </button>
+          </div>
+
+          {/* Full-width progress bar — thin line below nav */}
+          <div
+            style={{
+              width: '100%',
+              height: 3.4,
+              background: '#212020',
+              position: 'relative',
+            }}
+          >
+            <div
+              style={{
+                height: '100%',
+                width: `${getProgressPct()}%`,
+                background: '#f0f0f0',
+                transition: 'width 300ms ease',
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Help overlay — bottom sheet style */}
+      {helpOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            onClick={() => setHelpOpen(false)}
+            style={{
+              position: 'absolute', inset: 0, zIndex: 300,
+              background: 'rgba(0,0,0,0.75)',
+              animation: 'backdropFadeIn 200ms ease both',
+            }}
+          />
+          {/* Sheet */}
+          <div
+            style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 301,
+              background: '#111',
+              borderRadius: '20px 20px 0 0',
+              maxHeight: '85%',
+              display: 'flex',
+              flexDirection: 'column',
+              animation: 'sheetSlideUp 300ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
+            }}
+          >
+            {/* Drag handle */}
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: '#333' }} />
+            </div>
+
+            {/* Scrollable content */}
+            <div style={{ flex: 1, overflow: 'auto', padding: '8px 20px 0' }}>
+              {/* FAQ cards */}
+              <p style={{ fontSize: 11, fontWeight: 500, color: '#666', textTransform: 'uppercase', margin: '0 0 10px', letterSpacing: '0.5px' }}>FAQ</p>
+              {[
+                { icon: 'diamond', q: 'What is VIP?', a: 'AI-powered concierge for the world\'s finest luxury goods, tailored to your taste.' },
+                { icon: 'tune', q: 'How does personalization work?', a: 'Every selection trains the AI. The more you engage, the better your recommendations.' },
+                { icon: 'shield', q: 'Is my data private?', a: 'Encrypted and never shared. Update or reset your preferences anytime.' },
+              ].map((s, i) => (
+                <div key={i} style={{
+                  background: '#1a1a1a', borderRadius: 12, padding: '14px 16px', marginBottom: 8,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span className="material-symbols-rounded" style={{ fontSize: 16, color: '#888' }}>{s.icon}</span>
+                    <p style={{ fontSize: 14, fontWeight: 500, color: '#fff', margin: 0 }}>{s.q}</p>
+                  </div>
+                  <p style={{ fontSize: 13, color: '#999', margin: '6px 0 0', lineHeight: '18px', paddingLeft: 26 }}>{s.a}</p>
+                </div>
+              ))}
+
+              {/* Contact section */}
+              <p style={{ fontSize: 11, fontWeight: 500, color: '#666', textTransform: 'uppercase', margin: '20px 0 10px', letterSpacing: '0.5px' }}>Contact</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 20 }}>
+                {[
+                  { icon: 'chat', label: 'Live Chat', sub: '24/7' },
+                  { icon: 'call', label: 'WhatsApp', sub: 'Instant' },
+                  { icon: 'mail', label: 'Email', sub: 'Reply within 1 hour' },
+                ].map((c, i) => (
+                  <button
+                    key={i}
+                    style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                      padding: '16px 8px', background: '#1a1a1a', border: 'none', borderRadius: 12, cursor: 'pointer',
+                    }}
+                  >
+                    <span className="material-symbols-rounded" style={{ fontSize: 22, color: '#fff', opacity: 0.6 }}>{c.icon}</span>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: '#fff' }}>{c.label}</span>
+                    <span style={{ fontSize: 11, color: '#666' }}>{c.sub}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Close */}
+            <div style={{ flexShrink: 0, padding: `12px 20px calc(24px + env(safe-area-inset-bottom, 0px))` }}>
+              <button
+                onClick={() => setHelpOpen(false)}
+                style={{
+                  width: '100%', height: 44, background: '#242424', color: '#fff',
+                  border: 'none', borderRadius: 100, fontSize: 15, fontWeight: 500, cursor: 'pointer',
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </PhoneFrame>
   );
 }

@@ -1,453 +1,211 @@
-export interface CategoryQuestion {
+export interface Subcategory {
   id: string;
   label: string;
-  multiSelect: boolean;
-  options: { id: string; label: string; icon?: string }[];
-}
-
-export interface BudgetTier {
-  id: string;
-  price: string;
-  label: string;
+  subtitle?: string;
+  image: string; // filename only, e.g. 'casual.webp'
 }
 
 export interface CategoryConfig {
   id: string;
-  icon: string;
   name: string;
-  budgetTiers: BudgetTier[];
-  questions: CategoryQuestion[];
+  folder: string; // subfolder name under /images/subcategories/
+  gendered: boolean; // whether images differ by gender (men/women subfolders)
+  title: string;
+  description: string;
+  subcategories: Subcategory[];
+  subcategoriesWomen?: Subcategory[]; // optional different subcategories for women
+}
+
+export function getSubcategoryImagePath(config: CategoryConfig, imageFile: string, gender: string | null): string {
+  if (config.gendered) {
+    const genderFolder = gender === 'female' ? 'women' : 'men';
+    return `/images/subcategories/${config.folder}/${genderFolder}/${imageFile}`;
+  }
+  return `/images/subcategories/${config.folder}/${imageFile}`;
+}
+
+export function getSubcategories(config: CategoryConfig, gender: string | null): Subcategory[] {
+  if (gender === 'female' && config.subcategoriesWomen) {
+    return config.subcategoriesWomen;
+  }
+  return config.subcategories;
 }
 
 export const categoryConfigs: Record<string, CategoryConfig> = {
-  Watches: {
-    id: 'Watches',
-    icon: 'watch',
-    name: 'Watches',
-    budgetTiers: [
-      { id: 'under1k', price: 'Under $1K', label: 'Starting out' },
-      { id: '1k-5k', price: '$1K \u2013 $5K', label: 'Enthusiast' },
-      { id: '5k-15k', price: '$5K \u2013 $15K', label: 'Connoisseur' },
-      { id: '15k-50k', price: '$15K \u2013 $50K', label: 'Collector' },
-      { id: '50k+', price: '$50K+', label: 'Haute horlogerie' },
-    ],
-    questions: [
-      {
-        id: 'condition',
-        label: 'Condition preference',
-        multiSelect: false,
-        options: [
-          { id: 'new', label: 'New only', icon: 'new_releases' },
-          { id: 'preowned', label: 'Open to pre-owned', icon: 'autorenew' },
-          { id: 'vintage', label: 'Prefer vintage', icon: 'history' },
-        ],
-      },
-      {
-        id: 'purpose',
-        label: "What's it for?",
-        multiSelect: true,
-        options: [
-          { id: 'daily', label: 'Daily wear', icon: 'routine' },
-          { id: 'special', label: 'Special occasions', icon: 'celebration' },
-          { id: 'collection', label: 'Collection', icon: 'collections_bookmark' },
-          { id: 'investment', label: 'Investment', icon: 'trending_up' },
-        ],
-      },
+  Accessories: {
+    id: 'Accessories',
+    name: 'Accessories',
+    folder: 'accessories',
+    gendered: true,
+    title: 'What\'s your style?',
+    description: 'Select as many as you like',
+    subcategories: [
+      { id: 'casual', label: 'Casual', subtitle: 'Relaxed and everyday', image: 'casual.webp' },
+      { id: 'classic', label: 'Classic', subtitle: 'Timeless and refined', image: 'classic.webp' },
+      { id: 'elegant', label: 'Elegant', subtitle: 'Polished and evening-ready', image: 'elegant.webp' },
+      { id: 'minimalist', label: 'Minimalist', subtitle: 'Clean and understated', image: 'minimalist.webp' },
+      { id: 'sporty', label: 'Sporty', subtitle: 'Active and dynamic', image: 'sporty.webp' },
+      { id: 'streetwear', label: 'Streetwear', subtitle: 'Urban and bold', image: 'streetwear.webp' },
+      { id: 'vintage', label: 'Vintage', subtitle: 'Retro and nostalgic', image: 'vintage.webp' },
     ],
   },
 
-  Jewelry: {
-    id: 'Jewelry',
-    icon: 'diamond',
-    name: 'Jewelry',
-    budgetTiers: [
-      { id: 'under500', price: 'Under $500', label: 'Everyday pieces' },
-      { id: '500-2k', price: '$500 \u2013 $2K', label: 'Refined taste' },
-      { id: '2k-10k', price: '$2K \u2013 $10K', label: 'Statement' },
-      { id: '10k-50k', price: '$10K \u2013 $50K', label: 'Connoisseur' },
-      { id: '50k+', price: '$50K+', label: 'Haute joaillerie' },
+  'Handbags and Leather Goods': {
+    id: 'Handbags and Leather Goods',
+    name: 'Bags',
+    folder: 'bags',
+    gendered: true,
+    title: 'What do you carry?',
+    description: 'Select as many as you like',
+    subcategories: [
+      { id: 'backpacks', label: 'Backpacks', subtitle: 'Hands-free', image: 'backpacks.webp' },
+      { id: 'briefcases', label: 'Briefcases', subtitle: 'Sharp and professional', image: 'briefcases.webp' },
+      { id: 'crossbody', label: 'Crossbody', subtitle: 'Compact and light', image: 'crossbody.webp' },
+      { id: 'duffel', label: 'Duffel bags', subtitle: 'Travel and getaway', image: 'duffel.webp' },
+      { id: 'messenger', label: 'Messenger bags', subtitle: 'Laid-back and easy', image: 'messenger.webp' },
+      { id: 'totes', label: 'Totes', subtitle: 'Spacious and open', image: 'totes.webp' },
     ],
-    questions: [
-      {
-        id: 'recipient',
-        label: "Who's it for?",
-        multiSelect: false,
-        options: [
-          { id: 'myself', label: 'Myself', icon: 'person' },
-          { id: 'partner', label: 'My partner', icon: 'favorite' },
-          { id: 'gift', label: 'A gift', icon: 'redeem' },
-        ],
-      },
-      {
-        id: 'type',
-        label: 'Focus',
-        multiSelect: true,
-        options: [
-          { id: 'rings', label: 'Rings', icon: 'token' },
-          { id: 'necklaces', label: 'Necklaces', icon: 'ink_pen' },
-          { id: 'bracelets', label: 'Bracelets', icon: 'styler' },
-          { id: 'earrings', label: 'Earrings', icon: 'earbuds' },
-          { id: 'all', label: 'Open to all', icon: 'diamond' },
-        ],
-      },
-    ],
-  },
-
-  'Fine Wine': {
-    id: 'Fine Wine',
-    icon: 'wine_bar',
-    name: 'Fine Wine',
-    budgetTiers: [
-      { id: 'under50', price: 'Under $50/bottle', label: 'Exploring' },
-      { id: '50-200', price: '$50 \u2013 $200', label: 'Enthusiast' },
-      { id: '200-500', price: '$200 \u2013 $500', label: 'Collector' },
-      { id: '500+', price: '$500+', label: 'Rare & allocated' },
-    ],
-    questions: [
-      {
-        id: 'experience',
-        label: 'Experience level',
-        multiSelect: false,
-        options: [
-          { id: 'beginner', label: 'Curious beginner', icon: 'explore' },
-          { id: 'enthusiast', label: 'Enthusiast', icon: 'local_bar' },
-          { id: 'collector', label: 'Seasoned collector', icon: 'workspace_premium' },
-        ],
-      },
-      {
-        id: 'buying',
-        label: 'Buying style',
-        multiSelect: false,
-        options: [
-          { id: 'bottles', label: 'Single bottles', icon: 'liquor' },
-          { id: 'cases', label: 'Cases (6-12)', icon: 'inventory_2' },
-          { id: 'cellar', label: 'Cellar investment', icon: 'savings' },
-        ],
-      },
-    ],
-  },
-
-  Handbags: {
-    id: 'Handbags',
-    icon: 'shopping_bag',
-    name: 'Handbags',
-    budgetTiers: [
-      { id: 'under1k', price: 'Under $1K', label: 'Entry luxury' },
-      { id: '1k-3k', price: '$1K \u2013 $3K', label: 'Refined' },
-      { id: '3k-10k', price: '$3K \u2013 $10K', label: 'Statement' },
-      { id: '10k+', price: '$10K+', label: 'Collector / rare' },
-    ],
-    questions: [
-      {
-        id: 'condition',
-        label: 'Condition',
-        multiSelect: false,
-        options: [
-          { id: 'new', label: 'New only', icon: 'new_releases' },
-          { id: 'preloved', label: 'Open to pre-loved', icon: 'autorenew' },
-          { id: 'vintage', label: 'Vintage collector', icon: 'history' },
-        ],
-      },
-      {
-        id: 'purpose',
-        label: 'Purpose',
-        multiSelect: true,
-        options: [
-          { id: 'everyday', label: 'Everyday carry', icon: 'routine' },
-          { id: 'special', label: 'Special occasions', icon: 'celebration' },
-          { id: 'investment', label: 'Collection / investment', icon: 'trending_up' },
-        ],
-      },
+    subcategoriesWomen: [
+      { id: 'clutches', label: 'Clutches', subtitle: 'Evening-ready', image: 'clutches.webp' },
+      { id: 'crossbody', label: 'Crossbody', subtitle: 'Compact and light', image: 'crossbody.webp' },
+      { id: 'mini-bags', label: 'Mini bags', subtitle: 'Small and statement', image: 'mini-bags.webp' },
+      { id: 'shoulder-bags', label: 'Shoulder bags', subtitle: 'Classic and easy', image: 'shoulder-bags.webp' },
+      { id: 'totes', label: 'Totes', subtitle: 'Spacious and open', image: 'totes.webp' },
+      { id: 'top-handle', label: 'Top handle bags', subtitle: 'Structured and polished', image: 'top-handle.webp' },
     ],
   },
 
   Vehicles: {
     id: 'Vehicles',
-    icon: 'directions_car',
-    name: 'Vehicles',
-    budgetTiers: [
-      { id: 'under50k', price: 'Under $50K', label: 'Accessible performance' },
-      { id: '50k-150k', price: '$50K \u2013 $150K', label: 'Luxury' },
-      { id: '150k-500k', price: '$150K \u2013 $500K', label: 'Supercar' },
-      { id: '500k+', price: '$500K+', label: 'Hypercar / rare' },
+    name: 'Cars',
+    folder: 'cars',
+    gendered: false,
+    title: 'What do you drive?',
+    description: 'Select as many as you like',
+    subcategories: [
+      { id: 'classic-cars', label: 'Classic cars', subtitle: 'Icons from the past', image: 'classic-cars.webp' },
+      { id: 'coupes', label: 'Coupes', subtitle: 'Sleek and two-door', image: 'coupes.webp' },
+      { id: 'electric', label: 'Electric', subtitle: 'Quiet and clean', image: 'electric.webp' },
+      { id: 'hypercars', label: 'Hypercars', subtitle: 'Rare and extreme', image: 'hypercars.webp' },
+      { id: 'suvs', label: 'SUVs', subtitle: 'Spacious and bold', image: 'suvs.webp' },
+      { id: 'sedans', label: 'Sedans', subtitle: 'Refined and comfortable', image: 'sedans.webp' },
+      { id: 'sports-cars', label: 'Sports cars', subtitle: 'Fast and thrilling', image: 'sports-cars.webp' },
     ],
-    questions: [
-      {
-        id: 'type',
-        label: 'Type',
-        multiSelect: false,
-        options: [
-          { id: 'sports', label: 'Sports / performance', icon: 'speed' },
-          { id: 'sedan', label: 'Luxury sedan', icon: 'directions_car' },
-          { id: 'suv', label: 'SUV / GT', icon: 'garage' },
-          { id: 'classic', label: 'Classic / vintage', icon: 'history' },
-        ],
-      },
-      {
-        id: 'condition',
-        label: 'Condition',
-        multiSelect: false,
-        options: [
-          { id: 'new', label: 'Factory new', icon: 'new_releases' },
-          { id: 'cpo', label: 'Certified pre-owned', icon: 'verified' },
-          { id: 'classic', label: 'Classic / vintage', icon: 'history' },
-        ],
-      },
+  },
+
+  'Fashion and Apparel': {
+    id: 'Fashion and Apparel',
+    name: 'Clothing',
+    folder: 'clothing',
+    gendered: true,
+    title: 'How do you dress?',
+    description: 'Select as many as you like',
+    subcategories: [
+      { id: 'casual', label: 'Casual', subtitle: 'Relaxed and everyday', image: 'casual.webp' },
+      { id: 'classic', label: 'Classic', subtitle: 'Timeless and refined', image: 'classic.webp' },
+      { id: 'elegant', label: 'Elegant', subtitle: 'Polished and evening-ready', image: 'elegant.webp' },
+      { id: 'minimalist', label: 'Minimalist', subtitle: 'Clean and understated', image: 'minimalist.webp' },
+      { id: 'sporty', label: 'Sporty', subtitle: 'Active and dynamic', image: 'sporty.webp' },
+      { id: 'streetwear', label: 'Streetwear', subtitle: 'Urban and bold', image: 'streetwear.webp' },
+      { id: 'vintage', label: 'Vintage', subtitle: 'Retro and nostalgic', image: 'vintage.webp' },
     ],
   },
 
   'Fine Art': {
     id: 'Fine Art',
-    icon: 'palette',
     name: 'Fine Art',
-    budgetTiers: [
-      { id: 'under5k', price: 'Under $5K', label: 'Emerging artists' },
-      { id: '5k-25k', price: '$5K \u2013 $25K', label: 'Established' },
-      { id: '25k-100k', price: '$25K \u2013 $100K', label: 'Gallery level' },
-      { id: '100k+', price: '$100K+', label: 'Museum quality' },
-    ],
-    questions: [
-      {
-        id: 'experience',
-        label: 'Experience',
-        multiSelect: false,
-        options: [
-          { id: 'first', label: 'First-time buyer', icon: 'explore' },
-          { id: 'growing', label: 'Growing collection', icon: 'trending_up' },
-          { id: 'established', label: 'Established collector', icon: 'workspace_premium' },
-        ],
-      },
-      {
-        id: 'medium',
-        label: 'Preferred medium',
-        multiSelect: true,
-        options: [
-          { id: 'contemporary', label: 'Contemporary', icon: 'brush' },
-          { id: 'modern', label: 'Modern', icon: 'palette' },
-          { id: 'classical', label: 'Classical', icon: 'museum' },
-          { id: 'photography', label: 'Photography', icon: 'photo_camera' },
-          { id: 'sculpture', label: 'Sculpture', icon: 'view_in_ar' },
-        ],
-      },
+    folder: 'fineart',
+    gendered: false,
+    title: 'Which era do you prefer?',
+    description: 'Select as many as you like',
+    subcategories: [
+      { id: 'renaissance', label: 'Renaissance', subtitle: '1400 – 1600', image: 'renaissance.webp' },
+      { id: 'baroque', label: 'Baroque', subtitle: '1600 – 1750', image: 'baroque.webp' },
+      { id: 'impressionism', label: 'Impressionism', subtitle: '1860 – 1900', image: 'impressionism.webp' },
+      { id: 'post-impressionism', label: 'Post-Impressionism', subtitle: '1880 – 1910', image: 'post-impressionism.webp' },
+      { id: 'surrealism', label: 'Surrealism', subtitle: '1920 – 1960', image: 'surrealism.webp' },
+      { id: 'abstract-expressionism', label: 'Abstract Expressionism', subtitle: '1940 – 1965', image: 'abstract-expressionism.webp' },
+      { id: 'contemporary', label: 'Contemporary', subtitle: '1960 – present', image: 'contemporary.webp' },
     ],
   },
 
-  Yachts: {
-    id: 'Yachts',
-    icon: 'sailing',
-    name: 'Yachts',
-    budgetTiers: [
-      { id: 'under500k', price: 'Under $500K', label: 'Day cruisers' },
-      { id: '500k-2m', price: '$500K \u2013 $2M', label: 'Weekend yacht' },
-      { id: '2m-10m', price: '$2M \u2013 $10M', label: 'Explorer' },
-      { id: '10m+', price: '$10M+', label: 'Superyacht' },
-    ],
-    questions: [
-      {
-        id: 'interest',
-        label: 'Interest type',
-        multiSelect: false,
-        options: [
-          { id: 'charter', label: 'Charter / rental', icon: 'event_available' },
-          { id: 'first', label: 'First-time ownership', icon: 'key' },
-          { id: 'upgrade', label: 'Upgrading', icon: 'upgrade' },
-        ],
-      },
-      {
-        id: 'use',
-        label: 'Primary use',
-        multiSelect: false,
-        options: [
-          { id: 'weekend', label: 'Weekend cruising', icon: 'wb_sunny' },
-          { id: 'voyages', label: 'Extended voyages', icon: 'explore' },
-          { id: 'entertainment', label: 'Entertainment', icon: 'celebration' },
-        ],
-      },
+  Furniture: {
+    id: 'Furniture',
+    name: 'Furniture',
+    folder: 'furniture',
+    gendered: false,
+    title: 'What\'s your design style?',
+    description: 'Select as many as you like',
+    subcategories: [
+      { id: 'art-deco', label: 'Art Deco', subtitle: 'Bold geometry and glamour', image: 'art-deco.webp' },
+      { id: 'classic', label: 'Classic', subtitle: 'Traditional and timeless', image: 'classic.webp' },
+      { id: 'contemporary', label: 'Contemporary', subtitle: 'Current and refined', image: 'contemporary.webp' },
+      { id: 'mid-century', label: 'Mid-Century Modern', subtitle: 'Retro elegance', image: 'mid-century.webp' },
+      { id: 'minimalist', label: 'Minimalist', subtitle: 'Less is more', image: 'minimalist.webp' },
+      { id: 'rustic', label: 'Rustic', subtitle: 'Warm and natural', image: 'rustic.webp' },
+      { id: 'scandinavian', label: 'Scandinavian', subtitle: 'Light and functional', image: 'scandinavian.webp' },
     ],
   },
 
-  Sunglasses: {
-    id: 'Sunglasses',
-    icon: 'sunny',
-    name: 'Sunglasses',
-    budgetTiers: [
-      { id: 'under300', price: 'Under $300', label: 'Designer' },
-      { id: '300-700', price: '$300 \u2013 $700', label: 'Premium' },
-      { id: '700-1.5k', price: '$700 \u2013 $1.5K', label: 'Luxury' },
-      { id: '1.5k+', price: '$1.5K+', label: 'Haute couture' },
+  Jewellery: {
+    id: 'Jewellery',
+    name: 'Jewelry',
+    folder: 'jewelry',
+    gendered: true,
+    title: 'What pieces do you wear?',
+    description: 'Select as many as you like',
+    subcategories: [
+      { id: 'rings', label: 'Rings', subtitle: 'Statement and everyday', image: 'rings.webp' },
+      { id: 'necklaces', label: 'Necklaces', subtitle: 'Pendants and diamonds', image: 'necklaces.webp' },
+      { id: 'bracelets', label: 'Bracelets', subtitle: 'Cuffs and bangles', image: 'bracelets.webp' },
+      { id: 'earrings', label: 'Earrings', subtitle: 'Studs and drops', image: 'earrings.webp' },
+      { id: 'chains', label: 'Chains', subtitle: 'Bold and layered', image: 'chains.webp' },
     ],
-    questions: [
-      {
-        id: 'style',
-        label: 'Style',
-        multiSelect: false,
-        options: [
-          { id: 'classic', label: 'Classic / timeless', icon: 'auto_awesome' },
-          { id: 'sporty', label: 'Sporty', icon: 'sports_tennis' },
-          { id: 'fashion', label: 'Fashion-forward', icon: 'style' },
-          { id: 'vintage', label: 'Vintage-inspired', icon: 'history' },
-        ],
-      },
-      {
-        id: 'use',
-        label: 'Primary use',
-        multiSelect: false,
-        options: [
-          { id: 'everyday', label: 'Everyday', icon: 'routine' },
-          { id: 'driving', label: 'Driving', icon: 'directions_car' },
-          { id: 'outdoor', label: 'Beach / outdoor', icon: 'beach_access' },
-          { id: 'statement', label: 'Statement piece', icon: 'star' },
-        ],
-      },
+    subcategoriesWomen: [
+      { id: 'bangles', label: 'Bangles', subtitle: 'Stiff and sculptural', image: 'bangles.webp' },
+      { id: 'bracelets', label: 'Bracelets', subtitle: 'Flexible and layered', image: 'bracelets.webp' },
+      { id: 'earrings', label: 'Earrings', subtitle: 'Framing the face', image: 'earrings.webp' },
+      { id: 'necklaces', label: 'Necklaces', subtitle: 'Close to the heart', image: 'necklaces.webp' },
+      { id: 'rings', label: 'Rings', subtitle: 'Always on display', image: 'rings.webp' },
     ],
   },
 
-  Fashion: {
-    id: 'Fashion',
-    icon: 'checkroom',
-    name: 'Fashion',
-    budgetTiers: [
-      { id: 'under1k', price: 'Under $1K', label: 'Designer RTW' },
-      { id: '1k-5k', price: '$1K \u2013 $5K', label: 'Premium' },
-      { id: '5k-15k', price: '$5K \u2013 $15K', label: 'Luxury' },
-      { id: '15k+', price: '$15K+', label: 'Haute couture / bespoke' },
+  Footwear: {
+    id: 'Footwear',
+    name: 'Shoes',
+    folder: 'shoes',
+    gendered: true,
+    title: 'What do you step into?',
+    description: 'Select as many as you like',
+    subcategories: [
+      { id: 'boots', label: 'Boots', subtitle: 'Tough and refined', image: 'boots.webp' },
+      { id: 'loafers', label: 'Loafers', subtitle: 'Relaxed and smart', image: 'loafers.webp' },
+      { id: 'oxfords', label: 'Oxfords', subtitle: 'Formal and polished', image: 'oxfords.webp' },
+      { id: 'sandals', label: 'Sandals', subtitle: 'Light and open', image: 'sandals.webp' },
+      { id: 'sneakers', label: 'Sneakers', subtitle: 'Casual and cool', image: 'sneakers.webp' },
     ],
-    questions: [
-      {
-        id: 'focus',
-        label: 'Focus',
-        multiSelect: false,
-        options: [
-          { id: 'rtw', label: 'Ready-to-wear', icon: 'checkroom' },
-          { id: 'bespoke', label: 'Bespoke / MTM', icon: 'design_services' },
-          { id: 'accessories', label: 'Accessories', icon: 'diamond' },
-          { id: 'all', label: 'All of it', icon: 'select_all' },
-        ],
-      },
-      {
-        id: 'aesthetic',
-        label: 'Aesthetic',
-        multiSelect: false,
-        options: [
-          { id: 'classic', label: 'Classic / tailored', icon: 'straighten' },
-          { id: 'street', label: 'Streetwear luxury', icon: 'skateboarding' },
-          { id: 'avant', label: 'Avant-garde', icon: 'architecture' },
-          { id: 'minimal', label: 'Minimalist', icon: 'square' },
-        ],
-      },
+    subcategoriesWomen: [
+      { id: 'boots', label: 'Boots', subtitle: 'Tough and refined', image: 'boots.webp' },
+      { id: 'flats', label: 'Flats', subtitle: 'Easy and elegant', image: 'flats.webp' },
+      { id: 'heels', label: 'Heels', subtitle: 'Elevated and bold', image: 'heels.webp' },
+      { id: 'sandals', label: 'Sandals', subtitle: 'Light and open', image: 'sandals.webp' },
+      { id: 'sneakers', label: 'Sneakers', subtitle: 'Casual and cool', image: 'sneakers.webp' },
     ],
   },
 
-  Cigars: {
-    id: 'Cigars',
-    icon: 'smoking_rooms',
-    name: 'Cigars',
-    budgetTiers: [
-      { id: 'under20', price: 'Under $20/cigar', label: 'Daily smokes' },
-      { id: '20-50', price: '$20 \u2013 $50', label: 'Premium' },
-      { id: '50-100', price: '$50 \u2013 $100', label: 'Rare / aged' },
-      { id: '100+', price: '$100+', label: 'Ultra-premium' },
-    ],
-    questions: [
-      {
-        id: 'experience',
-        label: 'Experience',
-        multiSelect: false,
-        options: [
-          { id: 'beginner', label: 'Curious beginner', icon: 'explore' },
-          { id: 'regular', label: 'Regular smoker', icon: 'smoking_rooms' },
-          { id: 'aficionado', label: 'Aficionado', icon: 'workspace_premium' },
-        ],
-      },
-      {
-        id: 'preference',
-        label: 'Strength preference',
-        multiSelect: false,
-        options: [
-          { id: 'mild', label: 'Mild & smooth', icon: 'spa' },
-          { id: 'medium', label: 'Medium body', icon: 'tune' },
-          { id: 'full', label: 'Full & complex', icon: 'local_fire_department' },
-          { id: 'nopref', label: 'No preference', icon: 'all_inclusive' },
-        ],
-      },
-    ],
-  },
-
-  'Private Aviation': {
-    id: 'Private Aviation',
-    icon: 'flight',
-    name: 'Aviation',
-    budgetTiers: [
-      { id: 'charter', price: 'Charter / membership', label: 'Pay per flight' },
-      { id: 'fractional', price: 'Fractional ownership', label: 'Shared asset' },
-      { id: 'turboprop', price: 'Full ownership, turboprop', label: 'Entry ownership' },
-      { id: 'jet', price: 'Full ownership, jet', label: 'Private jet' },
-    ],
-    questions: [
-      {
-        id: 'current',
-        label: 'Current solution',
-        multiSelect: false,
-        options: [
-          { id: 'commercial', label: 'Commercial first / business', icon: 'airline_seat_flat' },
-          { id: 'charter', label: 'Charter occasionally', icon: 'flight' },
-          { id: 'own', label: 'Own / share aircraft', icon: 'key' },
-        ],
-      },
-      {
-        id: 'use',
-        label: 'Primary use',
-        multiSelect: false,
-        options: [
-          { id: 'business', label: 'Business travel', icon: 'business_center' },
-          { id: 'personal', label: 'Personal / leisure', icon: 'beach_access' },
-          { id: 'both', label: 'Both', icon: 'all_inclusive' },
-        ],
-      },
-    ],
-  },
-
-  Collectibles: {
-    id: 'Collectibles',
-    icon: 'emoji_events',
-    name: 'Collectibles',
-    budgetTiers: [
-      { id: 'under1k', price: 'Under $1K', label: 'Hobbyist' },
-      { id: '1k-10k', price: '$1K \u2013 $10K', label: 'Enthusiast' },
-      { id: '10k-50k', price: '$10K \u2013 $50K', label: 'Serious collector' },
-      { id: '50k+', price: '$50K+', label: 'Institutional grade' },
-    ],
-    questions: [
-      {
-        id: 'category',
-        label: 'Category',
-        multiSelect: true,
-        options: [
-          { id: 'coins', label: 'Coins / currency', icon: 'paid' },
-          { id: 'sports', label: 'Sports memorabilia', icon: 'sports_baseball' },
-          { id: 'rare', label: 'Rare objects', icon: 'diamond' },
-          { id: 'art-toys', label: 'Art toys / limited ed.', icon: 'toys' },
-        ],
-      },
-      {
-        id: 'goal',
-        label: 'Goal',
-        multiSelect: false,
-        options: [
-          { id: 'personal', label: 'Personal enjoyment', icon: 'favorite' },
-          { id: 'investment', label: 'Long-term investment', icon: 'savings' },
-          { id: 'both', label: 'Both', icon: 'all_inclusive' },
-        ],
-      },
+  Watches: {
+    id: 'Watches',
+    name: 'Watches',
+    folder: 'watches',
+    gendered: true,
+    title: 'What\'s your watch style?',
+    description: 'Select as many as you like',
+    subcategories: [
+      { id: 'chronograph', label: 'Chronograph', subtitle: 'Timing and precision', image: 'chronograph.webp' },
+      { id: 'classic', label: 'Classic', subtitle: 'Elegant and timeless', image: 'classic.webp' },
+      { id: 'diver', label: 'Diver', subtitle: 'Built for the deep', image: 'diver.webp' },
+      { id: 'pilot', label: 'Pilot', subtitle: 'Aviation-inspired', image: 'pilot.webp' },
+      { id: 'skeleton', label: 'Skeleton', subtitle: 'Open and mechanical', image: 'skeleton.webp' },
     ],
   },
 };
-
-// Generic fallback for when no interests selected
-export const genericBudgetTiers: BudgetTier[] = [
-  { id: 'under1k', price: 'Under $1K', label: 'Exploring' },
-  { id: '1k-5k', price: '$1K \u2013 $5K', label: 'Enthusiast' },
-  { id: '5k-25k', price: '$5K \u2013 $25K', label: 'Connoisseur' },
-  { id: '25k-100k', price: '$25K \u2013 $100K', label: 'Collector' },
-  { id: '100k+', price: '$100K+', label: 'Ultra-premium' },
-];
