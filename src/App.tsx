@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import PhoneFrame from './components/PhoneFrame';
 import WelcomeScreen from './screens/WelcomeScreen';
 import GenderScreen from './screens/GenderScreen';
@@ -18,6 +18,8 @@ type Screen = 'welcome' | 'gender' | 'lifestyle' | 'interests' | 'subcategory' |
 function App() {
   const [screen, setScreen] = useState<Screen>('welcome');
   const [exitingScreen, setExitingScreen] = useState<Screen | null>(null);
+  // Snapshot of the exiting screen's JSX — keeps old state visible during transition
+  const [exitingContent, setExitingContent] = useState<ReactNode>(null);
   const [direction, setDirection] = useState<'forward' | 'back'>('forward');
   const transitionRef = useRef<number | null>(null);
   // Onboarding state
@@ -35,15 +37,23 @@ function App() {
   const catCount = Math.max(selectedInterests.length, 1);
   const totalSteps = 3 + catCount * 2;
 
+  // Ref to renderScreen so goTo can capture a snapshot of the current screen's JSX
+  // before state updates propagate (keeps the exit animation visually consistent).
+  const renderScreenRef = useRef<((s: Screen) => ReactNode) | null>(null);
+
   const goTo = useCallback(
     (next: Screen, dir: 'forward' | 'back') => {
       if (transitionRef.current) return;
       setDirection(dir);
+      // Snapshot the current screen's JSX using state values at call time
+      const snapshot = renderScreenRef.current ? renderScreenRef.current(screen) : null;
+      setExitingContent(snapshot);
       setExitingScreen(screen);
       setScreen(next);
       setOverlayVisible(false);
       transitionRef.current = window.setTimeout(() => {
         setExitingScreen(null);
+        setExitingContent(null);
         transitionRef.current = null;
       }, 400);
     },
@@ -126,7 +136,17 @@ function App() {
   // Current category for subcategory + products screens
   const currentCategoryId = selectedInterests[currentCategoryIndex] || '';
 
-  const renderScreen = (s: Screen) => {
+  // Stable references for RefineYourTaste props — prevents re-shuffling on re-render
+  const productsSelectedInterests = useMemo(
+    () => [currentCategoryId],
+    [currentCategoryId],
+  );
+  const productsSubcategoriesMap = useMemo(
+    () => ({ [currentCategoryId]: subcategoriesByCategory[currentCategoryId] || [] }),
+    [currentCategoryId, subcategoriesByCategory],
+  );
+
+  const renderScreen = (s: Screen): ReactNode => {
     switch (s) {
       case 'welcome':
         return <WelcomeScreen onNext={handleWelcomeNext} />;
@@ -169,13 +189,12 @@ function App() {
         );
       case 'products': {
         // Show products for the CURRENT category only
-        const catSubs = subcategoriesByCategory[currentCategoryId] || [];
         return (
           <RefineYourTaste
             key={`products-${currentCategoryId}`}
             onNext={handleProductsNext}
-            selectedInterests={[currentCategoryId]}
-            subcategoriesByCategory={{ [currentCategoryId]: catSubs }}
+            selectedInterests={productsSelectedInterests}
+            subcategoriesByCategory={productsSubcategoriesMap}
             likedProducts={likedProducts}
             onLikedChange={setLikedProducts}
             onOverlayChange={setOverlayVisible}
@@ -187,6 +206,9 @@ function App() {
         return <TailoringScreen onComplete={handleTailoringComplete} />;
     }
   };
+
+  // Keep the ref updated so goTo can capture snapshots using current render's state
+  renderScreenRef.current = renderScreen;
 
   // Progress bar calculation
   // Steps: gender(1) + lifestyle(2) + interests(3) + (subcategory+products) per category
@@ -225,7 +247,7 @@ function App() {
               zIndex: 1,
             }}
           >
-            {renderScreen(exitingScreen)}
+            {exitingContent ?? renderScreen(exitingScreen)}
           </div>
         )}
         <div
