@@ -28,12 +28,12 @@ function App() {
   const [likedProducts, setLikedProducts] = useState<string[]>([]);
   const [overlayVisible, setOverlayVisible] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  // Track which interest category we're showing subcategories for
-  const [currentSubcategoryIndex, setCurrentSubcategoryIndex] = useState(0);
+  // Track which interest category we're currently processing (subcategory + products)
+  const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
 
-  // Total steps: gender + interests + (subcategory + products) per category
+  // Total steps: gender + lifestyle + interests + (subcategory + products) per category
   const catCount = Math.max(selectedInterests.length, 1);
-  const totalSteps = 3 + catCount + 1; // gender + lifestyle + interests + subcategories + products
+  const totalSteps = 3 + catCount * 2;
 
   const goTo = useCallback(
     (next: Screen, dir: 'forward' | 'back') => {
@@ -59,57 +59,51 @@ function App() {
 
   const handleInterestsNext = useCallback(() => {
     if (selectedInterests.length > 0) {
-      setCurrentSubcategoryIndex(0);
+      setCurrentCategoryIndex(0);
       goTo('subcategory', 'forward');
     } else {
-      goTo('products', 'forward');
+      goTo('tailoring', 'forward');
     }
   }, [goTo, selectedInterests]);
 
   const handleInterestsBack = useCallback(() => goTo('lifestyle', 'back'), [goTo]);
 
-  // Flow: all subcategories first, then one products screen for everything
+  // Flow: for each category → subcategory → products → next category → ... → tailoring
 
+  // After picking subcategories for a category, go to that category's products
   const handleSubcategoryNext = useCallback(() => {
-    // Move to next category's subcategory, or to products
-    if (currentSubcategoryIndex < selectedInterests.length - 1) {
-      setCurrentSubcategoryIndex(prev => prev + 1);
-      goTo('subcategory', 'forward');
-    } else {
-      goTo('products', 'forward');
-    }
-  }, [goTo, currentSubcategoryIndex, selectedInterests]);
+    goTo('products', 'forward');
+  }, [goTo]);
 
+  // Skip subcategories for this category — still go to products for it
   const handleSubcategorySkip = useCallback(() => {
-    // Same as next — skip this category's subcategories
-    if (currentSubcategoryIndex < selectedInterests.length - 1) {
-      setCurrentSubcategoryIndex(prev => prev + 1);
+    goTo('products', 'forward');
+  }, [goTo]);
+
+  // Back from subcategory: previous category's products, or interests if first
+  const handleSubcategoryBack = useCallback(() => {
+    if (currentCategoryIndex > 0) {
+      setCurrentCategoryIndex(prev => prev - 1);
+      goTo('products', 'back');
+    } else {
+      goTo('interests', 'back');
+    }
+  }, [goTo, currentCategoryIndex]);
+
+  // After liking products for a category, go to next category or tailoring
+  const handleProductsNext = useCallback(() => {
+    if (currentCategoryIndex < selectedInterests.length - 1) {
+      setCurrentCategoryIndex(prev => prev + 1);
       goTo('subcategory', 'forward');
     } else {
-      goTo('products', 'forward');
+      goTo('tailoring', 'forward');
     }
-  }, [goTo, currentSubcategoryIndex, selectedInterests]);
+  }, [goTo, currentCategoryIndex, selectedInterests]);
 
-  const handleSubcategoryBack = useCallback(() => {
-    if (currentSubcategoryIndex > 0) {
-      setCurrentSubcategoryIndex(prev => prev - 1);
-      goTo('subcategory', 'back');
-    } else {
-      goTo('interests', 'back');
-    }
-  }, [goTo, currentSubcategoryIndex]);
-
-  const handleProductsNext = useCallback(() => goTo('tailoring', 'forward'), [goTo]);
-
+  // Back from products: same category's subcategory
   const handleProductsBack = useCallback(() => {
-    // Go back to last category's subcategory
-    if (selectedInterests.length > 0) {
-      setCurrentSubcategoryIndex(selectedInterests.length - 1);
-      goTo('subcategory', 'back');
-    } else {
-      goTo('interests', 'back');
-    }
-  }, [goTo, selectedInterests]);
+    goTo('subcategory', 'back');
+  }, [goTo]);
 
   // Nav visibility
   const showBack = screen !== 'welcome' && screen !== 'tailoring';
@@ -129,8 +123,8 @@ function App() {
     /* Navigate to chat or next experience */
   }, []);
 
-  // Current category for subcategory screen — memoized to prevent re-renders
-  const currentCategoryId = selectedInterests[currentSubcategoryIndex] || '';
+  // Current category for subcategory + products screens
+  const currentCategoryId = selectedInterests[currentCategoryIndex] || '';
 
   const renderScreen = (s: Screen) => {
     switch (s) {
@@ -174,12 +168,14 @@ function App() {
           />
         );
       case 'products': {
+        // Show products for the CURRENT category only
+        const catSubs = subcategoriesByCategory[currentCategoryId] || [];
         return (
           <RefineYourTaste
-            key="all-products"
+            key={`products-${currentCategoryId}`}
             onNext={handleProductsNext}
-            selectedInterests={selectedInterests}
-            subcategoriesByCategory={subcategoriesByCategory}
+            selectedInterests={[currentCategoryId]}
+            subcategoriesByCategory={{ [currentCategoryId]: catSubs }}
             likedProducts={likedProducts}
             onLikedChange={setLikedProducts}
             onOverlayChange={setOverlayVisible}
@@ -193,14 +189,15 @@ function App() {
   };
 
   // Progress bar calculation
+  // Steps: gender(1) + lifestyle(2) + interests(3) + (subcategory+products) per category
   const getProgressPct = () => {
     const base = (() => {
       switch (screen) {
         case 'gender': return 1;
         case 'lifestyle': return 2;
         case 'interests': return 3;
-        case 'subcategory': return 3 + currentSubcategoryIndex + 1;
-        case 'products': return totalSteps;
+        case 'subcategory': return 3 + currentCategoryIndex * 2 + 1;
+        case 'products': return 3 + currentCategoryIndex * 2 + 2;
         default: return 0;
       }
     })();
@@ -232,7 +229,7 @@ function App() {
           </div>
         )}
         <div
-          key={screen === 'subcategory' ? `${screen}-${currentCategoryId}` : screen}
+          key={(screen === 'subcategory' || screen === 'products') ? `${screen}-${currentCategoryId}` : screen}
           style={{
             position: 'absolute',
             inset: 0,

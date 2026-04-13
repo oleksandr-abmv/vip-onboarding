@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { safeTop } from '../theme';
 import PRODUCTS, { type Product } from '../data/products';
-import { categoryConfigs } from '../data/categoryConfig';
+import { categoryConfigs, getSubcategories } from '../data/categoryConfig';
 
 // ── Spark particles (generated once) ─────────────────────────────────────────
 const SPARK_COUNT = 12;
@@ -354,6 +354,18 @@ export default function RefineYourTaste({
   const [viewExpanded, setViewExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Map subcategory IDs → labels for card display (across all selected categories)
+  const subLabelMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const catId of selectedInterests) {
+      const config = categoryConfigs[catId];
+      if (!config) continue;
+      for (const sub of getSubcategories(config, gender ?? null)) {
+        map[sub.id] = sub.label;
+      }
+    }
+    return map;
+  }, [selectedInterests, gender]);
 
   // Header — category name
   const activeCategory = selectedInterests.length === 1
@@ -496,8 +508,11 @@ export default function RefineYourTaste({
           )}
           {visibleProducts.map((product) => {
             const catName = categoryConfigs[product.category]?.name || product.category;
-            const cardLabel = catName;
-            const cardLabelNode = catName;
+            // Prefer subcategory label; fall back to category name if no subcategory
+            const cardLabel = product.subcategory
+              ? (subLabelMap[product.subcategory] || product.subcategory)
+              : catName;
+            const cardLabelNode = cardLabel;
             return (
               <ProductCard
                 key={product.image}

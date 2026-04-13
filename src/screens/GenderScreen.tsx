@@ -16,8 +16,8 @@ interface Ripple {
 }
 
 const GENDER_CARDS = [
-  { id: 'male', icon: 'male', label: 'Man' },
-  { id: 'female', icon: 'female', label: 'Woman' },
+  { id: 'male', icon: 'male', label: 'Male' },
+  { id: 'female', icon: 'female', label: 'Female' },
 ];
 
 export default function GenderScreen({
