@@ -15,7 +15,7 @@ interface Ripple {
 }
 
 const LIFESTYLE_CARDS = [
-  { id: 'solo', icon: 'person', label: 'Solo', subtitle: 'Curated just for you' },
+  { id: 'solo', icon: 'person', label: 'Single', subtitle: 'Curated just for you' },
   { id: 'couple', icon: 'group', label: 'Couple', subtitle: 'Recommendations for two' },
   { id: 'family', icon: 'family_restroom', label: 'Family', subtitle: 'Something for everyone' },
 ];
@@ -74,7 +74,7 @@ export default function LifestyleScreen({
           animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
         }}
       >
-        Who are you with?
+        What is your status?
       </h1>
 
       <p

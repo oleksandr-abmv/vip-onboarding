@@ -111,8 +111,8 @@ export default function GenderScreen({
                 height: 109,
                 display: 'flex',
                 flexDirection: 'column',
-                alignItems: 'flex-start',
-                justifyContent: 'space-between',
+                alignItems: 'center',
+                justifyContent: 'center',
                 background: selected ? 'rgba(255,255,255,0.05)' : 'transparent',
                 border: selected ? '1.5px solid #fff' : '1px solid #282828',
                 borderRadius: 12,
@@ -155,20 +155,6 @@ export default function GenderScreen({
                 </div>
               )}
 
-              <span
-                className="material-symbols-rounded"
-                style={{
-                  fontSize: 28,
-                  fontVariationSettings: "'wght' 300",
-                  color: '#fff',
-                  opacity: selected ? 0.6 : 0.2,
-                  transition: 'opacity 300ms ease',
-                  position: 'relative',
-                  zIndex: 1,
-                }}
-              >
-                {opt.icon}
-              </span>
               <span
                 style={{
                   fontSize: 14,
