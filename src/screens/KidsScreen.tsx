@@ -58,17 +58,19 @@ export default function KidsScreen({
     if (kidsCount < MAX_KIDS) onKidsCountChange(kidsCount + 1);
   }, [kidsCount, onKidsCountChange]);
 
-  const setAge = useCallback((i: number, raw: string) => {
-    const trimmed = raw.replace(/[^\d]/g, '').slice(0, 2);
-    const parsed = trimmed === '' ? null : Math.min(Number(trimmed), 25);
+  const setAge = useCallback((i: number, age: number) => {
     const next = [...kidsAges];
-    next[i] = parsed;
+    next[i] = age;
     onKidsAgesChange(next);
   }, [kidsAges, onKidsAgesChange]);
 
   const allFilled = kidsAges.length === kidsCount && kidsAges.every((a) => a != null);
 
   const listRef = useRef<HTMLDivElement>(null);
+
+  // Age picker bottom sheet — one instance shared across all kids
+  const [pickerIndex, setPickerIndex] = useState<number | null>(null);
+  const closePicker = () => setPickerIndex(null);
 
   return (
     <div
@@ -164,7 +166,7 @@ export default function KidsScreen({
             name={kidsNames[i] ?? null}
             onNameChange={(raw) => setName(i, raw)}
             value={kidsAges[i] ?? null}
-            onChange={(raw) => setAge(i, raw)}
+            onOpenPicker={() => setPickerIndex(i)}
           />
         ))}
       </div>
@@ -192,7 +194,289 @@ export default function KidsScreen({
       >
         Continue
       </button>
+
+      {/* Age picker bottom sheet */}
+      {pickerIndex !== null && (
+        <AgePickerSheet
+          currentValue={kidsAges[pickerIndex] ?? null}
+          title={`How old is ${kidsNames[pickerIndex] ?? `Kid ${pickerIndex + 1}`}?`}
+          onSelect={(age) => {
+            setAge(pickerIndex, age);
+            closePicker();
+          }}
+          onClose={closePicker}
+        />
+      )}
     </div>
+  );
+}
+
+const ROW_HEIGHT = 42;
+const VISIBLE_ROWS = 7; // odd — middle row is the selection
+const WHEEL_HEIGHT = ROW_HEIGHT * VISIBLE_ROWS;
+const PAD = (WHEEL_HEIGHT - ROW_HEIGHT) / 2;
+const AGES = Array.from({ length: 21 }, (_, k) => k + 1);
+
+function AgePickerSheet({
+  currentValue,
+  title,
+  onSelect,
+  onClose,
+}: {
+  currentValue: number | null;
+  title: string;
+  onSelect: (age: number) => void;
+  onClose: () => void;
+}) {
+  const initial = currentValue ?? 5;
+  const [tempAge, setTempAge] = useState<number>(initial);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollTimer = useRef<number | null>(null);
+
+  // Scroll to initial value on mount
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const idx = AGES.indexOf(initial);
+    el.scrollTop = idx * ROW_HEIGHT;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    if (scrollTimer.current) window.clearTimeout(scrollTimer.current);
+    // Preview update while scrolling (for center pill fade)
+    const idx = Math.max(0, Math.min(AGES.length - 1, Math.round(el.scrollTop / ROW_HEIGHT)));
+    const next = AGES[idx];
+    if (next !== tempAge) setTempAge(next);
+    // Snap on scroll-end
+    scrollTimer.current = window.setTimeout(() => {
+      const targetTop = idx * ROW_HEIGHT;
+      if (Math.abs(el.scrollTop - targetTop) > 0.5) {
+        el.scrollTo({ top: targetTop, behavior: 'smooth' });
+      }
+    }, 120);
+  };
+
+  const tapRow = (age: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const idx = AGES.indexOf(age);
+    el.scrollTo({ top: idx * ROW_HEIGHT, behavior: 'smooth' });
+    setTempAge(age);
+  };
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 300,
+          background: 'rgba(0,0,0,0.75)',
+          animation: 'backdropFadeIn 200ms ease both',
+        }}
+      />
+      {/* Sheet */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 301,
+          background: '#0d0d0d',
+          borderRadius: '20px 20px 0 0',
+          display: 'flex',
+          flexDirection: 'column',
+          animation: 'sheetSlideUp 300ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        }}
+      >
+        {/* Header: title + close */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            padding: '20px 20px 4px',
+          }}
+        >
+          <div>
+            <p
+              style={{
+                fontSize: 18,
+                fontWeight: 700,
+                color: '#fff',
+                margin: 0,
+                lineHeight: '24px',
+              }}
+            >
+              Age
+            </p>
+            <p
+              style={{
+                fontSize: 14,
+                color: '#8a8a8a',
+                margin: '4px 0 0',
+                lineHeight: '20px',
+              }}
+            >
+              {title}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            style={{
+              width: 32,
+              height: 32,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              color: '#fff',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path
+                d="M4 4L14 14M14 4L4 14"
+                stroke="#fff"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Wheel picker */}
+        <div
+          style={{
+            position: 'relative',
+            height: WHEEL_HEIGHT,
+            margin: '12px 0 16px',
+          }}
+        >
+          {/* Center selection pill */}
+          <div
+            style={{
+              position: 'absolute',
+              left: 20,
+              right: 20,
+              top: PAD,
+              height: ROW_HEIGHT,
+              background: 'rgba(255,255,255,0.06)',
+              borderRadius: 12,
+              pointerEvents: 'none',
+              zIndex: 1,
+            }}
+          />
+          {/* Scroll track */}
+          <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            style={{
+              height: WHEEL_HEIGHT,
+              overflowY: 'auto',
+              scrollSnapType: 'y mandatory',
+              WebkitOverflowScrolling: 'touch',
+              maskImage:
+                'linear-gradient(to bottom, transparent 0, #000 25%, #000 75%, transparent 100%)',
+              WebkitMaskImage:
+                'linear-gradient(to bottom, transparent 0, #000 25%, #000 75%, transparent 100%)',
+              scrollbarWidth: 'none',
+              position: 'relative',
+              zIndex: 2,
+            }}
+          >
+            <div style={{ height: PAD, flexShrink: 0 }} />
+            {AGES.map((age) => {
+              const selected = age === tempAge;
+              return (
+                <button
+                  key={age}
+                  type="button"
+                  onClick={() => tapRow(age)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '100%',
+                    height: ROW_HEIGHT,
+                    scrollSnapAlign: 'center',
+                    scrollSnapStop: 'always',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 20,
+                      fontWeight: selected ? 600 : 500,
+                      color: selected ? '#fff' : 'rgba(255,255,255,0.4)',
+                      fontVariantNumeric: 'tabular-nums',
+                      transition: 'color 150ms ease, font-weight 150ms ease',
+                      minWidth: 44,
+                      textAlign: 'right',
+                    }}
+                  >
+                    {age}
+                  </span>
+                  <span
+                    style={{
+                      marginLeft: 10,
+                      fontSize: 14,
+                      color: selected ? '#c9c9c9' : 'rgba(255,255,255,0.25)',
+                      transition: 'color 150ms ease',
+                      minWidth: 36,
+                      textAlign: 'left',
+                    }}
+                  >
+                    yrs
+                  </span>
+                </button>
+              );
+            })}
+            <div style={{ height: PAD, flexShrink: 0 }} />
+          </div>
+          {/* Hide WebKit scrollbar */}
+          <style>{`
+            .__hidden-scroll::-webkit-scrollbar { display: none; }
+          `}</style>
+        </div>
+
+        {/* CTA */}
+        <div style={{ padding: '0 20px 20px' }}>
+          <button
+            onClick={() => onSelect(tempAge)}
+            style={{
+              width: '100%',
+              height: 54,
+              background: '#f6f6f6',
+              color: '#121212',
+              border: 'none',
+              borderRadius: 100,
+              fontSize: 16,
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'background 200ms ease',
+            }}
+          >
+            Set age
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -238,13 +522,13 @@ function AgeRow({
   name,
   onNameChange,
   value,
-  onChange,
+  onOpenPicker,
 }: {
   index: number;
   name: string | null;
   onNameChange: (raw: string) => void;
   value: number | null;
-  onChange: (raw: string) => void;
+  onOpenPicker: () => void;
 }) {
   const hasVal = value != null;
   const [editing, setEditing] = useState(false);
@@ -353,30 +637,49 @@ function AgeRow({
         </button>
       </div>
 
-      {/* Age input */}
-      <label style={{ display: 'flex', alignItems: 'baseline', gap: 6, cursor: 'text' }}>
-        <input
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          value={value ?? ''}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="—"
+      {/* Age picker trigger */}
+      <button
+        type="button"
+        onClick={onOpenPicker}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          background: 'transparent',
+          border: 'none',
+          padding: 0,
+          cursor: 'pointer',
+          color: 'inherit',
+          WebkitTapHighlightColor: 'transparent',
+        }}
+      >
+        <span
           style={{
-            width: 54,
-            textAlign: 'right',
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            color: '#fff',
             fontSize: 17,
             fontWeight: 600,
+            color: hasVal ? '#fff' : '#777',
             fontVariantNumeric: 'tabular-nums',
-            padding: 0,
           }}
-        />
+        >
+          {hasVal ? value : '—'}
+        </span>
         <span style={{ fontSize: 13, color: '#777' }}>yrs</span>
-      </label>
+        <svg
+          width="8"
+          height="5"
+          viewBox="0 0 8 5"
+          fill="none"
+          style={{ marginLeft: 2 }}
+        >
+          <path
+            d="M1 1L4 4L7 1"
+            stroke="#777"
+            strokeWidth="1.3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
     </div>
   );
 }

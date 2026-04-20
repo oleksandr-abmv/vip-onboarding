@@ -1,9 +1,10 @@
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { safeTop } from '../theme';
 
 interface LifestyleTypeScreenProps {
   onNext: () => void;
   lifestyle: string | null; // 'solo' | 'couple' | 'family' | 'prefer-not' | null
+  kidsAges?: (number | null)[];
   lifestyleType: string | null;
   onLifestyleTypeChange: (type: string) => void;
 }
@@ -37,16 +38,34 @@ const FAMILY_OPTIONS: Option[] = [
 export default function LifestyleTypeScreen({
   onNext,
   lifestyle,
+  kidsAges,
   lifestyleType,
   onLifestyleTypeChange,
 }: LifestyleTypeScreenProps) {
   const [ripples, setRipples] = useState<Record<string, Ripple>>({});
   const cardRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-  const options = useMemo<Option[]>(
-    () => (lifestyle === 'family' ? FAMILY_OPTIONS : SINGLE_COUPLE_OPTIONS),
-    [lifestyle],
-  );
+  const options = useMemo<Option[]>(() => {
+    if (lifestyle !== 'family') return SINGLE_COUPLE_OPTIONS;
+
+    // Family branching rules:
+    // - Under-12 branch (ALL kids < 12): show all 5 options incl. Kid-Friendly
+    // - 12-above branch (any kid >= 12, boundary 12 counts as "above"): drop Kid-Friendly
+    const ages = (kidsAges ?? []).filter((a): a is number => a != null);
+    const hasOlder = ages.some((a) => a >= 12);
+    const allUnder12 = ages.length > 0 && !hasOlder;
+    return allUnder12
+      ? FAMILY_OPTIONS
+      : FAMILY_OPTIONS.filter((o) => o.id !== 'kid-friendly');
+  }, [lifestyle, kidsAges]);
+
+  // If the previously selected type is no longer in the filtered list, clear it
+  useEffect(() => {
+    if (lifestyleType && !options.some((o) => o.id === lifestyleType)) {
+      onLifestyleTypeChange('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [options]);
 
   const select = useCallback((e: React.MouseEvent, id: string) => {
     const card = cardRefs.current[id];

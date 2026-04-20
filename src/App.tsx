@@ -202,8 +202,9 @@ function App() {
           <LifestyleTypeScreen
             onNext={handleLifestyleTypeNext}
             lifestyle={lifestyle}
+            kidsAges={kidsAges}
             lifestyleType={lifestyleType}
-            onLifestyleTypeChange={setLifestyleType}
+            onLifestyleTypeChange={(v) => setLifestyleType(v || null)}
           />
         );
       case 'interests':
