@@ -3,6 +3,8 @@ import PhoneFrame from './components/PhoneFrame';
 import WelcomeScreen from './screens/WelcomeScreen';
 import GenderScreen from './screens/GenderScreen';
 import LifestyleScreen from './screens/LifestyleScreen';
+import LifestyleTypeScreen from './screens/LifestyleTypeScreen';
+import KidsScreen from './screens/KidsScreen';
 import InterestsScreen from './screens/InterestsScreen';
 import SubcategoryScreen from './screens/SubcategoryScreen';
 import RefineYourTaste from './screens/RefineYourTaste';
@@ -10,7 +12,7 @@ import TailoringScreen from './screens/TailoringScreen';
 import { theme, safeTop } from './theme';
 
 
-type Screen = 'welcome' | 'gender' | 'lifestyle' | 'interests' | 'subcategory' | 'products' | 'tailoring';
+type Screen = 'welcome' | 'gender' | 'lifestyle' | 'kids' | 'lifestyleType' | 'interests' | 'subcategory' | 'products' | 'tailoring';
 
 // Screen order for reference
 // const SCREEN_ORDER: Screen[] = ['welcome', 'gender', 'interests', 'subcategory', 'products', 'tailoring'];
@@ -25,6 +27,10 @@ function App() {
   // Onboarding state
   const [gender, setGender] = useState<string | null>(null);
   const [lifestyle, setLifestyle] = useState<string | null>(null);
+  const [lifestyleType, setLifestyleType] = useState<string | null>(null);
+  const [kidsCount, setKidsCount] = useState<number>(2);
+  const [kidsAges, setKidsAges] = useState<(number | null)[]>([null, null]);
+  const [kidsNames, setKidsNames] = useState<(string | null)[]>([null, null]);
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [subcategoriesByCategory, setSubcategoriesByCategory] = useState<Record<string, string[]>>({});
   const [likedProducts, setLikedProducts] = useState<string[]>([]);
@@ -33,9 +39,10 @@ function App() {
   // Track which interest category we're currently processing (subcategory + products)
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
 
-  // Total steps: gender + lifestyle + interests + (subcategory + products) per category
+  // Total steps: gender + lifestyle + (kids if family) + lifestyleType + interests + (subcategory + products) per category
   const catCount = Math.max(selectedInterests.length, 1);
-  const totalSteps = 3 + catCount * 2;
+  const hasKidsStep = lifestyle === 'family';
+  const totalSteps = 4 + (hasKidsStep ? 1 : 0) + catCount * 2;
 
   // Ref to renderScreen so goTo can capture a snapshot of the current screen's JSX
   // before state updates propagate (keeps the exit animation visually consistent).
@@ -64,8 +71,18 @@ function App() {
   const handleWelcomeNext = useCallback(() => goTo('gender', 'forward'), [goTo]);
   const handleGenderNext = useCallback(() => goTo('lifestyle', 'forward'), [goTo]);
   const handleGenderBack = useCallback(() => goTo('welcome', 'back'), [goTo]);
-  const handleLifestyleNext = useCallback(() => goTo('interests', 'forward'), [goTo]);
+  const handleLifestyleNext = useCallback(
+    () => goTo(lifestyle === 'family' ? 'kids' : 'lifestyleType', 'forward'),
+    [goTo, lifestyle],
+  );
   const handleLifestyleBack = useCallback(() => goTo('gender', 'back'), [goTo]);
+  const handleKidsNext = useCallback(() => goTo('lifestyleType', 'forward'), [goTo]);
+  const handleKidsBack = useCallback(() => goTo('lifestyle', 'back'), [goTo]);
+  const handleLifestyleTypeNext = useCallback(() => goTo('interests', 'forward'), [goTo]);
+  const handleLifestyleTypeBack = useCallback(
+    () => goTo(lifestyle === 'family' ? 'kids' : 'lifestyle', 'back'),
+    [goTo, lifestyle],
+  );
 
   const handleInterestsNext = useCallback(() => {
     if (selectedInterests.length > 0) {
@@ -76,7 +93,7 @@ function App() {
     }
   }, [goTo, selectedInterests]);
 
-  const handleInterestsBack = useCallback(() => goTo('lifestyle', 'back'), [goTo]);
+  const handleInterestsBack = useCallback(() => goTo('lifestyleType', 'back'), [goTo]);
 
   // Flow: for each category → subcategory → products → next category → ... → tailoring
 
@@ -123,11 +140,13 @@ function App() {
     switch (screen) {
       case 'gender': handleGenderBack(); break;
       case 'lifestyle': handleLifestyleBack(); break;
+      case 'kids': handleKidsBack(); break;
+      case 'lifestyleType': handleLifestyleTypeBack(); break;
       case 'interests': handleInterestsBack(); break;
       case 'subcategory': handleSubcategoryBack(); break;
       case 'products': handleProductsBack(); break;
     }
-  }, [screen, handleGenderBack, handleInterestsBack, handleSubcategoryBack, handleProductsBack]);
+  }, [screen, handleGenderBack, handleLifestyleBack, handleKidsBack, handleLifestyleTypeBack, handleInterestsBack, handleSubcategoryBack, handleProductsBack]);
 
   const handleTailoringComplete = useCallback(() => {
     /* Navigate to chat or next experience */
@@ -164,6 +183,27 @@ function App() {
             onNext={handleLifestyleNext}
             lifestyle={lifestyle}
             onLifestyleChange={setLifestyle}
+          />
+        );
+      case 'kids':
+        return (
+          <KidsScreen
+            onNext={handleKidsNext}
+            kidsCount={kidsCount}
+            onKidsCountChange={setKidsCount}
+            kidsAges={kidsAges}
+            onKidsAgesChange={setKidsAges}
+            kidsNames={kidsNames}
+            onKidsNamesChange={setKidsNames}
+          />
+        );
+      case 'lifestyleType':
+        return (
+          <LifestyleTypeScreen
+            onNext={handleLifestyleTypeNext}
+            lifestyle={lifestyle}
+            lifestyleType={lifestyleType}
+            onLifestyleTypeChange={setLifestyleType}
           />
         );
       case 'interests':
@@ -214,12 +254,15 @@ function App() {
   // Steps: gender(1) + lifestyle(2) + interests(3) + (subcategory+products) per category
   const getProgressPct = () => {
     const base = (() => {
+      const kidsOffset = hasKidsStep ? 1 : 0;
       switch (screen) {
         case 'gender': return 1;
         case 'lifestyle': return 2;
-        case 'interests': return 3;
-        case 'subcategory': return 3 + currentCategoryIndex * 2 + 1;
-        case 'products': return 3 + currentCategoryIndex * 2 + 2;
+        case 'kids': return 3;
+        case 'lifestyleType': return 3 + kidsOffset;
+        case 'interests': return 4 + kidsOffset;
+        case 'subcategory': return 4 + kidsOffset + currentCategoryIndex * 2 + 1;
+        case 'products': return 4 + kidsOffset + currentCategoryIndex * 2 + 2;
         default: return 0;
       }
     })();
