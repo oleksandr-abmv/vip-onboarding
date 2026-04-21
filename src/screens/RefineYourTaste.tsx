@@ -227,6 +227,11 @@ export default function RefineYourTaste({
   const [promoting, setPromoting] = useState(false);
   const [settled, setSettled] = useState(true);
   const [skipTransition, setSkipTransition] = useState(false);
+  // Small one-time gesture hint: nudges the first card right-then-left so users
+  // understand the deck is swipeable. Cancelled if the user touches the card first.
+  const [hintX, setHintX] = useState(0);
+  const hintDoneRef = useRef(false);
+  const hintTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
   const startXRef = useRef(0);
   const swipeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -236,7 +241,32 @@ export default function RefineYourTaste({
 
   useEffect(() => () => {
     if (swipeTimeoutRef.current) clearTimeout(swipeTimeoutRef.current);
+    hintTimeouts.current.forEach(clearTimeout);
   }, []);
+
+  // Run the one-shot gesture hint when the component mounts (and there's a card to nudge)
+  useEffect(() => {
+    if (hintDoneRef.current) return;
+    if (allProducts.length === 0) return;
+    const schedule = (ms: number, fn: () => void) => {
+      const t = setTimeout(fn, ms);
+      hintTimeouts.current.push(t);
+    };
+    // Sequence: settle → nudge right → across to left → back to center
+    schedule(800, () => setHintX(60));
+    schedule(1300, () => setHintX(-60));
+    schedule(1800, () => setHintX(0));
+    schedule(2000, () => { hintDoneRef.current = true; });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const cancelHint = () => {
+    if (hintDoneRef.current) return;
+    hintDoneRef.current = true;
+    hintTimeouts.current.forEach(clearTimeout);
+    hintTimeouts.current = [];
+    setHintX(0);
+  };
 
   const currentProduct = currentIndex < allProducts.length ? allProducts[currentIndex] : null;
   const nextProduct = currentIndex + 1 < allProducts.length ? allProducts[currentIndex + 1] : null;
@@ -261,6 +291,7 @@ export default function RefineYourTaste({
   // ── Drag handlers ─────────────────────────────────────────────────────────
   const handlePointerDown = (e: React.PointerEvent) => {
     if (!settled || !currentProduct) return;
+    cancelHint();
     setIsDragging(true);
     startXRef.current = e.clientX;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -317,6 +348,8 @@ export default function RefineYourTaste({
     if (exitDirection === 'left') return 'translateX(-150%) rotate(-20deg)';
     if (exitDirection === 'right') return 'translateX(150%) rotate(20deg)';
     if (dragX !== 0) return `translateX(${dragX}px) rotate(${dragX * 0.06}deg)`;
+    // Gesture hint nudge (one-shot on mount) - only when user isn't mid-drag
+    if (hintX !== 0) return `translateX(${hintX}px) rotate(${hintX * 0.06}deg)`;
     return 'translateX(0)';
   };
 
@@ -493,7 +526,7 @@ export default function RefineYourTaste({
               </span>
             </button>
 
-            {/* Swipe labels — badge appears on the OPPOSITE side of the drag
+            {/* Swipe labels - badge appears on the OPPOSITE side of the drag
                 (classic swipe-deck pattern: label sits at the "leading edge") */}
             {dragX > 40 && <SwipeLabel label="LIKE" side="left" />}
             {dragX < -40 && <SwipeLabel label="SKIP" side="right" />}

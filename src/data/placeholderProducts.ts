@@ -10,30 +10,31 @@ import type { Product } from './products';
 const IMG = '/vip-logo.svg';
 
 const PLACEHOLDER_PRODUCTS: Product[] = [
-  // ──────────────────────────────── CIGARS ────────────────────────────────
+  // ──────────────────────────────── CIGARS (by intensity) ────────────────
 
-  // Cuban
-  { category: 'Cigars', subcategory: 'cuban', name: 'Behike 56', brand: 'Cohiba', price: '', image: IMG, description: 'The flagship Havana, balanced and storied.', gender: 'unisex' },
-  { category: 'Cigars', subcategory: 'cuban', name: 'No. 2 Torpedo', brand: 'Montecristo', price: '', image: IMG, description: 'Classic Cuban torpedo, smooth and full.', gender: 'unisex' },
-  { category: 'Cigars', subcategory: 'cuban', name: 'Serie D No. 4 Robusto', brand: 'Partagás', price: '', image: IMG, description: 'Bold and earthy Havana robusto.', gender: 'unisex' },
+  // Mild
+  { category: 'Cigars', subcategory: 'mild', name: 'Cafe', brand: 'Macanudo', price: '', image: IMG, description: 'Soft Connecticut wrapper, smooth and mellow.', gender: 'unisex' },
+  { category: 'Cigars', subcategory: 'mild', name: 'White Series No. 2', brand: 'Montecristo', price: '', image: IMG, description: 'Creamy Dominican blend, approachable.', gender: 'unisex' },
 
-  // Dominican
-  { category: 'Cigars', subcategory: 'dominican', name: 'OpusX', brand: 'Arturo Fuente', price: '', image: IMG, description: 'Cult Dominican puro, elegant and rare.', gender: 'unisex' },
-  { category: 'Cigars', subcategory: 'dominican', name: 'Winston Churchill The Traveller', brand: 'Davidoff', price: '', image: IMG, description: 'Refined blend with global provenance.', gender: 'unisex' },
-  { category: 'Cigars', subcategory: 'dominican', name: 'ESG 24 Year Salute', brand: 'Ashton', price: '', image: IMG, description: 'Aged Dominican estate tobacco.', gender: 'unisex' },
+  // Medium
+  { category: 'Cigars', subcategory: 'medium', name: 'OpusX', brand: 'Arturo Fuente', price: '', image: IMG, description: 'Cult Dominican puro, elegant and rare.', gender: 'unisex' },
+  { category: 'Cigars', subcategory: 'medium', name: 'Winston Churchill The Traveller', brand: 'Davidoff', price: '', image: IMG, description: 'Refined blend with global provenance.', gender: 'unisex' },
+  { category: 'Cigars', subcategory: 'medium', name: 'ESG 24 Year Salute', brand: 'Ashton', price: '', image: IMG, description: 'Aged Dominican estate tobacco.', gender: 'unisex' },
 
-  // Nicaraguan
-  { category: 'Cigars', subcategory: 'nicaraguan', name: '1926 Serie No. 40 Maduro', brand: 'Padrón', price: '', image: IMG, description: 'Rich maduro with cocoa depth.', gender: 'unisex' },
-  { category: 'Cigars', subcategory: 'nicaraguan', name: 'Serie V Melanio', brand: 'Oliva', price: '', image: IMG, description: 'Sungrown wrapper, complex and rounded.', gender: 'unisex' },
-  { category: 'Cigars', subcategory: 'nicaraguan', name: 'Le Bijou 1922 Torpedo', brand: 'My Father', price: '', image: IMG, description: 'Full-bodied with espresso notes.', gender: 'unisex' },
+  // Medium-full
+  { category: 'Cigars', subcategory: 'medium-full', name: 'Behike 56', brand: 'Cohiba', price: '', image: IMG, description: 'The flagship Havana, balanced and storied.', gender: 'unisex' },
+  { category: 'Cigars', subcategory: 'medium-full', name: 'No. 2 Torpedo', brand: 'Montecristo', price: '', image: IMG, description: 'Classic Cuban torpedo, smooth and full.', gender: 'unisex' },
+  { category: 'Cigars', subcategory: 'medium-full', name: 'Serie D No. 4 Robusto', brand: 'Partagás', price: '', image: IMG, description: 'Bold and earthy Havana robusto.', gender: 'unisex' },
 
-  // Honduran
-  { category: 'Cigars', subcategory: 'honduran', name: 'Triple Maduro', brand: 'Camacho', price: '', image: IMG, description: 'Layered maduro, earthy and robust.', gender: 'unisex' },
-  { category: 'Cigars', subcategory: 'honduran', name: 'Rare Corojo', brand: 'Punch', price: '', image: IMG, description: 'Spicy corojo wrapper, deeply Honduran.', gender: 'unisex' },
+  // Full-bodied
+  { category: 'Cigars', subcategory: 'full', name: '1926 Serie No. 40 Maduro', brand: 'Padrón', price: '', image: IMG, description: 'Rich maduro with cocoa depth.', gender: 'unisex' },
+  { category: 'Cigars', subcategory: 'full', name: 'Le Bijou 1922 Torpedo', brand: 'My Father', price: '', image: IMG, description: 'Full-bodied with espresso notes.', gender: 'unisex' },
+  { category: 'Cigars', subcategory: 'full', name: 'OpusX Angels Share', brand: 'Arturo Fuente', price: '', image: IMG, description: 'Rare allocation for collectors.', gender: 'unisex' },
 
-  // Limited editions
-  { category: 'Cigars', subcategory: 'limited-editions', name: 'Behike BHK 56 Reserve', brand: 'Cohiba', price: '', image: IMG, description: 'Annual release with medio tiempo leaf.', gender: 'unisex' },
-  { category: 'Cigars', subcategory: 'limited-editions', name: 'OpusX Angels Share', brand: 'Arturo Fuente', price: '', image: IMG, description: 'Rare allocation for collectors.', gender: 'unisex' },
+  // Extra full
+  { category: 'Cigars', subcategory: 'extra-full', name: 'Triple Maduro', brand: 'Camacho', price: '', image: IMG, description: 'Layered maduro, bold and powerful.', gender: 'unisex' },
+  { category: 'Cigars', subcategory: 'extra-full', name: 'Rare Corojo', brand: 'Punch', price: '', image: IMG, description: 'Spicy corojo wrapper, intense finish.', gender: 'unisex' },
+  { category: 'Cigars', subcategory: 'extra-full', name: 'Serie V Melanio', brand: 'Oliva', price: '', image: IMG, description: 'Sungrown wrapper, deep and robust.', gender: 'unisex' },
 
   // ──────────────────────────────── COLLECTIBLES ─────────────────────────
 

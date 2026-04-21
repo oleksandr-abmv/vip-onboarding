@@ -11,8 +11,12 @@ A React + Vite + TypeScript **mobile prototype** for a luxury-goods concierge on
 **Screen flow (happy path):**
 
 ```
-Welcome → Gender → Status (LifestyleScreen) → [Kids if family] → LifestyleType → Interests → Subcategory → Products (RefineYourTaste) → Tailoring
+Welcome → OnboardingGate → Gender → Status (LifestyleScreen) → [Kids if family]
+  → LifestyleType → Interests → Subcategory (one screen per selected category, sequentially)
+  → Products (unified swipe deck - RefineYourTaste) → Notifications → Tailoring
 ```
+
+OnboardingGate lets the user skip straight to Tailoring. Subcategory screens are traversed sequentially (one per selected interest), then a SINGLE Products screen shows the unified swipe deck for all selections.
 
 All navigation lives in `src/App.tsx` via `goTo(screen, direction)`. Screen state is in App.tsx and passed down as props.
 
@@ -48,6 +52,27 @@ All navigation lives in `src/App.tsx` via `goTo(screen, direction)`. Screen stat
 ### 5. Back navigation
 
 `App.tsx` → `handleBack()` switch. **New screens need a back handler.** Conditional screens (like Kids) need branch-aware back logic.
+
+---
+
+## Icon convention
+
+**Always use the `<Icon />` component from `src/components/Icon.tsx`. Do not hand-draw SVG glyphs or use Material Symbols Rounded for new icons.**
+
+- Icons come from the **CORE UI Design icons** library: <https://github.com/oleksandr-abmv/core-ui-design-icons>
+- SVG files live in `src/icons/core/` (242 icons, stroke-based, 24×24 viewBox, `currentColor` stroke so they recolor via the `color` prop)
+- Usage:
+
+  ```tsx
+  import { Icon } from '../components/Icon';
+
+  <Icon name="timer" size={16} color="#e7e7e7" />
+  ```
+
+- `name` is the filename without `.svg`. Browse `src/icons/core/` or the library [icons page](https://icons.coreui.design/) for names.
+- Set `decorative={false}` + `label="Something"` when the icon conveys meaning to screen readers.
+- If a glyph is genuinely missing from the library, add it there first (or drop a new SVG into `src/icons/core/` with `currentColor` strokes) rather than inlining raw SVG in a screen.
+- Material Symbols Rounded is still used for the few existing cases (e.g. `material-symbols-rounded` class in a handful of old screens), but new code should prefer `<Icon />`.
 
 ---
 
@@ -109,6 +134,12 @@ Any category or subcategory **without an image asset yet** uses the **VIP logoty
 - 5-7 subcategories per category
 - Pick **one slicing dimension** per category (all type-based, or all style-based, or all era-based) - don't mix axes within the same category
 
+**Custom option on Subcategory screens:**
+
+- Every Subcategory screen automatically appends a "Custom" tile (id = `'custom'`) at the end of the grid. Do NOT declare it in `categoryConfig.ts` - it's injected by `SubcategoryScreen.tsx`.
+- Picking Custom is **additive** (doesn't deselect other subs) and reveals a text area for free-form preferences, stored in `customByCategory` state in `App.tsx`.
+- Product filtering ignores the `'custom'` id - it's purely a preference-capture signal for the AI.
+
 ---
 
 ## Styling conventions
@@ -134,6 +165,7 @@ These are the signals downstream screens depend on - keep them in sync:
 - `lifestyleType: string | null`
 - `selectedInterests: string[]`
 - `subcategoriesByCategory: Record<string, string[]>`
+- `customByCategory: Record<string, string>` (free-form text captured via the Custom tile on each Subcategory screen)
 - `likedProducts: string[]`
 
 ---

@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useMemo, useLayoutEffect, type ReactNode } from 'react';
 import PhoneFrame from './components/PhoneFrame';
 import WelcomeScreen from './screens/WelcomeScreen';
+import OnboardingGateScreen from './screens/OnboardingGateScreen';
 import GenderScreen from './screens/GenderScreen';
 import LifestyleScreen from './screens/LifestyleScreen';
 import LifestyleTypeScreen from './screens/LifestyleTypeScreen';
@@ -8,11 +9,23 @@ import KidsScreen from './screens/KidsScreen';
 import InterestsScreen from './screens/InterestsScreen';
 import SubcategoryScreen from './screens/SubcategoryScreen';
 import RefineYourTaste from './screens/RefineYourTaste';
+import NotificationsScreen from './screens/NotificationsScreen';
 import TailoringScreen from './screens/TailoringScreen';
 import { theme, safeTop } from './theme';
 
 
-type Screen = 'welcome' | 'gender' | 'lifestyle' | 'kids' | 'lifestyleType' | 'interests' | 'subcategory' | 'products' | 'tailoring';
+type Screen =
+  | 'welcome'
+  | 'onboardingGate'
+  | 'gender'
+  | 'lifestyle'
+  | 'kids'
+  | 'lifestyleType'
+  | 'interests'
+  | 'subcategory'
+  | 'products'
+  | 'notifications'
+  | 'tailoring';
 
 // Screen order for reference
 // const SCREEN_ORDER: Screen[] = ['welcome', 'gender', 'interests', 'subcategory', 'products', 'tailoring'];
@@ -33,16 +46,20 @@ function App() {
   const [kidsNames, setKidsNames] = useState<(string | null)[]>([null, null]);
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [subcategoriesByCategory, setSubcategoriesByCategory] = useState<Record<string, string[]>>({});
+  // Free-form "custom" text per category, captured when user picks the Custom tile on a Subcategory screen.
+  const [customByCategory, setCustomByCategory] = useState<Record<string, string>>({});
   const [likedProducts, setLikedProducts] = useState<string[]>([]);
   const [overlayVisible, setOverlayVisible] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   // Track which interest category we're currently processing (subcategory + products)
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
 
-  // Total steps: gender + lifestyle + (kids if family) + lifestyleType + interests + (subcategory + products) per category
+  // Step map:
+  //   gender · lifestyle · [kids if family] · lifestyleType · interests
+  //   · subcategory (one per selected category) · products (unified) · notifications
   const catCount = Math.max(selectedInterests.length, 1);
   const hasKidsStep = lifestyle === 'family';
-  const totalSteps = 4 + (hasKidsStep ? 1 : 0) + catCount * 2;
+  const totalSteps = 6 + (hasKidsStep ? 1 : 0) + catCount;
 
   // Ref to renderScreen so goTo can capture a snapshot of the current screen's JSX
   // before state updates propagate (keeps the exit animation visually consistent).
@@ -68,9 +85,12 @@ function App() {
   );
 
   // Navigation handlers
-  const handleWelcomeNext = useCallback(() => goTo('gender', 'forward'), [goTo]);
+  const handleWelcomeNext = useCallback(() => goTo('onboardingGate', 'forward'), [goTo]);
+  const handleGateStart = useCallback(() => goTo('gender', 'forward'), [goTo]);
+  // Skipping onboarding jumps straight to the final Tailoring screen (baseline experience).
+  const handleGateSkip = useCallback(() => goTo('tailoring', 'forward'), [goTo]);
   const handleGenderNext = useCallback(() => goTo('lifestyle', 'forward'), [goTo]);
-  const handleGenderBack = useCallback(() => goTo('welcome', 'back'), [goTo]);
+  const handleGenderBack = useCallback(() => goTo('onboardingGate', 'back'), [goTo]);
   const handleLifestyleNext = useCallback(
     () => goTo(lifestyle === 'family' ? 'kids' : 'lifestyleType', 'forward'),
     [goTo, lifestyle],
@@ -95,55 +115,59 @@ function App() {
       setCurrentCategoryIndex(0);
       goTo('subcategory', 'forward');
     } else {
-      goTo('tailoring', 'forward');
+      // No interests picked → skip subcategories and go to the unified products swipe
+      goTo('products', 'forward');
     }
   }, [goTo, selectedInterests]);
 
   const handleInterestsBack = useCallback(() => goTo('lifestyleType', 'back'), [goTo]);
 
-  // Flow: for each category → subcategory → products → next category → ... → tailoring
+  // Flow: subcategory for each selected category sequentially → unified products swipe
+  //       → notifications → tailoring
 
-  // After picking subcategories for a category, go to that category's products
   const handleSubcategoryNext = useCallback(() => {
-    goTo('products', 'forward');
-  }, [goTo]);
+    if (currentCategoryIndex < selectedInterests.length - 1) {
+      setCurrentCategoryIndex(prev => prev + 1);
+      goTo('subcategory', 'forward');
+    } else {
+      goTo('products', 'forward');
+    }
+  }, [goTo, currentCategoryIndex, selectedInterests]);
 
-  // Skip subcategories for this category - still go to products for it
-  const handleSubcategorySkip = useCallback(() => {
-    goTo('products', 'forward');
-  }, [goTo]);
+  // Skip keeps the same forward behavior (advance or land on products).
+  const handleSubcategorySkip = handleSubcategoryNext;
 
-  // Back from subcategory: previous category's products, or interests if first
   const handleSubcategoryBack = useCallback(() => {
     if (currentCategoryIndex > 0) {
       setCurrentCategoryIndex(prev => prev - 1);
-      goTo('products', 'back');
+      goTo('subcategory', 'back');
     } else {
       goTo('interests', 'back');
     }
   }, [goTo, currentCategoryIndex]);
 
-  // After liking products for a category, go to next category or tailoring
-  const handleProductsNext = useCallback(() => {
-    if (currentCategoryIndex < selectedInterests.length - 1) {
-      setCurrentCategoryIndex(prev => prev + 1);
-      goTo('subcategory', 'forward');
-    } else {
-      goTo('tailoring', 'forward');
-    }
-  }, [goTo, currentCategoryIndex, selectedInterests]);
+  const handleProductsNext = useCallback(() => goTo('notifications', 'forward'), [goTo]);
 
-  // Back from products: same category's subcategory
   const handleProductsBack = useCallback(() => {
-    goTo('subcategory', 'back');
-  }, [goTo]);
+    // Back from unified products → last selected category's subcategory (or interests if none)
+    if (selectedInterests.length > 0) {
+      setCurrentCategoryIndex(selectedInterests.length - 1);
+      goTo('subcategory', 'back');
+    } else {
+      goTo('interests', 'back');
+    }
+  }, [goTo, selectedInterests]);
 
-  // Nav visibility
+  const handleNotificationsNext = useCallback(() => goTo('tailoring', 'forward'), [goTo]);
+  const handleNotificationsBack = useCallback(() => goTo('products', 'back'), [goTo]);
+
+  // Nav visibility - welcome and tailoring render without top nav
   const showBack = screen !== 'welcome' && screen !== 'tailoring';
   const showHelp = screen !== 'welcome' && screen !== 'tailoring';
 
   const handleBack = useCallback(() => {
     switch (screen) {
+      case 'onboardingGate': goTo('welcome', 'back'); break;
       case 'gender': handleGenderBack(); break;
       case 'lifestyle': handleLifestyleBack(); break;
       case 'kids': handleKidsBack(); break;
@@ -151,8 +175,9 @@ function App() {
       case 'interests': handleInterestsBack(); break;
       case 'subcategory': handleSubcategoryBack(); break;
       case 'products': handleProductsBack(); break;
+      case 'notifications': handleNotificationsBack(); break;
     }
-  }, [screen, handleGenderBack, handleLifestyleBack, handleKidsBack, handleLifestyleTypeBack, handleInterestsBack, handleSubcategoryBack, handleProductsBack]);
+  }, [screen, goTo, handleGenderBack, handleLifestyleBack, handleKidsBack, handleLifestyleTypeBack, handleInterestsBack, handleSubcategoryBack, handleProductsBack, handleNotificationsBack]);
 
   const handleTailoringComplete = useCallback(() => {
     /* Navigate to chat or next experience */
@@ -161,20 +186,35 @@ function App() {
   // Current category for subcategory + products screens
   const currentCategoryId = selectedInterests[currentCategoryIndex] || '';
 
-  // Stable references for RefineYourTaste props - prevents re-shuffling on re-render
+  // Unified swipe: pass ALL selected interests and their subcategories.
+  // Memoized so the deck doesn't reshuffle on unrelated re-renders.
   const productsSelectedInterests = useMemo(
-    () => [currentCategoryId],
-    [currentCategoryId],
+    () => [...selectedInterests],
+    [selectedInterests],
   );
   const productsSubcategoriesMap = useMemo(
-    () => ({ [currentCategoryId]: subcategoriesByCategory[currentCategoryId] || [] }),
-    [currentCategoryId, subcategoriesByCategory],
+    () => {
+      const map: Record<string, string[]> = {};
+      for (const id of selectedInterests) {
+        map[id] = subcategoriesByCategory[id] || [];
+      }
+      return map;
+    },
+    [selectedInterests, subcategoriesByCategory],
   );
 
   const renderScreen = (s: Screen): ReactNode => {
     switch (s) {
       case 'welcome':
         return <WelcomeScreen onNext={handleWelcomeNext} />;
+      case 'onboardingGate':
+        return (
+          <OnboardingGateScreen
+            onStart={handleGateStart}
+            onSkip={handleGateSkip}
+            onClose={() => goTo('welcome', 'back')}
+          />
+        );
       case 'gender':
         return (
           <GenderScreen
@@ -232,14 +272,15 @@ function App() {
             categoryId={currentCategoryId}
             selectedSubcategories={subcategoriesByCategory[currentCategoryId] || []}
             onSelectionsChange={(subs) => setSubcategoriesByCategory(prev => ({ ...prev, [currentCategoryId]: subs }))}
+            customText={customByCategory[currentCategoryId] || ''}
+            onCustomTextChange={(text) => setCustomByCategory(prev => ({ ...prev, [currentCategoryId]: text }))}
             gender={gender}
           />
         );
       case 'products': {
-        // Show products for the CURRENT category only
+        // Unified swipe deck: every selected category × subcategory in one stack
         return (
           <RefineYourTaste
-            key={`products-${currentCategoryId}`}
             onNext={handleProductsNext}
             selectedInterests={productsSelectedInterests}
             subcategoriesByCategory={productsSubcategoriesMap}
@@ -250,6 +291,8 @@ function App() {
           />
         );
       }
+      case 'notifications':
+        return <NotificationsScreen onNext={handleNotificationsNext} />;
       case 'tailoring':
         return <TailoringScreen onComplete={handleTailoringComplete} />;
     }
@@ -273,9 +316,10 @@ function App() {
         case 'kids': return 3;
         case 'lifestyleType': return 3 + kidsOffset;
         case 'interests': return 4 + kidsOffset;
-        case 'subcategory': return 4 + kidsOffset + currentCategoryIndex * 2 + 1;
-        case 'products': return 4 + kidsOffset + currentCategoryIndex * 2 + 2;
-        default: return 0;
+        case 'subcategory': return 4 + kidsOffset + currentCategoryIndex + 1;
+        case 'products': return 4 + kidsOffset + catCount + 1;
+        case 'notifications': return 4 + kidsOffset + catCount + 2;
+        default: return 0; // welcome, onboardingGate, tailoring
       }
     })();
     return (base / totalSteps) * 100;
@@ -320,8 +364,9 @@ function App() {
         </div>
       </div>
 
-      {/* Persistent top nav bar - matches Figma: back arrow, center text, Help */}
-      {screen !== 'welcome' && screen !== 'tailoring' && (
+      {/* Persistent top nav bar - matches Figma: back arrow, center text, Help.
+          Hidden on 'onboardingGate' which renders its own modal-style close button. */}
+      {screen !== 'welcome' && screen !== 'onboardingGate' && screen !== 'tailoring' && (
         <div
           style={{
             position: 'absolute',
@@ -346,6 +391,7 @@ function App() {
             {/* Back button */}
             <button
               onClick={handleBack}
+              aria-label="Back"
               style={{
                 width: 44,
                 height: 44,
@@ -380,14 +426,15 @@ function App() {
               )}
             </div>
 
-            {/* Help button */}
+            {/* Finish later - escape hatch to the baseline experience */}
             <button
-              onClick={() => setHelpOpen(true)}
+              onClick={() => goTo('tailoring', 'forward')}
+              aria-label="Finish personalization later"
               style={{
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: 500,
                 color: '#cdcdcd',
                 lineHeight: '44px',
@@ -397,7 +444,7 @@ function App() {
                 pointerEvents: showHelp ? 'auto' : 'none',
               }}
             >
-              Help
+              Finish later
             </button>
           </div>
 

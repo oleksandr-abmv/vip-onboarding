@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { safeTop } from '../theme';
 import { categoryConfigs, getSubcategoryImagePath, getSubcategories } from '../data/categoryConfig';
 
@@ -9,8 +9,15 @@ interface SubcategoryScreenProps {
   categoryId: string;
   selectedSubcategories: string[];
   onSelectionsChange: (subs: string[]) => void;
+  customText: string;
+  onCustomTextChange: (text: string) => void;
   gender: string | null;
 }
+
+// Special reserved subcategory id for the free-form "Custom" option. Additive:
+// selecting it does NOT deselect other subs, and it doesn't filter products on its
+// own - the typed text is stored for later AI personalization.
+const CUSTOM_SUB_ID = 'custom';
 
 interface Ripple {
   id: string;
@@ -25,10 +32,13 @@ export default function SubcategoryScreen({
   categoryId,
   selectedSubcategories,
   onSelectionsChange,
+  customText,
+  onCustomTextChange,
   gender,
 }: SubcategoryScreenProps) {
   const [ripples, setRipples] = useState<Record<string, Ripple>>({});
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [customSheetOpen, setCustomSheetOpen] = useState(false);
 
   const handleClick = useCallback((e: React.MouseEvent, subId: string) => {
     const card = cardRefs.current[subId];
@@ -38,18 +48,22 @@ export default function SubcategoryScreen({
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
 
-    const isSelected = selectedSubcategories.includes(subId);
-    const willSelect = !isSelected;
-
     setRipples(prev => ({
       ...prev,
-      [subId]: { id: subId, x, y, selecting: willSelect },
+      [subId]: { id: subId, x, y, selecting: true },
     }));
 
-    if (isSelected) {
-      onSelectionsChange(selectedSubcategories.filter((i) => i !== subId));
+    // Custom tile always opens the bottom sheet - selection state is managed
+    // by the Save action inside the sheet (save with text → selected; empty/cancel → not).
+    if (subId === CUSTOM_SUB_ID) {
+      setCustomSheetOpen(true);
     } else {
-      onSelectionsChange([...selectedSubcategories, subId]);
+      const isSelected = selectedSubcategories.includes(subId);
+      if (isSelected) {
+        onSelectionsChange(selectedSubcategories.filter((i) => i !== subId));
+      } else {
+        onSelectionsChange([...selectedSubcategories, subId]);
+      }
     }
 
     setTimeout(() => {
@@ -61,7 +75,7 @@ export default function SubcategoryScreen({
     }, 500);
   }, [selectedSubcategories, onSelectionsChange]);
 
-  // Guard against missing config — must be AFTER all hooks (rules-of-hooks)
+  // Guard against missing config - must be AFTER all hooks (rules-of-hooks)
   const config = categoryConfigs[categoryId];
   if (!config) return null;
 
@@ -141,9 +155,14 @@ export default function SubcategoryScreen({
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 160ms both',
           }}
         >
-          {getSubcategories(config, gender).map((sub) => {
+          {[
+            ...getSubcategories(config, gender),
+            // Always-present Custom tile - lets user specify their own preference
+            { id: CUSTOM_SUB_ID, label: 'Custom', subtitle: 'Tell us what you want', icon: 'edit' as const },
+          ].map((sub) => {
             const selected = selectedSubcategories.includes(sub.id);
             const ripple = ripples[sub.id];
+            const isCustom = sub.id === CUSTOM_SUB_ID;
             return (
               <button
                 key={sub.id}
@@ -207,7 +226,20 @@ export default function SubcategoryScreen({
                     justifyContent: 'center',
                   }}
                 >
-                  {sub.image ? (
+                  {isCustom ? (
+                    <span
+                      className="material-symbols-rounded"
+                      style={{
+                        fontSize: 40,
+                        fontVariationSettings: "'wght' 250",
+                        color: '#fff',
+                        opacity: selected ? 0.7 : 0.35,
+                        transition: 'opacity 200ms ease',
+                      }}
+                    >
+                      edit_note
+                    </span>
+                  ) : 'image' in sub && sub.image ? (
                     <img
                       src={getSubcategoryImagePath(config, sub.image, gender)}
                       alt={sub.label}
@@ -277,12 +309,12 @@ export default function SubcategoryScreen({
                   >
                     {sub.label}
                   </span>
-                  {sub.subtitle && (
+                  {(isCustom && customText ? `"${customText}"` : sub.subtitle) && (
                     <span
                       style={{
                         fontSize: 13,
                         fontWeight: 400,
-                        color: '#999',
+                        color: isCustom && customText ? '#cdcdcd' : '#999',
                         lineHeight: '18px',
                         marginTop: 3,
                         display: '-webkit-box',
@@ -291,7 +323,7 @@ export default function SubcategoryScreen({
                         overflow: 'hidden',
                       }}
                     >
-                      {sub.subtitle}
+                      {isCustom && customText ? `“${customText}”` : sub.subtitle}
                     </span>
                   )}
                 </div>
@@ -347,6 +379,232 @@ export default function SubcategoryScreen({
           </button>
         </div>
       </div>
+
+      {/* Custom preference bottom sheet */}
+      {customSheetOpen && (
+        <CustomSheet
+          categoryName={config.name}
+          initialText={customText}
+          onSave={(text) => {
+            const trimmed = text.trim();
+            onCustomTextChange(trimmed);
+            const wasSelected = selectedSubcategories.includes(CUSTOM_SUB_ID);
+            if (trimmed && !wasSelected) {
+              onSelectionsChange([...selectedSubcategories, CUSTOM_SUB_ID]);
+            } else if (!trimmed && wasSelected) {
+              onSelectionsChange(selectedSubcategories.filter((i) => i !== CUSTOM_SUB_ID));
+            }
+            setCustomSheetOpen(false);
+          }}
+          onRemove={() => {
+            // Clear text and deselect in one action
+            onCustomTextChange('');
+            onSelectionsChange(selectedSubcategories.filter((i) => i !== CUSTOM_SUB_ID));
+            setCustomSheetOpen(false);
+          }}
+          onClose={() => setCustomSheetOpen(false)}
+        />
+      )}
     </div>
+  );
+}
+
+// ── Custom preference bottom sheet ───────────────────────────────────────────
+function CustomSheet({
+  categoryName,
+  initialText,
+  onSave,
+  onRemove,
+  onClose,
+}: {
+  categoryName: string;
+  initialText: string;
+  onSave: (text: string) => void;
+  onRemove: () => void;
+  onClose: () => void;
+}) {
+  const [text, setText] = useState(initialText);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const hadInitial = initialText.trim().length > 0;
+
+  useEffect(() => {
+    // Auto-focus the textarea when the sheet opens
+    const t = setTimeout(() => textareaRef.current?.focus(), 150);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 300,
+          background: 'rgba(0,0,0,0.75)',
+          animation: 'backdropFadeIn 200ms ease both',
+        }}
+      />
+
+      {/* Sheet */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 301,
+          background: '#0d0d0d',
+          borderRadius: '20px 20px 0 0',
+          display: 'flex',
+          flexDirection: 'column',
+          animation: 'sheetSlideUp 300ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            padding: '20px 20px 4px',
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p
+              style={{
+                fontSize: 18,
+                fontWeight: 700,
+                color: '#fff',
+                margin: 0,
+                lineHeight: '24px',
+              }}
+            >
+              Tell us what you want
+            </p>
+            <p
+              style={{
+                fontSize: 14,
+                color: '#8a8a8a',
+                margin: '4px 0 0',
+                lineHeight: '20px',
+              }}
+            >
+              Anything specific about {categoryName.toLowerCase()} we should know?
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            style={{
+              width: 32,
+              height: 32,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              color: '#fff',
+              flexShrink: 0,
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M4 4L14 14M14 4L4 14" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Textarea */}
+        <div style={{ padding: '16px 20px 0' }}>
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="A few sentences - preferred brands, sizes, styles, anything else."
+            rows={5}
+            maxLength={280}
+            style={{
+              width: '100%',
+              background: '#151515',
+              border: '1px solid #282828',
+              borderRadius: 12,
+              padding: '12px 14px',
+              color: '#fff',
+              fontSize: 15,
+              lineHeight: '22px',
+              fontFamily: 'inherit',
+              outline: 'none',
+              resize: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
+          <p
+            style={{
+              fontSize: 12,
+              color: '#666',
+              margin: '8px 2px 0',
+              lineHeight: '16px',
+              textAlign: 'right',
+            }}
+          >
+            {text.length}/280
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+            padding: '16px 20px 24px',
+          }}
+        >
+          <button
+            onClick={() => onSave(text)}
+            disabled={text.trim().length === 0}
+            style={{
+              width: '100%',
+              height: 52,
+              background: text.trim().length === 0 ? '#252525' : '#f6f6f6',
+              color: text.trim().length === 0 ? '#666' : '#121212',
+              border: 'none',
+              borderRadius: 100,
+              fontSize: 16,
+              fontWeight: 600,
+              cursor: text.trim().length === 0 ? 'default' : 'pointer',
+              transition: 'background 200ms ease, color 200ms ease',
+            }}
+          >
+            Save
+          </button>
+
+          {/* Only shown when there is already a saved preference to remove */}
+          {hadInitial && (
+            <button
+              onClick={onRemove}
+              style={{
+                width: '100%',
+                height: 44,
+                background: 'transparent',
+                color: '#ef6f6f',
+                border: 'none',
+                borderRadius: 100,
+                fontSize: 14,
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+            >
+              Remove custom preference
+            </button>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

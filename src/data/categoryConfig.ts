@@ -231,11 +231,11 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
     title: 'What\'s your cigar style?',
     description: 'Select as many as you like',
     subcategories: [
-      { id: 'cuban', label: 'Cuban', subtitle: 'The Havana classics' },
-      { id: 'dominican', label: 'Dominican', subtitle: 'Smooth and balanced' },
-      { id: 'nicaraguan', label: 'Nicaraguan', subtitle: 'Rich and full-bodied' },
-      { id: 'honduran', label: 'Honduran', subtitle: 'Earthy and robust' },
-      { id: 'limited-editions', label: 'Limited editions', subtitle: 'Rare and collectible' },
+      { id: 'mild', label: 'Mild', subtitle: 'Soft and approachable' },
+      { id: 'medium', label: 'Medium', subtitle: 'Balanced and smooth' },
+      { id: 'medium-full', label: 'Medium-full', subtitle: 'Warm and layered' },
+      { id: 'full', label: 'Full-bodied', subtitle: 'Rich and intense' },
+      { id: 'extra-full', label: 'Extra full', subtitle: 'Bold and powerful' },
     ],
   },
 
