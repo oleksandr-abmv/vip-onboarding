@@ -30,9 +30,6 @@ export default function SubcategoryScreen({
   const [ripples, setRipples] = useState<Record<string, Ripple>>({});
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const config = categoryConfigs[categoryId];
-  if (!config) return null;
-
   const handleClick = useCallback((e: React.MouseEvent, subId: string) => {
     const card = cardRefs.current[subId];
     if (!card) return;
@@ -63,6 +60,10 @@ export default function SubcategoryScreen({
       });
     }, 500);
   }, [selectedSubcategories, onSelectionsChange]);
+
+  // Guard against missing config — must be AFTER all hooks (rules-of-hooks)
+  const config = categoryConfigs[categoryId];
+  if (!config) return null;
 
   return (
     <div
@@ -163,7 +164,7 @@ export default function SubcategoryScreen({
                   transition: 'border-color 300ms ease, background 300ms ease',
                 }}
               >
-                {/* Ripple effect — covers entire card */}
+                {/* Ripple effect - covers entire card */}
                 {ripple && (
                   <div
                     style={{
@@ -206,19 +207,34 @@ export default function SubcategoryScreen({
                     justifyContent: 'center',
                   }}
                 >
-                  <img
-                    src={getSubcategoryImagePath(config, sub.image, gender)}
-                    alt={sub.label}
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      objectFit: 'contain',
-                      display: 'block',
-                    }}
-                  />
+                  {sub.image ? (
+                    <img
+                      src={getSubcategoryImagePath(config, sub.image, gender)}
+                      alt={sub.label}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain',
+                        display: 'block',
+                      }}
+                    />
+                  ) : (
+                    /* Uniform placeholder - VIP logotype when no subcategory image is provided yet */
+                    <img
+                      src="/vip-logo.svg"
+                      alt=""
+                      aria-hidden
+                      style={{
+                        width: 48,
+                        height: 48,
+                        opacity: 0.35,
+                        display: 'block',
+                      }}
+                    />
+                  )}
                 </div>
 
-                {/* Checkmark — positioned on card */}
+                {/* Checkmark - positioned on card */}
                 <div
                   style={{
                     position: 'absolute',
@@ -285,7 +301,7 @@ export default function SubcategoryScreen({
         </div>
       </div>
 
-      {/* Sticky bottom bar — Skip / Continue */}
+      {/* Sticky bottom bar - Skip / Continue */}
       <div
         style={{
           flexShrink: 0,

@@ -49,12 +49,13 @@ export default function LifestyleTypeScreen({
     if (lifestyle !== 'family') return SINGLE_COUPLE_OPTIONS;
 
     // Family branching rules:
-    // - Under-12 branch (ALL kids < 12): show all 5 options incl. Kid-Friendly
-    // - 12-above branch (any kid >= 12, boundary 12 counts as "above"): drop Kid-Friendly
+    // - No ages provided (Kids step skipped): default to showing all 5 options (most inclusive)
+    // - All kids < 12: show all 5 options incl. Kid-Friendly
+    // - Any kid >= 12 (boundary 12 counts as "above"): drop Kid-Friendly
     const ages = (kidsAges ?? []).filter((a): a is number => a != null);
     const hasOlder = ages.some((a) => a >= 12);
-    const allUnder12 = ages.length > 0 && !hasOlder;
-    return allUnder12
+    const showAll = ages.length === 0 || !hasOlder;
+    return showAll
       ? FAMILY_OPTIONS
       : FAMILY_OPTIONS.filter((o) => o.id !== 'kid-friendly');
   }, [lifestyle, kidsAges]);

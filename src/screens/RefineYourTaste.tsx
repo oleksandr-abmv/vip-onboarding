@@ -60,7 +60,7 @@ function ProductCard({ product, labelNode, isLiked, isSparking, isDismissing, on
         }),
       }}
     >
-      {/* Product image — tappable to open detail view */}
+      {/* Product image - tappable to open detail view */}
       <div
         onClick={() => {
           const rect = imgRef.current?.getBoundingClientRect();
@@ -72,21 +72,40 @@ function ProductCard({ product, labelNode, isLiked, isSparking, isDismissing, on
           position: 'relative',
           cursor: 'pointer',
           padding: IMAGE_PADDING[product.category] || 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
-        <img
-          ref={imgRef}
-          src={product.image}
-          alt={product.name}
-          style={{
-            position: 'absolute',
-            inset: IMAGE_PADDING[product.category] || 0,
-            width: `calc(100% - ${(IMAGE_PADDING[product.category] || 0) * 2}px)`,
-            height: `calc(100% - ${(IMAGE_PADDING[product.category] || 0) * 2}px)`,
-            objectFit: 'contain',
-            display: 'block',
-          }}
-        />
+        {product.image === '/vip-logo.svg' ? (
+          /* Uniform placeholder for products without imagery yet (matches InterestsScreen style, sized for the larger card) */
+          <img
+            ref={imgRef}
+            src="/vip-logo.svg"
+            alt=""
+            aria-hidden
+            style={{
+              width: 128,
+              height: 128,
+              opacity: 0.35,
+              display: 'block',
+            }}
+          />
+        ) : (
+          <img
+            ref={imgRef}
+            src={product.image}
+            alt={product.name}
+            style={{
+              position: 'absolute',
+              inset: IMAGE_PADDING[product.category] || 0,
+              width: `calc(100% - ${(IMAGE_PADDING[product.category] || 0) * 2}px)`,
+              height: `calc(100% - ${(IMAGE_PADDING[product.category] || 0) * 2}px)`,
+              objectFit: 'contain',
+              display: 'block',
+            }}
+          />
+        )}
       </div>
 
       {/* Product info + actions row */}
@@ -140,7 +159,7 @@ function ProductCard({ product, labelNode, isLiked, isSparking, isDismissing, on
 
         {/* Like / Dislike buttons */}
         <div style={{ display: 'flex', gap: 12, flexShrink: 0 }}>
-          {/* Dislike — hidden when liked */}
+          {/* Dislike - hidden when liked */}
           {!isLiked && (
             <button
               onClick={(e) => { e.stopPropagation(); onDislike(product.name); }}
@@ -166,7 +185,7 @@ function ProductCard({ product, labelNode, isLiked, isSparking, isDismissing, on
             </button>
           )}
 
-          {/* Like — white bg when liked, with spark burst behind */}
+          {/* Like - white bg when liked, with spark burst behind */}
           <div style={{ position: 'relative' }}>
             {/* Spark particles behind the button */}
             {isSparking && SPARKS.map((spark, si) => (
@@ -310,7 +329,7 @@ export default function RefineYourTaste({
   onOverlayChange,
   gender,
 }: RefineYourTasteProps) {
-  // Use ref to always have latest likedProducts — prevents stale closure bugs
+  // Use ref to always have latest likedProducts - prevents stale closure bugs
   const likedRef = useRef(likedProducts);
   useEffect(() => { likedRef.current = likedProducts; }, [likedProducts]);
 
@@ -367,22 +386,22 @@ export default function RefineYourTaste({
     return map;
   }, [selectedInterests, gender]);
 
-  // Header — category name
+  // Header - category name
   const activeCategory = selectedInterests.length === 1
     ? (categoryConfigs[selectedInterests[0]]?.name || selectedInterests[0])
     : selectedInterests.length > 1
       ? `${selectedInterests.length} categories`
       : 'All';
 
-  // Stable callbacks — read from ref, never stale
+  // Stable callbacks - read from ref, never stale
   const handleLike = useCallback((productName: string) => {
     const current = likedRef.current;
     const alreadyLiked = current.includes(productName);
     if (alreadyLiked) {
-      // Unlike — just remove from liked
+      // Unlike - just remove from liked
       onLikedChangeRef.current(current.filter(n => n !== productName));
     } else {
-      // Like — add to liked, play sparks, then dismiss card
+      // Like - add to liked, play sparks, then dismiss card
       onLikedChangeRef.current([...current, productName]);
       setSparkingProduct(productName);
       setTimeout(() => {
@@ -394,7 +413,7 @@ export default function RefineYourTaste({
         }, 350);
       }, 500);
     }
-  }, []); // no deps — reads from refs
+  }, []); // no deps - reads from refs
 
   const handleDislike = useCallback((productName: string) => {
     setDismissingProduct(productName);
@@ -407,7 +426,7 @@ export default function RefineYourTaste({
       setDismissedProducts(prev => new Set(prev).add(productName));
       setDismissingProduct(null);
     }, 400);
-  }, []); // no deps — reads from refs
+  }, []); // no deps - reads from refs
 
   const handleOpenView = useCallback((product: Product, label: string, rect: DOMRect) => {
     setViewProduct({ product, label, sourceRect: rect });
@@ -501,9 +520,55 @@ export default function RefineYourTaste({
           }}
         >
           {visibleProducts.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '60px 16px', color: '#666' }}>
-              <span className="material-symbols-rounded" style={{ fontSize: 48, opacity: 0.3, display: 'block', marginBottom: 12 }}>inventory_2</span>
-              <p style={{ fontSize: 15, margin: 0 }}>No products available for this selection yet</p>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                padding: '80px 24px',
+                minHeight: 320,
+                gap: 20,
+              }}
+            >
+              <span
+                className="material-symbols-rounded"
+                style={{
+                  fontSize: 56,
+                  fontVariationSettings: "'wght' 200",
+                  color: '#fff',
+                  opacity: 0.25,
+                }}
+              >
+                check_circle
+              </span>
+
+              <div>
+                <h2
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 600,
+                    color: '#fff',
+                    margin: 0,
+                    marginBottom: 6,
+                    lineHeight: '24px',
+                  }}
+                >
+                  You're all caught up
+                </h2>
+                <p
+                  style={{
+                    fontSize: 14,
+                    color: '#999',
+                    lineHeight: '20px',
+                    margin: 0,
+                    maxWidth: 280,
+                  }}
+                >
+                  You've seen every piece in this selection. We'll surface more as they arrive.
+                </p>
+              </div>
             </div>
           )}
           {visibleProducts.map((product) => {
@@ -529,8 +594,9 @@ export default function RefineYourTaste({
             );
           })}
 
-          {/* "All caught up" badge — animates in when scrolled into view */}
-          {allProducts.length > 0 && (
+          {/* "All caught up" badge - animates in when scrolled into view.
+              Hidden when the empty state is active, since it would be redundant. */}
+          {allProducts.length > 0 && visibleProducts.length > 0 && (
             <CaughtUpBadge />
           )}
         </div>
@@ -594,14 +660,14 @@ export default function RefineYourTaste({
         </div>
       </div>
 
-      {/* Product detail view — premium layered transition */}
+      {/* Product detail view - premium layered transition */}
       {viewProduct && (() => {
         const exp = viewExpanded;
         const ease = 'cubic-bezier(0.4, 0, 0.2, 1)';
 
         return (
           <>
-            {/* Layer 1: Background — fades in immediately */}
+            {/* Layer 1: Background - fades in immediately */}
             <div
               onClick={handleCloseView}
               style={{
@@ -612,7 +678,7 @@ export default function RefineYourTaste({
               }}
             />
 
-            {/* Full modal layout — flexbox so image never pushes content off screen */}
+            {/* Full modal layout - flexbox so image never pushes content off screen */}
             <div style={{
               position: 'absolute', inset: 0, zIndex: 202,
               display: 'flex', flexDirection: 'column',
@@ -640,19 +706,43 @@ export default function RefineYourTaste({
                 display: 'flex', flexDirection: 'column', alignItems: 'center',
                 justifyContent: 'center',
               }}>
-                {/* Image */}
-                <img
-                  src={viewProduct.product.image}
-                  alt={viewProduct.product.name}
-                  style={{
-                    maxWidth: '100%', maxHeight: '50vh', objectFit: 'contain', display: 'block', flexShrink: 0,
-                    opacity: exp ? 1 : 0,
-                    transform: exp ? 'scale(1)' : 'scale(0.85)',
-                    transition: `opacity 350ms ${ease}, transform 350ms ${ease}`,
-                  }}
-                />
+                {/* Image - uses uniform placeholder treatment when logo fallback */}
+                {viewProduct.product.image === '/vip-logo.svg' ? (
+                  <div
+                    style={{
+                      width: '100%',
+                      maxHeight: '50vh',
+                      minHeight: 240,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      opacity: exp ? 1 : 0,
+                      transform: exp ? 'scale(1)' : 'scale(0.85)',
+                      transition: `opacity 350ms ${ease}, transform 350ms ${ease}`,
+                    }}
+                  >
+                    <img
+                      src="/vip-logo.svg"
+                      alt=""
+                      aria-hidden
+                      style={{ width: 144, height: 144, opacity: 0.35, display: 'block' }}
+                    />
+                  </div>
+                ) : (
+                  <img
+                    src={viewProduct.product.image}
+                    alt={viewProduct.product.name}
+                    style={{
+                      maxWidth: '100%', maxHeight: '50vh', objectFit: 'contain', display: 'block', flexShrink: 0,
+                      opacity: exp ? 1 : 0,
+                      transform: exp ? 'scale(1)' : 'scale(0.85)',
+                      transition: `opacity 350ms ${ease}, transform 350ms ${ease}`,
+                    }}
+                  />
+                )}
 
-                {/* Info — directly below image */}
+                {/* Info - directly below image */}
                 <div style={{
                   flexShrink: 0, textAlign: 'center', color: '#fff', padding: '16px 0 0', width: '100%',
                   opacity: exp ? 1 : 0,
@@ -675,7 +765,7 @@ export default function RefineYourTaste({
                 </p>
               </div>
 
-              {/* Close button — appears at 400ms */}
+              {/* Close button - appears at 400ms */}
               <div style={{
                 flexShrink: 0, width: '100%', padding: '16px 8px 32px',
                 opacity: exp ? 1 : 0,

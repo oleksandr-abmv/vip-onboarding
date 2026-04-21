@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo, type ReactNode } from 'react';
+import { useState, useCallback, useRef, useMemo, useLayoutEffect, type ReactNode } from 'react';
 import PhoneFrame from './components/PhoneFrame';
 import WelcomeScreen from './screens/WelcomeScreen';
 import GenderScreen from './screens/GenderScreen';
@@ -20,7 +20,7 @@ type Screen = 'welcome' | 'gender' | 'lifestyle' | 'kids' | 'lifestyleType' | 'i
 function App() {
   const [screen, setScreen] = useState<Screen>('welcome');
   const [exitingScreen, setExitingScreen] = useState<Screen | null>(null);
-  // Snapshot of the exiting screen's JSX — keeps old state visible during transition
+  // Snapshot of the exiting screen's JSX - keeps old state visible during transition
   const [exitingContent, setExitingContent] = useState<ReactNode>(null);
   const [direction, setDirection] = useState<'forward' | 'back'>('forward');
   const transitionRef = useRef<number | null>(null);
@@ -78,6 +78,12 @@ function App() {
   const handleLifestyleBack = useCallback(() => goTo('gender', 'back'), [goTo]);
   const handleKidsNext = useCallback(() => goTo('lifestyleType', 'forward'), [goTo]);
   const handleKidsBack = useCallback(() => goTo('lifestyle', 'back'), [goTo]);
+  const handleKidsSkip = useCallback(() => {
+    // Clear any partially-entered ages/names so downstream screens treat it as "no kids data".
+    setKidsAges(Array(kidsCount).fill(null));
+    setKidsNames(Array(kidsCount).fill(null));
+    goTo('lifestyleType', 'forward');
+  }, [goTo, kidsCount]);
   const handleLifestyleTypeNext = useCallback(() => goTo('interests', 'forward'), [goTo]);
   const handleLifestyleTypeBack = useCallback(
     () => goTo(lifestyle === 'family' ? 'kids' : 'lifestyle', 'back'),
@@ -102,7 +108,7 @@ function App() {
     goTo('products', 'forward');
   }, [goTo]);
 
-  // Skip subcategories for this category — still go to products for it
+  // Skip subcategories for this category - still go to products for it
   const handleSubcategorySkip = useCallback(() => {
     goTo('products', 'forward');
   }, [goTo]);
@@ -155,7 +161,7 @@ function App() {
   // Current category for subcategory + products screens
   const currentCategoryId = selectedInterests[currentCategoryIndex] || '';
 
-  // Stable references for RefineYourTaste props — prevents re-shuffling on re-render
+  // Stable references for RefineYourTaste props - prevents re-shuffling on re-render
   const productsSelectedInterests = useMemo(
     () => [currentCategoryId],
     [currentCategoryId],
@@ -189,6 +195,7 @@ function App() {
         return (
           <KidsScreen
             onNext={handleKidsNext}
+            onSkip={handleKidsSkip}
             kidsCount={kidsCount}
             onKidsCountChange={setKidsCount}
             kidsAges={kidsAges}
@@ -248,8 +255,12 @@ function App() {
     }
   };
 
-  // Keep the ref updated so goTo can capture snapshots using current render's state
-  renderScreenRef.current = renderScreen;
+  // Keep the ref updated so goTo can capture snapshots using current render's state.
+  // useLayoutEffect runs synchronously after render but before paint, so the ref is
+  // always fresh when goTo reads it in response to a user action.
+  useLayoutEffect(() => {
+    renderScreenRef.current = renderScreen;
+  });
 
   // Progress bar calculation
   // Steps: gender(1) + lifestyle(2) + interests(3) + (subcategory+products) per category
@@ -309,7 +320,7 @@ function App() {
         </div>
       </div>
 
-      {/* Persistent top nav bar — matches Figma: back arrow, center text, Help */}
+      {/* Persistent top nav bar - matches Figma: back arrow, center text, Help */}
       {screen !== 'welcome' && screen !== 'tailoring' && (
         <div
           style={{
@@ -360,7 +371,7 @@ function App() {
               </svg>
             </button>
 
-            {/* Center text — counter on products screen */}
+            {/* Center text - counter on products screen */}
             <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
               {screen === 'products' && likedProducts.length > 0 && (
                 <span style={{ fontSize: 16, fontWeight: 500, color: '#fff' }}>
@@ -390,7 +401,7 @@ function App() {
             </button>
           </div>
 
-          {/* Full-width progress bar — thin line below nav */}
+          {/* Full-width progress bar - thin line below nav */}
           <div
             style={{
               width: '100%',
@@ -411,7 +422,7 @@ function App() {
         </div>
       )}
 
-      {/* Help overlay — bottom sheet style */}
+      {/* Help overlay - bottom sheet style */}
       {helpOpen && (
         <>
           {/* Backdrop */}

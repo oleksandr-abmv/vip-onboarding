@@ -3,6 +3,7 @@ import { safeTop } from '../theme';
 
 interface KidsScreenProps {
   onNext: () => void;
+  onSkip: () => void;
   kidsCount: number;
   onKidsCountChange: (n: number) => void;
   kidsAges: (number | null)[];
@@ -16,6 +17,7 @@ const MAX_KIDS = 8;
 
 export default function KidsScreen({
   onNext,
+  onSkip,
   kidsCount,
   onKidsCountChange,
   kidsAges,
@@ -68,7 +70,7 @@ export default function KidsScreen({
 
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Age picker bottom sheet — one instance shared across all kids
+  // Age picker bottom sheet - one instance shared across all kids
   const [pickerIndex, setPickerIndex] = useState<number | null>(null);
   const closePicker = () => setPickerIndex(null);
 
@@ -146,7 +148,7 @@ export default function KidsScreen({
         </div>
       </div>
 
-      {/* Age inputs — scrollable if many */}
+      {/* Age inputs - scrollable if many */}
       <div
         ref={listRef}
         style={{
@@ -171,29 +173,56 @@ export default function KidsScreen({
         ))}
       </div>
 
-      {/* CTA */}
-      <button
-        onClick={onNext}
-        disabled={!allFilled}
+      {/* Skip / Continue bar */}
+      <div
         style={{
-          width: '100%',
-          height: 48,
+          display: 'flex',
+          gap: 12,
+          alignItems: 'center',
           flexShrink: 0,
           marginTop: 12,
           marginBottom: `calc(24px + env(safe-area-inset-bottom, 0px))`,
-          background: allFilled ? '#f6f6f6' : '#252525',
-          color: allFilled ? '#121212' : '#666',
-          border: 'none',
-          borderRadius: 100,
-          fontSize: 16,
-          fontWeight: 500,
-          cursor: allFilled ? 'pointer' : 'default',
-          transition: 'background 200ms ease, color 200ms ease',
           animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 320ms both',
         }}
       >
-        Continue
-      </button>
+        {/* Skip */}
+        <button
+          onClick={onSkip}
+          style={{
+            flex: 1,
+            height: 48,
+            background: 'rgba(246,246,246,0.1)',
+            color: '#f6f6f6',
+            border: 'none',
+            borderRadius: 100,
+            fontSize: 16,
+            fontWeight: 500,
+            cursor: 'pointer',
+          }}
+        >
+          Skip
+        </button>
+
+        {/* Continue */}
+        <button
+          onClick={onNext}
+          disabled={!allFilled}
+          style={{
+            flex: 1,
+            height: 48,
+            background: allFilled ? '#f6f6f6' : '#252525',
+            color: allFilled ? '#121212' : '#666',
+            border: 'none',
+            borderRadius: 100,
+            fontSize: 16,
+            fontWeight: 500,
+            cursor: allFilled ? 'pointer' : 'default',
+            transition: 'background 200ms ease, color 200ms ease',
+          }}
+        >
+          Continue
+        </button>
+      </div>
 
       {/* Age picker bottom sheet */}
       {pickerIndex !== null && (
@@ -212,7 +241,7 @@ export default function KidsScreen({
 }
 
 const ROW_HEIGHT = 42;
-const VISIBLE_ROWS = 7; // odd — middle row is the selection
+const VISIBLE_ROWS = 7; // odd - middle row is the selection
 const WHEEL_HEIGHT = ROW_HEIGHT * VISIBLE_ROWS;
 const PAD = (WHEEL_HEIGHT - ROW_HEIGHT) / 2;
 const AGES = Array.from({ length: 21 }, (_, k) => k + 1);
@@ -558,7 +587,7 @@ function AgeRow({
         transition: 'border-color 200ms ease',
       }}
     >
-      {/* Name — display or edit */}
+      {/* Name - display or edit */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
         {editing ? (
           <input
@@ -661,7 +690,7 @@ function AgeRow({
             fontVariantNumeric: 'tabular-nums',
           }}
         >
-          {hasVal ? value : '—'}
+          {hasVal ? value : '-'}
         </span>
         <span style={{ fontSize: 13, color: '#777' }}>yrs</span>
         <svg

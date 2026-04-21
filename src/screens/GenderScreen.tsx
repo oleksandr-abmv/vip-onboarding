@@ -90,7 +90,7 @@ export default function GenderScreen({
         We use this to personalize your recommendations
       </p>
 
-      {/* Gender cards — Figma layout: icon top-left, label bottom-left */}
+      {/* Gender cards - Figma layout: icon top-left, label bottom-left */}
       <div
         style={{
           display: 'flex',

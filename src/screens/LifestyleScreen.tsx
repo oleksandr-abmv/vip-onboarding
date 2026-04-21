@@ -90,7 +90,7 @@ export default function LifestyleScreen({
         We use this to personalize your recommendations
       </p>
 
-      {/* Lifestyle cards — horizontal rows */}
+      {/* Lifestyle cards - horizontal rows */}
       <div
         style={{
           display: 'flex',
@@ -201,46 +201,55 @@ export default function LifestyleScreen({
       {/* Spacer */}
       <div style={{ flex: 1 }} />
 
-      {/* I'd rather not say */}
-      <button
-        onClick={() => { onLifestyleChange('prefer-not'); onNext(); }}
+      {/* Skip / Continue bar */}
+      <div
         style={{
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          fontSize: 16,
-          color: '#f7f7f7',
-          textAlign: 'center',
-          padding: '12px 0',
-          marginBottom: 12,
-          animation: 'fadeIn 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 240ms both',
-        }}
-      >
-        I'd rather not say
-      </button>
-
-      {/* CTA */}
-      <button
-        onClick={onNext}
-        disabled={!lifestyle}
-        style={{
-          width: '100%',
-          height: 48,
+          display: 'flex',
+          gap: 12,
+          alignItems: 'center',
           flexShrink: 0,
           marginBottom: `calc(24px + env(safe-area-inset-bottom, 0px))`,
-          background: lifestyle ? '#f6f6f6' : '#252525',
-          color: lifestyle ? '#121212' : '#666',
-          border: 'none',
-          borderRadius: 100,
-          fontSize: 16,
-          fontWeight: 500,
-          cursor: lifestyle ? 'pointer' : 'default',
-          transition: 'background 200ms ease, color 200ms ease',
           animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 320ms both',
         }}
       >
-        Continue
-      </button>
+        {/* Skip */}
+        <button
+          onClick={() => { onLifestyleChange('prefer-not'); onNext(); }}
+          style={{
+            flex: 1,
+            height: 48,
+            background: 'rgba(246,246,246,0.1)',
+            color: '#f6f6f6',
+            border: 'none',
+            borderRadius: 100,
+            fontSize: 16,
+            fontWeight: 500,
+            cursor: 'pointer',
+          }}
+        >
+          Skip
+        </button>
+
+        {/* Continue */}
+        <button
+          onClick={onNext}
+          disabled={!lifestyle}
+          style={{
+            flex: 1,
+            height: 48,
+            background: lifestyle ? '#f6f6f6' : '#252525',
+            color: lifestyle ? '#121212' : '#666',
+            border: 'none',
+            borderRadius: 100,
+            fontSize: 16,
+            fontWeight: 500,
+            cursor: lifestyle ? 'pointer' : 'default',
+            transition: 'background 200ms ease, color 200ms ease',
+          }}
+        >
+          Continue
+        </button>
+      </div>
     </div>
   );
 }
