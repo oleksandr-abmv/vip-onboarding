@@ -9,16 +9,27 @@ interface InterestsScreenProps {
   gender: string | null;
 }
 
-const CATEGORIES = [
+type Category = {
+  id: string;
+  label: string;
+  imageFile?: string;
+  icon?: string; // Material Symbols Rounded glyph - used as placeholder when no imageFile
+};
+
+const CATEGORIES: Category[] = [
   { id: 'Accessories', label: 'Accessories', imageFile: 'accessories.webp' },
   { id: 'Handbags and Leather Goods', label: 'Bags', imageFile: 'bags.webp' },
   { id: 'Vehicles', label: 'Cars', imageFile: 'cars.webp' },
+  { id: 'Cigars', label: 'Cigars', icon: 'smoking_rooms' },
   { id: 'Fashion and Apparel', label: 'Clothing', imageFile: 'clothing.webp' },
+  { id: 'Collectibles', label: 'Collectibles', imageFile: 'collectibles.webp' },
   { id: 'Fine Art', label: 'Fine Art', imageFile: 'fineart.webp' },
   { id: 'Furniture', label: 'Furniture', imageFile: 'furniture.webp' },
   { id: 'Jewellery', label: 'Jewelry', imageFile: 'jewelry.webp' },
   { id: 'Footwear', label: 'Shoes', imageFile: 'shoes.webp' },
   { id: 'Watches', label: 'Watches', imageFile: 'watches.webp' },
+  { id: 'Wine & Spirits', label: 'Wine & Spirits', imageFile: 'wine-spirits.webp' },
+  { id: 'Yachts & Boats', label: 'Yachts & Boats', imageFile: 'yachts.webp' },
 ];
 
 interface Ripple {
@@ -152,7 +163,7 @@ export default function InterestsScreen({
                   transition: 'border-color 300ms ease, background 300ms ease',
                 }}
               >
-                {/* Ripple effect — covers entire card */}
+                {/* Ripple effect - covers entire card */}
                 {ripple && (
                   <div
                     style={{
@@ -195,19 +206,34 @@ export default function InterestsScreen({
                     justifyContent: 'center',
                   }}
                 >
-                  <img
-                    src={`/images/categories/${genderFolder}/${cat.imageFile}`}
-                    alt={cat.label}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'contain',
-                      display: 'block',
-                    }}
-                  />
+                  {cat.imageFile ? (
+                    <img
+                      src={`/images/categories/${genderFolder}/${cat.imageFile}`}
+                      alt={cat.label}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                        display: 'block',
+                      }}
+                    />
+                  ) : (
+                    /* Uniform placeholder - VIP logotype for categories without imagery yet */
+                    <img
+                      src="/vip-logo.svg"
+                      alt=""
+                      aria-hidden
+                      style={{
+                        width: 48,
+                        height: 48,
+                        opacity: 0.35,
+                        display: 'block',
+                      }}
+                    />
+                  )}
                 </div>
 
-                {/* Checkmark — positioned on the card, over the image top-right */}
+                {/* Checkmark - positioned on the card, over the image top-right */}
                 <div
                   style={{
                     position: 'absolute',

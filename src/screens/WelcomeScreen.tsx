@@ -2,7 +2,7 @@ interface WelcomeScreenProps {
   onNext: () => void;
 }
 
-// 3 rows of 4 unique images — no duplicates across rows
+// 3 rows of 4 unique images - no duplicates across rows
 const ROW1 = ['/images/welcome/1.jpg', '/images/welcome/2.jpg', '/images/welcome/3.jpg', '/images/welcome/4.jpg'];
 const ROW2 = ['/images/welcome/5.jpg', '/images/welcome/6.jpg', '/images/welcome/7.jpg', '/images/welcome/8.jpg'];
 const ROW3 = ['/images/welcome/9.jpg', '/images/welcome/10.jpg', '/images/welcome/11.jpg', '/images/welcome/12.jpg'];
@@ -92,7 +92,7 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
         ))}
       </div>
 
-      {/* Gradient overlay — fades grid to dark */}
+      {/* Gradient overlay - fades grid to dark */}
       <div
         style={{
           position: 'absolute',
@@ -105,7 +105,7 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
         }}
       />
 
-      {/* Content — positioned at bottom */}
+      {/* Content - positioned at bottom */}
       <div
         style={{
           position: 'relative',
@@ -164,7 +164,7 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
           A curated world of luxury guided by your personal AI concierge
         </p>
 
-        {/* Create an account CTA (primary — white) */}
+        {/* Create an account CTA (primary - white) */}
         <button
           onClick={onNext}
           style={{
@@ -184,7 +184,7 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
           Create an account
         </button>
 
-        {/* Login with email (secondary — transparent) */}
+        {/* Login with email (secondary - transparent) */}
         <button
           onClick={onNext}
           style={{

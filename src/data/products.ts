@@ -11,7 +11,10 @@ export interface Product {
 
 // All products are auto-discovered from image files in /products/
 import { discoverProducts } from './productImages';
+// Seed products for the new categories that don't have imagery yet.
+// Uses the VIP logo placeholder. See CLAUDE.md → "Image / placeholder convention".
+import PLACEHOLDER_PRODUCTS from './placeholderProducts';
 
-const ALL_PRODUCTS: Product[] = discoverProducts();
+const ALL_PRODUCTS: Product[] = [...discoverProducts(), ...PLACEHOLDER_PRODUCTS];
 
 export default ALL_PRODUCTS;

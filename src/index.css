@@ -196,7 +196,7 @@ html, body, #root {
   to { opacity: 0; }
 }
 
-/* Premium word rotation — masked crop reveal */
+/* Premium word rotation - masked crop reveal */
 @keyframes wordRevealIn {
   0% { transform: translateY(100%); opacity: 0; filter: blur(4px); }
   60% { opacity: 1; filter: blur(1px); }
@@ -232,7 +232,7 @@ html, body, #root {
   100% { background-position: 200% 0; }
 }
 
-/* Swipe card appear — subtle scale up from behind position */
+/* Swipe card appear - subtle scale up from behind position */
 @keyframes cardAppear {
   from { transform: scale(0.96) translateY(6px); opacity: 0.8; }
   to { transform: scale(1) translateY(0); opacity: 1; }

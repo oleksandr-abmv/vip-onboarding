@@ -2,7 +2,8 @@ export interface Subcategory {
   id: string;
   label: string;
   subtitle?: string;
-  image: string; // filename only, e.g. 'casual.webp'
+  image?: string; // filename only, e.g. 'casual.webp' (optional - use icon fallback if absent)
+  icon?: string;  // Material Symbols Rounded glyph - used as placeholder when no image
 }
 
 export interface CategoryConfig {
@@ -66,6 +67,7 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
       { id: 'totes', label: 'Totes', subtitle: 'Spacious and open', image: 'totes.webp' },
     ],
     subcategoriesWomen: [
+      { id: 'backpacks', label: 'Backpacks', subtitle: 'Hands-free and modern', image: 'backpacks.webp' },
       { id: 'clutches', label: 'Clutches', subtitle: 'Evening-ready', image: 'clutches.webp' },
       { id: 'crossbody', label: 'Crossbody', subtitle: 'Compact and light', image: 'crossbody.webp' },
       { id: 'mini-bags', label: 'Mini bags', subtitle: 'Small and statement', image: 'mini-bags.webp' },
@@ -84,8 +86,10 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
     description: 'Select as many as you like',
     subcategories: [
       { id: 'classic-cars', label: 'Classic cars', subtitle: 'Icons from the past', image: 'classic-cars.webp' },
+      { id: 'convertibles', label: 'Convertibles', subtitle: 'Open and elegant', image: 'convertibles.webp' },
       { id: 'coupes', label: 'Coupes', subtitle: 'Sleek and two-door', image: 'coupes.webp' },
       { id: 'electric', label: 'Electric', subtitle: 'Quiet and clean', image: 'electric.webp' },
+      { id: 'grand-tourers', label: 'Grand Tourers', subtitle: 'Long-distance luxury', image: 'grand-tourers.webp' },
       { id: 'hypercars', label: 'Hypercars', subtitle: 'Rare and extreme', image: 'hypercars.webp' },
       { id: 'suvs', label: 'SUVs', subtitle: 'Spacious and bold', image: 'suvs.webp' },
       { id: 'sedans', label: 'Sedans', subtitle: 'Refined and comfortable', image: 'sedans.webp' },
@@ -119,13 +123,14 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
     title: 'Which era do you prefer?',
     description: 'Select as many as you like',
     subcategories: [
-      { id: 'renaissance', label: 'Renaissance', subtitle: '1400 – 1600', image: 'renaissance.webp' },
-      { id: 'baroque', label: 'Baroque', subtitle: '1600 – 1750', image: 'baroque.webp' },
-      { id: 'impressionism', label: 'Impressionism', subtitle: '1860 – 1900', image: 'impressionism.webp' },
-      { id: 'post-impressionism', label: 'Post-Impressionism', subtitle: '1880 – 1910', image: 'post-impressionism.webp' },
-      { id: 'surrealism', label: 'Surrealism', subtitle: '1920 – 1960', image: 'surrealism.webp' },
-      { id: 'abstract-expressionism', label: 'Abstract Expressionism', subtitle: '1940 – 1965', image: 'abstract-expressionism.webp' },
-      { id: 'contemporary', label: 'Contemporary', subtitle: '1960 – present', image: 'contemporary.webp' },
+      { id: 'renaissance', label: 'Renaissance', subtitle: '1400 - 1600', image: 'renaissance.webp' },
+      { id: 'baroque', label: 'Baroque', subtitle: '1600 - 1750', image: 'baroque.webp' },
+      { id: 'impressionism', label: 'Impressionism', subtitle: '1860 - 1900', image: 'impressionism.webp' },
+      { id: 'post-impressionism', label: 'Post-Impressionism', subtitle: '1880 - 1910', image: 'post-impressionism.webp' },
+      { id: 'surrealism', label: 'Surrealism', subtitle: '1920 - 1960', image: 'surrealism.webp' },
+      { id: 'abstract-expressionism', label: 'Abstract Expressionism', subtitle: '1940 - 1965', image: 'abstract-expressionism.webp' },
+      { id: 'pop-art', label: 'Pop Art', subtitle: '1955 - 1970', image: 'pop-art.webp' },
+      { id: 'contemporary', label: 'Contemporary', subtitle: '1960 - present', image: 'contemporary.webp' },
     ],
   },
 
@@ -140,6 +145,7 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
       { id: 'art-deco', label: 'Art Deco', subtitle: 'Bold geometry and glamour', image: 'art-deco.webp' },
       { id: 'classic', label: 'Classic', subtitle: 'Traditional and timeless', image: 'classic.webp' },
       { id: 'contemporary', label: 'Contemporary', subtitle: 'Current and refined', image: 'contemporary.webp' },
+      { id: 'industrial', label: 'Industrial', subtitle: 'Raw and architectural', image: 'industrial.webp' },
       { id: 'mid-century', label: 'Mid-Century Modern', subtitle: 'Retro elegance', image: 'mid-century.webp' },
       { id: 'minimalist', label: 'Minimalist', subtitle: 'Less is more', image: 'minimalist.webp' },
       { id: 'rustic', label: 'Rustic', subtitle: 'Warm and natural', image: 'rustic.webp' },
@@ -160,10 +166,13 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
       { id: 'bracelets', label: 'Bracelets', subtitle: 'Cuffs and bangles', image: 'bracelets.webp' },
       { id: 'earrings', label: 'Earrings', subtitle: 'Studs and drops', image: 'earrings.webp' },
       { id: 'chains', label: 'Chains', subtitle: 'Bold and layered', image: 'chains.webp' },
+      { id: 'cufflinks', label: 'Cufflinks', subtitle: 'Formal and tailored', image: 'cufflinks.webp' },
     ],
     subcategoriesWomen: [
       { id: 'bangles', label: 'Bangles', subtitle: 'Stiff and sculptural', image: 'bangles.webp' },
       { id: 'bracelets', label: 'Bracelets', subtitle: 'Flexible and layered', image: 'bracelets.webp' },
+      { id: 'brooches', label: 'Brooches', subtitle: 'Pinned and elegant', image: 'brooches.webp' },
+      { id: 'chains', label: 'Chains', subtitle: 'Bold and layered', image: 'chains.webp' },
       { id: 'earrings', label: 'Earrings', subtitle: 'Framing the face', image: 'earrings.webp' },
       { id: 'necklaces', label: 'Necklaces', subtitle: 'Close to the heart', image: 'necklaces.webp' },
       { id: 'rings', label: 'Rings', subtitle: 'Always on display', image: 'rings.webp' },
@@ -179,6 +188,7 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
     description: 'Select as many as you like',
     subcategories: [
       { id: 'boots', label: 'Boots', subtitle: 'Tough and refined', image: 'boots.webp' },
+      { id: 'derbies', label: 'Derbies', subtitle: 'Relaxed and sharp', image: 'derbies.webp' },
       { id: 'loafers', label: 'Loafers', subtitle: 'Relaxed and smart', image: 'loafers.webp' },
       { id: 'oxfords', label: 'Oxfords', subtitle: 'Formal and polished', image: 'oxfords.webp' },
       { id: 'sandals', label: 'Sandals', subtitle: 'Light and open', image: 'sandals.webp' },
@@ -188,8 +198,10 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
       { id: 'boots', label: 'Boots', subtitle: 'Tough and refined', image: 'boots.webp' },
       { id: 'flats', label: 'Flats', subtitle: 'Easy and elegant', image: 'flats.webp' },
       { id: 'heels', label: 'Heels', subtitle: 'Elevated and bold', image: 'heels.webp' },
+      { id: 'mules', label: 'Mules', subtitle: 'Open-back and easy', image: 'mules.webp' },
       { id: 'sandals', label: 'Sandals', subtitle: 'Light and open', image: 'sandals.webp' },
       { id: 'sneakers', label: 'Sneakers', subtitle: 'Casual and cool', image: 'sneakers.webp' },
+      { id: 'wedges', label: 'Wedges', subtitle: 'Lifted and stable', image: 'wedges.webp' },
     ],
   },
 
@@ -203,9 +215,83 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
     subcategories: [
       { id: 'chronograph', label: 'Chronograph', subtitle: 'Timing and precision', image: 'chronograph.webp' },
       { id: 'classic', label: 'Classic', subtitle: 'Elegant and timeless', image: 'classic.webp' },
+      { id: 'complications', label: 'Complications', subtitle: 'Perpetual and intricate', image: 'complications.webp' },
       { id: 'diver', label: 'Diver', subtitle: 'Built for the deep', image: 'diver.webp' },
+      { id: 'gmt', label: 'GMT', subtitle: 'Two time zones', image: 'gmt.webp' },
       { id: 'pilot', label: 'Pilot', subtitle: 'Aviation-inspired', image: 'pilot.webp' },
       { id: 'skeleton', label: 'Skeleton', subtitle: 'Open and mechanical', image: 'skeleton.webp' },
+    ],
+  },
+
+  Cigars: {
+    id: 'Cigars',
+    name: 'Cigars',
+    folder: 'cigars',
+    gendered: false,
+    title: 'What\'s your cigar strength?',
+    description: 'Slide to set your preferred strength',
+    subcategories: [
+      { id: 'mild', label: 'Mild', subtitle: 'Soft and approachable' },
+      { id: 'medium', label: 'Medium', subtitle: 'Balanced and smooth' },
+      { id: 'medium-full', label: 'Medium-full', subtitle: 'Warm and layered' },
+      { id: 'full', label: 'Full-bodied', subtitle: 'Rich and intense' },
+      { id: 'extra-full', label: 'Extra full', subtitle: 'Bold and powerful' },
+    ],
+  },
+
+  Collectibles: {
+    id: 'Collectibles',
+    name: 'Collectibles',
+    folder: 'collectibles',
+    gendered: false,
+    title: 'What do you collect?',
+    description: 'Select as many as you like',
+    subcategories: [
+      { id: 'sneakers', label: 'Sneakers', subtitle: 'Grails and rarities', image: 'sneakers.webp' },
+      { id: 'trading-cards', label: 'Trading cards', subtitle: 'Cards and collections', image: 'trading-cards.webp' },
+      { id: 'coins', label: 'Coins', subtitle: 'Numismatic and bullion', image: 'coins.webp' },
+      { id: 'stamps', label: 'Stamps', subtitle: 'Rare and historic', image: 'stamps.webp' },
+      { id: 'memorabilia', label: 'Memorabilia', subtitle: 'Signed and storied', image: 'memorabilia.webp' },
+      { id: 'toys-figures', label: 'Toys & figures', subtitle: 'Designer and vintage', image: 'toys-figures.webp' },
+      { id: 'comics', label: 'Comics', subtitle: 'First editions and rarities', image: 'comics.webp' },
+      { id: 'vinyl', label: 'Vinyl records', subtitle: 'Rare pressings and first issues', image: 'vinyl.webp' },
+    ],
+  },
+
+  'Wine & Spirits': {
+    id: 'Wine & Spirits',
+    name: 'Wine & Spirits',
+    folder: 'wine-spirits',
+    gendered: false,
+    title: 'What do you pour?',
+    description: 'Select as many as you like',
+    subcategories: [
+      { id: 'red-wine', label: 'Red wine', subtitle: 'Bold and refined', image: 'red-wine.webp' },
+      { id: 'white-wine', label: 'White wine', subtitle: 'Crisp and mineral', image: 'white-wine.webp' },
+      { id: 'champagne', label: 'Champagne', subtitle: 'Sparkling and storied', image: 'champagne.webp' },
+      { id: 'whisky', label: 'Whisky', subtitle: 'Aged and complex', image: 'whisky.webp' },
+      { id: 'cognac', label: 'Cognac & brandy', subtitle: 'Silky and warm', image: 'cognac.webp' },
+      { id: 'tequila', label: 'Tequila', subtitle: 'Agave and aged', image: 'tequila.webp' },
+      { id: 'rum', label: 'Rum', subtitle: 'Caribbean and warm', image: 'rum.webp' },
+    ],
+  },
+
+  'Yachts & Boats': {
+    id: 'Yachts & Boats',
+    name: 'Yachts & Boats',
+    folder: 'yachts',
+    gendered: false,
+    title: 'What do you sail?',
+    description: 'Select as many as you like',
+    subcategories: [
+      { id: 'motor-yachts', label: 'Motor yachts', subtitle: 'Power and range', image: 'motor-yachts.webp' },
+      { id: 'sailing-yachts', label: 'Sailing yachts', subtitle: 'Wind and grace', image: 'sailing-yachts.webp' },
+      { id: 'superyachts', label: 'Superyachts', subtitle: '30m and beyond', image: 'superyachts.webp' },
+      { id: 'catamarans', label: 'Catamarans', subtitle: 'Stable and spacious', image: 'catamarans.webp' },
+      { id: 'tenders', label: 'Tenders & day boats', subtitle: 'Compact and quick', image: 'tenders.webp' },
+      { id: 'classic-boats', label: 'Classic boats', subtitle: 'Heritage and restored', image: 'classic-boats.webp' },
+      { id: 'sportfishing', label: 'Sportfishing', subtitle: 'Built for deep water', image: 'sportfishing.webp' },
+      { id: 'explorer', label: 'Explorer yachts', subtitle: 'Range and capability', image: 'explorer.webp' },
     ],
   },
 };

@@ -3,281 +3,141 @@ import { safeTop } from '../theme';
 import PRODUCTS, { type Product } from '../data/products';
 import { categoryConfigs, getSubcategories } from '../data/categoryConfig';
 
-// ── Spark particles (generated once) ─────────────────────────────────────────
-const SPARK_COUNT = 12;
-const SPARKS = Array.from({ length: SPARK_COUNT }, (_, i) => {
-  const angle = (i / SPARK_COUNT) * 360 + (Math.random() * 10 - 5);
-  const rad = (angle * Math.PI) / 180;
-  const dist = 50 + Math.random() * 30;
-  return {
-    tx: Math.cos(rad) * dist,
-    ty: Math.sin(rad) * dist,
-    delay: Math.random() * 60,
-    size: 2 + Math.random() * 2.5,
-    duration: 450 + Math.random() * 200,
-  };
-});
+// ── Swipe mechanics ───────────────────────────────────────────────────────────
+const CARD_TRANSITION = 450;
+const SWIPE_THRESHOLD = 80;
 
-// Inset padding per category so small items (rings, watches) don't fill the card
-const IMAGE_PADDING: Record<string, number> = {};
-
-// ── ProductCard component ────────────────────────────────────────────────────
-interface ProductCardProps {
-  product: Product;
-  label: string;
-  labelNode: React.ReactNode;
-  isLiked: boolean;
-  isSparking: boolean;
-  isDismissing: boolean;
-  onLike: (name: string) => void;
-  onDislike: (name: string) => void;
-  onView: (product: Product, rect: DOMRect) => void;
-}
-
-function ProductCard({ product, labelNode, isLiked, isSparking, isDismissing, onLike, onDislike, onView }: ProductCardProps) {
-  const imgRef = useRef<HTMLImageElement>(null);
+// ── "LIKE" / "SKIP" drag labels ──────────────────────────────────────────────
+function SwipeLabel({ label, side }: { label: 'LIKE' | 'SKIP'; side: 'left' | 'right' }) {
+  const onRight = side === 'right';
   return (
     <div
       style={{
-        border: '1px solid #282828',
-        borderRadius: 12,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-        transition: 'opacity 350ms ease, transform 350ms ease, max-height 350ms ease, padding 350ms ease, margin 350ms ease, border-color 350ms ease',
-        ...(isDismissing ? {
-          opacity: 0,
-          transform: 'scale(0.85)',
-          maxHeight: 0,
-          padding: '0 16px',
-          marginTop: -12,
-          borderColor: 'transparent',
-          overflow: 'hidden',
-        } : {
-          padding: '24px 16px',
-          maxHeight: 600,
-          overflow: 'hidden',
-        }),
+        position: 'absolute',
+        top: 20,
+        ...(onRight ? { right: 16 } : { left: 16 }),
+        border: '1.5px solid rgba(255,255,255,0.3)',
+        borderRadius: 6,
+        padding: '3px 9px',
+        transform: `rotate(${onRight ? '10deg' : '-10deg'})`,
+        zIndex: 10,
+        pointerEvents: 'none',
+        background: 'rgba(0,0,0,0.35)',
+        backdropFilter: 'blur(4px)',
       }}
     >
-      {/* Product image — tappable to open detail view */}
-      <div
-        onClick={() => {
-          const rect = imgRef.current?.getBoundingClientRect();
-          if (rect) onView(product, rect);
-        }}
+      <span
         style={{
-          width: '100%',
-          aspectRatio: '343 / 250',
-          position: 'relative',
-          cursor: 'pointer',
-          padding: IMAGE_PADDING[product.category] || 0,
+          fontSize: 13,
+          fontWeight: 600,
+          color: 'rgba(255,255,255,0.75)',
+          letterSpacing: 1.5,
+          textTransform: 'uppercase',
+          display: 'block',
+          lineHeight: 1.4,
         }}
       >
-        <img
-          ref={imgRef}
-          src={product.image}
-          alt={product.name}
-          style={{
-            position: 'absolute',
-            inset: IMAGE_PADDING[product.category] || 0,
-            width: `calc(100% - ${(IMAGE_PADDING[product.category] || 0) * 2}px)`,
-            height: `calc(100% - ${(IMAGE_PADDING[product.category] || 0) * 2}px)`,
-            objectFit: 'contain',
-            display: 'block',
-          }}
-        />
-      </div>
-
-      {/* Product info + actions row */}
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
-        {/* Text info */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 500,
-              color: '#999',
-              textTransform: 'uppercase',
-              lineHeight: '18px',
-              margin: 0,
-              overflow: 'hidden',
-            }}
-          >
-            {labelNode}
-          </div>
-          <p
-            style={{
-              fontSize: 15,
-              fontWeight: 600,
-              color: '#fff',
-              lineHeight: '22px',
-              margin: 0,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {product.name}
-          </p>
-          <p
-            style={{
-              fontSize: 14,
-              fontWeight: 400,
-              color: '#fff',
-              opacity: 0.7,
-              lineHeight: '17px',
-              margin: 0,
-              marginTop: 2,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {product.brand}
-          </p>
-        </div>
-
-        {/* Like / Dislike buttons */}
-        <div style={{ display: 'flex', gap: 12, flexShrink: 0 }}>
-          {/* Dislike — hidden when liked */}
-          {!isLiked && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onDislike(product.name); }}
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 100,
-                background: '#242424',
-                border: '1px solid #212020',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 0,
-              }}
-            >
-              <span
-                className="material-symbols-rounded"
-                style={{ fontSize: 20, color: 'rgba(255,255,255,0.5)' }}
-              >
-                thumb_down
-              </span>
-            </button>
-          )}
-
-          {/* Like — white bg when liked, with spark burst behind */}
-          <div style={{ position: 'relative' }}>
-            {/* Spark particles behind the button */}
-            {isSparking && SPARKS.map((spark, si) => (
-              <div
-                key={si}
-                style={{
-                  position: 'absolute',
-                  left: '50%',
-                  top: '50%',
-                  width: spark.size,
-                  height: spark.size,
-                  marginLeft: -spark.size / 2,
-                  marginTop: -spark.size / 2,
-                  borderRadius: '50%',
-                  background: si % 3 === 0 ? '#FFD700' : si % 3 === 1 ? '#fff' : '#FFA500',
-                  opacity: 0,
-                  pointerEvents: 'none',
-                  zIndex: 0,
-                  animation: `sparkBurst ${spark.duration}ms cubic-bezier(0.2, 0, 0.0, 1) ${spark.delay}ms forwards`,
-                  '--spark-tx': `${spark.tx}px`,
-                  '--spark-ty': `${spark.ty}px`,
-                } as React.CSSProperties}
-              />
-            ))}
-
-            <button
-              onClick={(e) => { e.stopPropagation(); onLike(product.name); }}
-              style={{
-                position: 'relative',
-                zIndex: 1,
-                width: 44,
-                height: 44,
-                borderRadius: 100,
-                background: isLiked ? '#fff' : '#242424',
-                border: `1px solid ${isLiked ? '#fff' : '#212020'}`,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 0,
-                transition: 'background 200ms ease, border-color 200ms ease, transform 150ms ease',
-                transform: isSparking ? 'scale(1.15)' : 'scale(1)',
-              }}
-            >
-              <span
-                className="material-symbols-rounded"
-                style={{
-                  fontSize: 20,
-                  color: isLiked ? '#121212' : 'rgba(255,255,255,0.5)',
-                  transition: 'color 200ms ease',
-                }}
-              >
-                thumb_up
-              </span>
-            </button>
-          </div>
-        </div>
-      </div>
+        {label}
+      </span>
     </div>
   );
 }
 
-// ── "All caught up" badge with scroll-triggered animation ───────────────────
-function CaughtUpBadge() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+// ── Card component (shared front + back) ─────────────────────────────────────
+type CardBaseProps = {
+  product: Product;
+  label: string;
+  dim?: boolean; // for back card
+};
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect(); } },
-      { threshold: 0.5 },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
+function CardContent({ product, label, dim = false }: CardBaseProps) {
+  const isPlaceholder = product.image === '/vip-logo.svg';
   return (
-    <div
-      ref={ref}
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        padding: '24px 0 8px',
-        opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0) scale(1)' : 'translateY(12px) scale(0.9)',
-        transition: 'opacity 500ms ease, transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-      }}
-    >
+    <>
+      {/* Image area */}
       <div
         style={{
-          display: 'inline-flex',
+          flex: 1,
+          background: '#212020',
+          overflow: 'hidden',
+          display: 'flex',
           alignItems: 'center',
-          gap: 8,
-          padding: '10px 20px',
-          background: '#1e1e1e',
-          borderRadius: 100,
+          justifyContent: 'center',
+          padding: '24px 32px',
+          position: 'relative',
+          minHeight: 0,
         }}
       >
-        <span
-          className="material-symbols-rounded"
-          style={{ fontSize: 18, color: '#999' }}
-        >
-          check
-        </span>
-        <span style={{ fontSize: 14, fontWeight: 500, color: '#999' }}>
-          You're all caught up!
-        </span>
+        {isPlaceholder ? (
+          <img
+            src="/vip-logo.svg"
+            alt=""
+            aria-hidden
+            style={{ width: 128, height: 128, opacity: dim ? 0.2 : 0.35, display: 'block' }}
+          />
+        ) : (
+          <img
+            src={product.image}
+            alt={product.name}
+            draggable={false}
+            style={{
+              maxWidth: '100%',
+              maxHeight: '100%',
+              objectFit: 'contain',
+              opacity: dim ? 0.55 : 1,
+            }}
+          />
+        )}
       </div>
-    </div>
+
+      {/* Text info */}
+      <div style={{ padding: 16, flexShrink: 0 }}>
+        <p
+          style={{
+            fontSize: 12,
+            fontWeight: 500,
+            color: '#999',
+            textTransform: 'uppercase',
+            lineHeight: '18px',
+            margin: 0,
+            marginBottom: 4,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {label}
+        </p>
+        <p
+          style={{
+            fontSize: 16,
+            fontWeight: 600,
+            color: '#f7f7f7',
+            lineHeight: '22px',
+            margin: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {product.name}
+        </p>
+        <p
+          style={{
+            fontSize: 14,
+            fontWeight: 400,
+            color: '#dedfe1',
+            lineHeight: '20px',
+            margin: '2px 0 0',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {product.brand}
+        </p>
+      </div>
+    </>
   );
 }
 
@@ -310,35 +170,28 @@ export default function RefineYourTaste({
   onOverlayChange,
   gender,
 }: RefineYourTasteProps) {
-  // Use ref to always have latest likedProducts — prevents stale closure bugs
+  // Stable refs to avoid stale closures inside swipe handlers
   const likedRef = useRef(likedProducts);
   useEffect(() => { likedRef.current = likedProducts; }, [likedProducts]);
-
   const onLikedChangeRef = useRef(onLikedChange);
   useEffect(() => { onLikedChangeRef.current = onLikedChange; }, [onLikedChange]);
 
+  // ── Filter pipeline: category → gender → subcategory ──────────────────────
   const allProducts = useMemo(() => {
-    // 1. Filter by selected categories
     let filtered = selectedInterests.length > 0
       ? PRODUCTS.filter((p) => selectedInterests.includes(p.category))
       : PRODUCTS;
 
-    // 2. Filter by gender
     if (gender === 'male' || gender === 'female') {
       const genderFiltered = filtered.filter((p) => !p.gender || p.gender === 'unisex' || p.gender === gender);
       if (genderFiltered.length > 0) filtered = genderFiltered;
     }
 
-    // 3. Filter by subcategories per category
-    // If user selected specific subcategories for a category, only show those.
-    // If user skipped (empty array), show all products from that category.
     const hasAnySubSelections = Object.values(subcategoriesByCategory).some(subs => subs.length > 0);
     if (hasAnySubSelections) {
       const subFiltered = filtered.filter((p) => {
         const subs = subcategoriesByCategory[p.category];
-        // No subcategory selections for this category → show all its products
         if (!subs || subs.length === 0) return true;
-        // Has selections → only show matching subcategories
         return p.subcategory ? subs.includes(p.subcategory) : true;
       });
       if (subFiltered.length > 0) filtered = subFiltered;
@@ -347,14 +200,7 @@ export default function RefineYourTaste({
     return shuffle(filtered);
   }, [selectedInterests, subcategoriesByCategory, gender]);
 
-  const [dismissedProducts, setDismissedProducts] = useState<Set<string>>(new Set());
-  const [dismissingProduct, setDismissingProduct] = useState<string | null>(null);
-  const [sparkingProduct, setSparkingProduct] = useState<string | null>(null);
-  const [viewProduct, setViewProduct] = useState<{ product: Product; label: string; sourceRect: DOMRect } | null>(null);
-  const [viewExpanded, setViewExpanded] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Map subcategory IDs → labels for card display (across all selected categories)
+  // Map subcategory IDs → human labels (for the card eyebrow text)
   const subLabelMap = useMemo(() => {
     const map: Record<string, string> = {};
     for (const catId of selectedInterests) {
@@ -367,53 +213,159 @@ export default function RefineYourTaste({
     return map;
   }, [selectedInterests, gender]);
 
-  // Header — category name
   const activeCategory = selectedInterests.length === 1
     ? (categoryConfigs[selectedInterests[0]]?.name || selectedInterests[0])
     : selectedInterests.length > 1
       ? `${selectedInterests.length} categories`
       : 'All';
 
-  // Stable callbacks — read from ref, never stale
-  const handleLike = useCallback((productName: string) => {
-    const current = likedRef.current;
-    const alreadyLiked = current.includes(productName);
-    if (alreadyLiked) {
-      // Unlike — just remove from liked
-      onLikedChangeRef.current(current.filter(n => n !== productName));
+  // ── Swipe deck state ──────────────────────────────────────────────────────
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [exitDirection, setExitDirection] = useState<'left' | 'right' | null>(null);
+  const [promoting, setPromoting] = useState(false);
+  const [settled, setSettled] = useState(true);
+  const [skipTransition, setSkipTransition] = useState(false);
+  // Small one-time gesture hint: nudges the first card right-then-left so users
+  // understand the deck is swipeable. Cancelled if the user touches the card first.
+  const [hintX, setHintX] = useState(0);
+  const hintDoneRef = useRef(false);
+  const hintTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const startXRef = useRef(0);
+  const swipeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Detail view state (kept from original v5.1 design)
+  const [viewProduct, setViewProduct] = useState<{ product: Product; label: string } | null>(null);
+  const [viewExpanded, setViewExpanded] = useState(false);
+
+  useEffect(() => () => {
+    if (swipeTimeoutRef.current) clearTimeout(swipeTimeoutRef.current);
+    hintTimeouts.current.forEach(clearTimeout);
+  }, []);
+
+  // Run the one-shot gesture hint when the component mounts (and there's a card to nudge)
+  useEffect(() => {
+    if (hintDoneRef.current) return;
+    if (allProducts.length === 0) return;
+    const schedule = (ms: number, fn: () => void) => {
+      const t = setTimeout(fn, ms);
+      hintTimeouts.current.push(t);
+    };
+    // Sequence: settle → nudge right → across to left → back to center
+    schedule(800, () => setHintX(60));
+    schedule(1300, () => setHintX(-60));
+    schedule(1800, () => setHintX(0));
+    schedule(2000, () => { hintDoneRef.current = true; });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const cancelHint = () => {
+    if (hintDoneRef.current) return;
+    hintDoneRef.current = true;
+    hintTimeouts.current.forEach(clearTimeout);
+    hintTimeouts.current = [];
+    setHintX(0);
+  };
+
+  const currentProduct = currentIndex < allProducts.length ? allProducts[currentIndex] : null;
+  const nextProduct = currentIndex + 1 < allProducts.length ? allProducts[currentIndex + 1] : null;
+  const isDone = allProducts.length === 0 || currentIndex >= allProducts.length;
+
+  const labelFor = useCallback((p: Product): string => {
+    const catName = categoryConfigs[p.category]?.name || p.category;
+    return p.subcategory ? (subLabelMap[p.subcategory] || p.subcategory) : catName;
+  }, [subLabelMap]);
+
+  // Preload next few images so the promotion feels instant
+  useEffect(() => {
+    for (let i = 1; i <= 3; i++) {
+      const p = allProducts[currentIndex + i];
+      if (p && p.image !== '/vip-logo.svg') {
+        const img = new Image();
+        img.src = p.image;
+      }
+    }
+  }, [currentIndex, allProducts]);
+
+  // ── Drag handlers ─────────────────────────────────────────────────────────
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (!settled || !currentProduct) return;
+    cancelHint();
+    setIsDragging(true);
+    startXRef.current = e.clientX;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    setDragX(e.clientX - startXRef.current);
+  };
+
+  const triggerSwipe = useCallback((direction: 'left' | 'right') => {
+    if (!settled || !currentProduct) return;
+    setExitDirection(direction);
+    setPromoting(true);
+    setSettled(false);
+
+    if (direction === 'right') {
+      const current = likedRef.current;
+      if (!current.includes(currentProduct.name)) {
+        onLikedChangeRef.current([...current, currentProduct.name]);
+      }
+    }
+
+    swipeTimeoutRef.current = setTimeout(() => {
+      setSkipTransition(true);
+      setCurrentIndex((i) => i + 1);
+      setExitDirection(null);
+      setPromoting(false);
+      setDragX(0);
+      requestAnimationFrame(() => {
+        setSkipTransition(false);
+        setSettled(true);
+      });
+    }, CARD_TRANSITION);
+  }, [settled, currentProduct]);
+
+  const handlePointerUp = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    if (Math.abs(dragX) > SWIPE_THRESHOLD) {
+      triggerSwipe(dragX > 0 ? 'right' : 'left');
     } else {
-      // Like — add to liked, play sparks, then dismiss card
-      onLikedChangeRef.current([...current, productName]);
-      setSparkingProduct(productName);
-      setTimeout(() => {
-        setSparkingProduct(null);
-        setDismissingProduct(productName);
-        setTimeout(() => {
-          setDismissedProducts(prev => new Set(prev).add(productName));
-          setDismissingProduct(null);
-        }, 350);
-      }, 500);
+      setDragX(0);
     }
-  }, []); // no deps — reads from refs
+  };
 
-  const handleDislike = useCallback((productName: string) => {
-    setDismissingProduct(productName);
-    // Also remove from liked if it was liked
-    const current = likedRef.current;
-    if (current.includes(productName)) {
-      onLikedChangeRef.current(current.filter(n => n !== productName));
-    }
-    setTimeout(() => {
-      setDismissedProducts(prev => new Set(prev).add(productName));
-      setDismissingProduct(null);
-    }, 400);
-  }, []); // no deps — reads from refs
+  const handlePointerCancel = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    setDragX(0);
+  };
 
-  const handleOpenView = useCallback((product: Product, label: string, rect: DOMRect) => {
-    setViewProduct({ product, label, sourceRect: rect });
+  const getCardTransform = () => {
+    if (exitDirection === 'left') return 'translateX(-150%) rotate(-20deg)';
+    if (exitDirection === 'right') return 'translateX(150%) rotate(20deg)';
+    if (dragX !== 0) return `translateX(${dragX}px) rotate(${dragX * 0.06}deg)`;
+    // Gesture hint nudge (one-shot on mount) - only when user isn't mid-drag
+    if (hintX !== 0) return `translateX(${hintX}px) rotate(${hintX * 0.06}deg)`;
+    return 'translateX(0)';
+  };
+
+  // Back-card geometry - slides up and forward as front card exits
+  const CARD_TOP = 16;
+  const FRONT_LEFT = 0;
+  const BACK_LEFT = 12;
+  const BACK_TOP_OFFSET = 24;
+  const backLeft = promoting ? FRONT_LEFT : BACK_LEFT;
+  const backTop = promoting ? CARD_TOP : CARD_TOP + BACK_TOP_OFFSET;
+
+  // ── Detail view ───────────────────────────────────────────────────────────
+  const handleOpenView = useCallback((p: Product, label: string) => {
+    setViewProduct({ product: p, label });
     setViewExpanded(false);
     onOverlayChange?.(true);
-    // Trigger expansion on next frame
     requestAnimationFrame(() => {
       requestAnimationFrame(() => setViewExpanded(true));
     });
@@ -425,11 +377,8 @@ export default function RefineYourTaste({
     onOverlayChange?.(false);
   }, [onOverlayChange]);
 
-  const visibleProducts = allProducts.filter(p => !dismissedProducts.has(p.name));
-
   return (
     <div
-      ref={containerRef}
       style={{
         position: 'absolute',
         inset: 0,
@@ -438,102 +387,194 @@ export default function RefineYourTaste({
         background: 'transparent',
       }}
     >
-      {/* Scrollable content */}
-      <div
-        style={{
-          flex: 1,
-          overflow: 'auto',
-          paddingTop: safeTop(100),
-          paddingBottom: 0,
-        }}
-      >
-        {/* Header */}
-        <div style={{ padding: '0 16px', marginBottom: 24 }}>
-          <p
+      {/* Header */}
+      <div style={{ flexShrink: 0, padding: `${safeTop(100)} 16px 20px` }}>
+        <p
+          style={{
+            fontSize: 12,
+            fontWeight: 500,
+            color: '#999',
+            textTransform: 'uppercase',
+            lineHeight: '18px',
+            margin: 0,
+            marginBottom: 4,
+            animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
+          }}
+        >
+          {activeCategory}
+        </p>
+        <h1
+          style={{
+            fontSize: 20,
+            fontWeight: 500,
+            color: '#fff',
+            lineHeight: '26px',
+            margin: 0,
+            marginBottom: 6,
+            animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 40ms both',
+          }}
+        >
+          Swipe to build your taste
+        </h1>
+        <p
+          style={{
+            fontSize: 14,
+            color: '#999',
+            lineHeight: '20px',
+            margin: 0,
+            animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 80ms both',
+          }}
+        >
+          Right to like, left to skip
+        </p>
+      </div>
+
+      {/* Card stack area */}
+      <div style={{ flex: 1, position: 'relative' }}>
+        {/* Back card */}
+        {nextProduct && !isDone && (
+          <div
             style={{
-              fontSize: 12,
-              fontWeight: 500,
-              color: '#999',
-              textTransform: 'uppercase',
-              lineHeight: '18px',
-              margin: 0,
-              marginBottom: 4,
+              position: 'absolute',
+              top: backTop,
+              left: backLeft,
+              right: backLeft,
+              bottom: 16,
+              background: '#0c0c0c',
+              border: '1px solid #313131',
+              borderRadius: 0,
+              overflow: 'hidden',
+              zIndex: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              transition: promoting
+                ? `top ${CARD_TRANSITION}ms cubic-bezier(0.16,1,0.3,1), left ${CARD_TRANSITION}ms cubic-bezier(0.16,1,0.3,1), right ${CARD_TRANSITION}ms cubic-bezier(0.16,1,0.3,1)`
+                : 'none',
+            }}
+          >
+            <CardContent product={nextProduct} label={labelFor(nextProduct)} dim />
+          </div>
+        )}
+
+        {/* Front card */}
+        {currentProduct && !isDone && (
+          <div
+            style={{
+              position: 'absolute',
+              top: CARD_TOP,
+              left: FRONT_LEFT,
+              right: FRONT_LEFT,
+              bottom: 16,
+              background: '#0c0c0c',
+              border: '1px solid #313131',
+              // Rounded only while actively swiping (drag or exit animation)
+              borderRadius: isDragging || exitDirection ? 16 : 0,
+              overflow: 'hidden',
+              zIndex: 5,
+              cursor: isDragging ? 'grabbing' : 'grab',
+              touchAction: 'none',
+              transform: getCardTransform(),
+              transition: isDragging || skipTransition
+                ? 'border-radius 120ms ease-out'
+                : `transform ${CARD_TRANSITION}ms cubic-bezier(0.16, 1, 0.3, 1), border-radius 200ms ease-out`,
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+          >
+            <CardContent product={currentProduct} label={labelFor(currentProduct)} />
+
+            {/* Info button - hidden while dragging */}
+            <button
+              aria-label="View product details"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenView(currentProduct, labelFor(currentProduct));
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              style={{
+                position: 'absolute',
+                top: 12,
+                right: 12,
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                background: '#181818',
+                border: '1px solid #494949',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                padding: 0,
+                zIndex: 6,
+                touchAction: 'none',
+                opacity: isDragging ? 0 : 1,
+                transition: isDragging ? 'none' : 'opacity 200ms ease',
+                pointerEvents: isDragging ? 'none' : 'auto',
+              }}
+            >
+              <span
+                className="material-symbols-rounded"
+                style={{ fontSize: 18, color: '#fff', fontVariationSettings: "'wght' 300" }}
+              >
+                info
+              </span>
+            </button>
+
+            {/* Swipe labels - badge appears on the OPPOSITE side of the drag
+                (classic swipe-deck pattern: label sits at the "leading edge") */}
+            {dragX > 40 && <SwipeLabel label="LIKE" side="left" />}
+            {dragX < -40 && <SwipeLabel label="SKIP" side="right" />}
+          </div>
+        )}
+
+        {/* Empty state (card-shaped) */}
+        {isDone && (
+          <div
+            style={{
+              position: 'absolute',
+              top: CARD_TOP,
+              left: FRONT_LEFT,
+              right: FRONT_LEFT,
+              bottom: 16,
+              background: '#0c0c0c',
+              border: '1px solid #313131',
+              borderRadius: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 16,
+              padding: '0 36px',
               animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
             }}
           >
-            {activeCategory}
-          </p>
-          <h1
-            style={{
-              fontSize: 20,
-              fontWeight: 500,
-              color: '#fff',
-              lineHeight: '26px',
-              margin: 0,
-              marginBottom: 8,
-              animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 40ms both',
-            }}
-          >
-            Like what catches your eye
-          </h1>
-          <p
-            style={{
-              fontSize: 14,
-              color: '#999',
-              lineHeight: '20px',
-              margin: 0,
-              animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 80ms both',
-            }}
-          >
-            The more you like, the better your recommendations
-          </p>
-        </div>
-
-        {/* Product cards */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 12,
-            padding: '0 16px',
-            paddingBottom: 24,
-            animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 160ms both',
-          }}
-        >
-          {visibleProducts.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '60px 16px', color: '#666' }}>
-              <span className="material-symbols-rounded" style={{ fontSize: 48, opacity: 0.3, display: 'block', marginBottom: 12 }}>inventory_2</span>
-              <p style={{ fontSize: 15, margin: 0 }}>No products available for this selection yet</p>
+            <span
+              className="material-symbols-rounded"
+              style={{
+                fontSize: 56,
+                fontVariationSettings: "'wght' 200",
+                color: '#fff',
+                opacity: 0.25,
+              }}
+            >
+              check_circle
+            </span>
+            <div style={{ textAlign: 'center' }}>
+              <h2 style={{ fontSize: 18, fontWeight: 600, color: '#fff', margin: 0, marginBottom: 6, lineHeight: '24px' }}>
+                You're all caught up
+              </h2>
+              <p style={{ fontSize: 14, color: '#999', lineHeight: '20px', margin: 0, maxWidth: 280 }}>
+                You've seen every piece in this selection. We'll surface more as they arrive.
+              </p>
             </div>
-          )}
-          {visibleProducts.map((product) => {
-            const catName = categoryConfigs[product.category]?.name || product.category;
-            // Prefer subcategory label; fall back to category name if no subcategory
-            const cardLabel = product.subcategory
-              ? (subLabelMap[product.subcategory] || product.subcategory)
-              : catName;
-            const cardLabelNode = cardLabel;
-            return (
-              <ProductCard
-                key={product.image}
-                product={product}
-                label={cardLabel}
-                labelNode={cardLabelNode}
-                isLiked={likedProducts.includes(product.name)}
-                isSparking={sparkingProduct === product.name}
-                isDismissing={dismissingProduct === product.name}
-                onLike={handleLike}
-                onDislike={handleDislike}
-                onView={(p, rect) => handleOpenView(p, cardLabel, rect)}
-              />
-            );
-          })}
-
-          {/* "All caught up" badge — animates in when scrolled into view */}
-          {allProducts.length > 0 && (
-            <CaughtUpBadge />
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Sticky bottom bar */}
@@ -541,23 +582,9 @@ export default function RefineYourTaste({
         style={{
           flexShrink: 0,
           background: '#0d0d0d',
-          padding: `12px 18px calc(28px + env(safe-area-inset-bottom, 0px))`,
+          padding: `16px 18px calc(28px + env(safe-area-inset-bottom, 0px))`,
         }}
       >
-        <p
-          style={{
-            fontSize: 14,
-            fontWeight: 400,
-            color: '#999',
-            textAlign: 'center',
-            lineHeight: '20px',
-            margin: 0,
-            padding: '4px 0 12px',
-          }}
-        >
-          Like at least 10 items to improve your results
-        </p>
-
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <button
             onClick={onNext}
@@ -594,14 +621,14 @@ export default function RefineYourTaste({
         </div>
       </div>
 
-      {/* Product detail view — premium layered transition */}
+      {/* Product detail view - premium layered transition (kept from v5.1) */}
       {viewProduct && (() => {
         const exp = viewExpanded;
         const ease = 'cubic-bezier(0.4, 0, 0.2, 1)';
+        const isPlaceholder = viewProduct.product.image === '/vip-logo.svg';
 
         return (
           <>
-            {/* Layer 1: Background — fades in immediately */}
             <div
               onClick={handleCloseView}
               style={{
@@ -612,14 +639,12 @@ export default function RefineYourTaste({
               }}
             />
 
-            {/* Full modal layout — flexbox so image never pushes content off screen */}
             <div style={{
               position: 'absolute', inset: 0, zIndex: 202,
               display: 'flex', flexDirection: 'column',
               padding: '60px 24px 0',
               pointerEvents: exp ? 'auto' : 'none',
             }}>
-              {/* Close X */}
               <button
                 onClick={(e) => { e.stopPropagation(); handleCloseView(); }}
                 style={{
@@ -634,25 +659,40 @@ export default function RefineYourTaste({
                 <span className="material-symbols-rounded" style={{ fontSize: 24, fontVariationSettings: "'wght' 300", color: '#f8f8f8' }}>close</span>
               </button>
 
-              {/* Scrollable content: image + text grouped together */}
               <div style={{
                 flex: '1 1 auto', minHeight: 0, overflow: 'auto',
                 display: 'flex', flexDirection: 'column', alignItems: 'center',
                 justifyContent: 'center',
               }}>
-                {/* Image */}
-                <img
-                  src={viewProduct.product.image}
-                  alt={viewProduct.product.name}
-                  style={{
-                    maxWidth: '100%', maxHeight: '50vh', objectFit: 'contain', display: 'block', flexShrink: 0,
+                {isPlaceholder ? (
+                  <div style={{
+                    width: '100%', maxHeight: '50vh', minHeight: 240,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
                     opacity: exp ? 1 : 0,
                     transform: exp ? 'scale(1)' : 'scale(0.85)',
                     transition: `opacity 350ms ${ease}, transform 350ms ${ease}`,
-                  }}
-                />
+                  }}>
+                    <img
+                      src="/vip-logo.svg"
+                      alt=""
+                      aria-hidden
+                      style={{ width: 144, height: 144, opacity: 0.35, display: 'block' }}
+                    />
+                  </div>
+                ) : (
+                  <img
+                    src={viewProduct.product.image}
+                    alt={viewProduct.product.name}
+                    style={{
+                      maxWidth: '100%', maxHeight: '50vh', objectFit: 'contain', display: 'block', flexShrink: 0,
+                      opacity: exp ? 1 : 0,
+                      transform: exp ? 'scale(1)' : 'scale(0.85)',
+                      transition: `opacity 350ms ${ease}, transform 350ms ${ease}`,
+                    }}
+                  />
+                )}
 
-                {/* Info — directly below image */}
                 <div style={{
                   flexShrink: 0, textAlign: 'center', color: '#fff', padding: '16px 0 0', width: '100%',
                   opacity: exp ? 1 : 0,
@@ -664,7 +704,6 @@ export default function RefineYourTaste({
                   <p style={{ fontSize: 14, fontWeight: 400, color: '#fff', opacity: 0.7, lineHeight: '17px', margin: '4px 0 0' }}>{viewProduct.product.brand}</p>
                 </div>
 
-                {/* Description */}
                 <p style={{
                   flexShrink: 0, fontSize: 14, fontWeight: 400, color: '#dedfe1', opacity: exp ? 0.8 : 0,
                   textAlign: 'center', lineHeight: '20px', margin: '12px auto 0', padding: '0 8px', maxWidth: 343,
@@ -675,7 +714,6 @@ export default function RefineYourTaste({
                 </p>
               </div>
 
-              {/* Close button — appears at 400ms */}
               <div style={{
                 flexShrink: 0, width: '100%', padding: '16px 8px 32px',
                 opacity: exp ? 1 : 0,
