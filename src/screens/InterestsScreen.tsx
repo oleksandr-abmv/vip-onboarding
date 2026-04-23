@@ -22,14 +22,14 @@ const CATEGORIES: Category[] = [
   { id: 'Vehicles', label: 'Cars', imageFile: 'cars.webp' },
   { id: 'Cigars', label: 'Cigars', icon: 'smoking_rooms' },
   { id: 'Fashion and Apparel', label: 'Clothing', imageFile: 'clothing.webp' },
-  { id: 'Collectibles', label: 'Collectibles', icon: 'collections' },
+  { id: 'Collectibles', label: 'Collectibles', imageFile: 'collectibles.webp' },
   { id: 'Fine Art', label: 'Fine Art', imageFile: 'fineart.webp' },
   { id: 'Furniture', label: 'Furniture', imageFile: 'furniture.webp' },
   { id: 'Jewellery', label: 'Jewelry', imageFile: 'jewelry.webp' },
   { id: 'Footwear', label: 'Shoes', imageFile: 'shoes.webp' },
   { id: 'Watches', label: 'Watches', imageFile: 'watches.webp' },
-  { id: 'Wine & Spirits', label: 'Wine & Spirits', icon: 'wine_bar' },
-  { id: 'Yachts & Boats', label: 'Yachts & Boats', icon: 'sailing' },
+  { id: 'Wine & Spirits', label: 'Wine & Spirits', imageFile: 'wine-spirits.webp' },
+  { id: 'Yachts & Boats', label: 'Yachts & Boats', imageFile: 'yachts.webp' },
 ];
 
 interface Ripple {

@@ -1,5 +1,4 @@
 import { safeTop } from '../theme';
-import { Icon } from '../components/Icon';
 
 interface OnboardingGateScreenProps {
   onStart: () => void;
@@ -144,8 +143,6 @@ export default function OnboardingGateScreen({ onStart, onSkip, onClose }: Onboa
             borderRadius: 100,
           }}
         >
-          {/* Timer icon from CORE UI Design icons library */}
-          <Icon name="timer" size={16} color="#e7e7e7" />
           <span
             style={{
               fontSize: 14,
