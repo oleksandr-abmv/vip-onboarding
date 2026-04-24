@@ -164,7 +164,6 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
       { id: 'rings', label: 'Rings', subtitle: 'Statement and everyday', image: 'rings.webp' },
       { id: 'necklaces', label: 'Necklaces', subtitle: 'Pendants and diamonds', image: 'necklaces.webp' },
       { id: 'bracelets', label: 'Bracelets', subtitle: 'Cuffs and bangles', image: 'bracelets.webp' },
-      { id: 'earrings', label: 'Earrings', subtitle: 'Studs and drops' },
       { id: 'chains', label: 'Chains', subtitle: 'Bold and layered', image: 'chains.webp' },
       { id: 'cufflinks', label: 'Cufflinks', subtitle: 'Formal and tailored', image: 'cufflinks.webp' },
     ],
