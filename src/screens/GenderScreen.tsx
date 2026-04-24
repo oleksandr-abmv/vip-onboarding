@@ -113,7 +113,7 @@ export default function GenderScreen({
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: selected ? 'rgba(255,255,255,0.05)' : 'transparent',
+                background: selected ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
                 border: selected ? '1.5px solid #fff' : '1px solid #282828',
                 borderRadius: 12,
                 padding: 16,

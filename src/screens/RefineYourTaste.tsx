@@ -349,6 +349,10 @@ export default function RefineYourTaste({
     setIsDragging(false);
     if (Math.abs(dragX) > SWIPE_THRESHOLD) {
       triggerSwipe(dragX > 0 ? 'right' : 'left');
+    } else if (Math.abs(dragX) < 6 && currentProduct) {
+      // Treated as a tap (barely any drag) → open the product detail view.
+      setDragX(0);
+      handleOpenView(currentProduct, labelFor(currentProduct));
     } else {
       setDragX(0);
     }
@@ -979,7 +983,7 @@ function FirstSkipFeedback({ onClose }: { onClose: () => void }) {
             letterSpacing: -0.2,
           }}
         >
-          Duly noted.
+          Learning your taste.
         </h3>
         <p
           style={{
@@ -990,7 +994,7 @@ function FirstSkipFeedback({ onClose }: { onClose: () => void }) {
             maxWidth: 300,
           }}
         >
-          Your concierge logs every preference. Skips refine your shortlist just as much as likes — the next picks will feel closer.
+          Every skip teaches your concierge what to filter out. Your next picks will land closer to what you actually want.
         </p>
         <button
           onClick={onClose}
