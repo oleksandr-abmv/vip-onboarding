@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef, useMemo, useLayoutEffect, type ReactNode } from 'react';
 import PhoneFrame from './components/PhoneFrame';
 import WelcomeScreen from './screens/WelcomeScreen';
-import OnboardingGateScreen from './screens/OnboardingGateScreen';
 import GenderScreen from './screens/GenderScreen';
 import LifestyleScreen from './screens/LifestyleScreen';
 import LifestyleTypeScreen from './screens/LifestyleTypeScreen';
@@ -16,7 +15,6 @@ import { theme, safeTop } from './theme';
 
 type Screen =
   | 'welcome'
-  | 'onboardingGate'
   | 'gender'
   | 'lifestyle'
   | 'kids'
@@ -26,6 +24,29 @@ type Screen =
   | 'products'
   | 'notifications'
   | 'tailoring';
+
+// The gender step is counted in the progress bar but does NOT show "Finish later"
+// (user should commit to an identity before being offered a skip hatch).
+const PROGRESS_SCREENS: Screen[] = [
+  'gender',
+  'lifestyle',
+  'kids',
+  'lifestyleType',
+  'interests',
+  'subcategory',
+  'products',
+  'notifications',
+];
+// Screens that show the "Finish later" escape hatch. Excludes gender.
+const FINISH_LATER_SCREENS: Screen[] = [
+  'lifestyle',
+  'kids',
+  'lifestyleType',
+  'interests',
+  'subcategory',
+  'products',
+  'notifications',
+];
 
 // Screen order for reference
 // const SCREEN_ORDER: Screen[] = ['welcome', 'gender', 'interests', 'subcategory', 'products', 'tailoring'];
@@ -54,9 +75,9 @@ function App() {
   // Track which interest category we're currently processing (subcategory + products)
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
 
-  // Step map:
-  //   gender · lifestyle · [kids if family] · lifestyleType · interests
-  //   · subcategory (one per selected category) · products (unified) · notifications
+  // Progress / onboarding step math — counts screens from 'gender' onward.
+  // Steps: gender · lifestyle · [kids if family] · lifestyleType · interests
+  //        · subcategory (one per selected category) · products · notifications
   const catCount = Math.max(selectedInterests.length, 1);
   const hasKidsStep = lifestyle === 'family';
   const totalSteps = 6 + (hasKidsStep ? 1 : 0) + catCount;
@@ -85,12 +106,11 @@ function App() {
   );
 
   // Navigation handlers
-  const handleWelcomeNext = useCallback(() => goTo('onboardingGate', 'forward'), [goTo]);
-  const handleGateStart = useCallback(() => goTo('gender', 'forward'), [goTo]);
-  // Skipping onboarding jumps straight to the final Tailoring screen (baseline experience).
-  const handleGateSkip = useCallback(() => goTo('tailoring', 'forward'), [goTo]);
+  // Flow: welcome → gender → lifestyle → [kids if family] → lifestyleType → interests → ...
+  // Onboarding (with progress bar + Finish later) starts at 'lifestyle'.
+  const handleWelcomeNext = useCallback(() => goTo('gender', 'forward'), [goTo]);
   const handleGenderNext = useCallback(() => goTo('lifestyle', 'forward'), [goTo]);
-  const handleGenderBack = useCallback(() => goTo('onboardingGate', 'back'), [goTo]);
+  const handleGenderBack = useCallback(() => goTo('welcome', 'back'), [goTo]);
   const handleLifestyleNext = useCallback(
     () => goTo(lifestyle === 'family' ? 'kids' : 'lifestyleType', 'forward'),
     [goTo, lifestyle],
@@ -163,13 +183,11 @@ function App() {
 
   // Nav visibility - welcome and tailoring render without top nav
   const showBack = screen !== 'welcome' && screen !== 'tailoring';
-  const showHelp = screen !== 'welcome' && screen !== 'tailoring';
 
   const handleBack = useCallback(() => {
     switch (screen) {
-      case 'onboardingGate': goTo('welcome', 'back'); break;
-      case 'gender': handleGenderBack(); break;
       case 'lifestyle': handleLifestyleBack(); break;
+      case 'gender': handleGenderBack(); break;
       case 'kids': handleKidsBack(); break;
       case 'lifestyleType': handleLifestyleTypeBack(); break;
       case 'interests': handleInterestsBack(); break;
@@ -207,14 +225,6 @@ function App() {
     switch (s) {
       case 'welcome':
         return <WelcomeScreen onNext={handleWelcomeNext} />;
-      case 'onboardingGate':
-        return (
-          <OnboardingGateScreen
-            onStart={handleGateStart}
-            onSkip={handleGateSkip}
-            onClose={() => goTo('welcome', 'back')}
-          />
-        );
       case 'gender':
         return (
           <GenderScreen
@@ -292,7 +302,13 @@ function App() {
         );
       }
       case 'notifications':
-        return <NotificationsScreen onNext={handleNotificationsNext} />;
+        return (
+          <NotificationsScreen
+            onNext={handleNotificationsNext}
+            selectedInterests={selectedInterests}
+            subcategoriesByCategory={subcategoriesByCategory}
+          />
+        );
       case 'tailoring':
         return <TailoringScreen onComplete={handleTailoringComplete} />;
     }
@@ -305,11 +321,12 @@ function App() {
     renderScreenRef.current = renderScreen;
   });
 
-  // Progress bar calculation
-  // Steps: gender(1) + lifestyle(2) + interests(3) + (subcategory+products) per category
+  // Progress: gender=1, lifestyle=2, kids=3 (if family), lifestyleType=3|4, etc.
+  const showProgress = PROGRESS_SCREENS.includes(screen);
+  const showFinishLater = FINISH_LATER_SCREENS.includes(screen);
   const getProgressPct = () => {
+    const kidsOffset = hasKidsStep ? 1 : 0;
     const base = (() => {
-      const kidsOffset = hasKidsStep ? 1 : 0;
       switch (screen) {
         case 'gender': return 1;
         case 'lifestyle': return 2;
@@ -319,7 +336,7 @@ function App() {
         case 'subcategory': return 4 + kidsOffset + currentCategoryIndex + 1;
         case 'products': return 4 + kidsOffset + catCount + 1;
         case 'notifications': return 4 + kidsOffset + catCount + 2;
-        default: return 0; // welcome, onboardingGate, tailoring
+        default: return 0;
       }
     })();
     return (base / totalSteps) * 100;
@@ -366,7 +383,7 @@ function App() {
 
       {/* Persistent top nav bar - matches Figma: back arrow, center text, Help.
           Hidden on 'onboardingGate' which renders its own modal-style close button. */}
-      {screen !== 'welcome' && screen !== 'onboardingGate' && screen !== 'tailoring' && (
+      {screen !== 'welcome' && screen !== 'tailoring' && (
         <div
           style={{
             position: 'absolute',
@@ -379,13 +396,14 @@ function App() {
             display: overlayVisible ? 'none' : 'block',
           }}
         >
-          {/* Nav row: back + center + help */}
+          {/* Nav row: back + optional center counter + Finish later (onboarding only) */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: `${safeTop(16)} 20px 12px`,
+              position: 'relative',
             }}
           >
             {/* Back button */}
@@ -426,46 +444,54 @@ function App() {
               )}
             </div>
 
-            {/* Finish later - escape hatch to the baseline experience */}
-            <button
-              onClick={() => goTo('tailoring', 'forward')}
-              aria-label="Finish personalization later"
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: 15,
-                fontWeight: 500,
-                color: '#cdcdcd',
-                lineHeight: '44px',
-                padding: '0 4px',
-                minHeight: 44,
-                opacity: showHelp ? 1 : 0,
-                pointerEvents: showHelp ? 'auto' : 'none',
-              }}
-            >
-              Finish later
-            </button>
+            {/* Finish later — escape hatch to the baseline experience. Hidden
+                on gender (user should commit to an identity first). Styled as a
+                secondary pill so it reads as a tappable control, not body text. */}
+            {showFinishLater ? (
+              <button
+                onClick={() => goTo('tailoring', 'forward')}
+                aria-label="Finish personalization later"
+                style={{
+                  background: 'rgba(246,246,246,0.1)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: '#f6f6f6',
+                  padding: '8px 14px',
+                  borderRadius: 100,
+                  pointerEvents: 'auto',
+                  WebkitTapHighlightColor: 'transparent',
+                  transition: 'background 200ms ease',
+                }}
+              >
+                Finish later
+              </button>
+            ) : (
+              <div style={{ width: 44 }} />
+            )}
           </div>
 
-          {/* Full-width progress bar - thin line below nav */}
-          <div
-            style={{
-              width: '100%',
-              height: 3.4,
-              background: '#212020',
-              position: 'relative',
-            }}
-          >
+          {/* Progress bar — thin line below nav. Starts at gender. */}
+          {showProgress && (
             <div
               style={{
-                height: '100%',
-                width: `${getProgressPct()}%`,
-                background: '#f0f0f0',
-                transition: 'width 300ms ease',
+                width: '100%',
+                height: 3.4,
+                background: '#212020',
+                position: 'relative',
               }}
-            />
-          </div>
+            >
+              <div
+                style={{
+                  height: '100%',
+                  width: `${getProgressPct()}%`,
+                  background: '#f0f0f0',
+                  transition: 'width 300ms ease',
+                }}
+              />
+            </div>
+          )}
         </div>
       )}
 

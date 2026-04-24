@@ -273,3 +273,28 @@ html, body, #root {
   width: 1em;
   height: 1em;
 }
+
+/* First-like celebration ---------------------------------------------------- */
+@keyframes celebPop {
+  0%   { transform: scale(0.86) translateY(8px); opacity: 0; }
+  70%  { transform: scale(1.02) translateY(0);   opacity: 1; }
+  100% { transform: scale(1)    translateY(0);   opacity: 1; }
+}
+
+@keyframes confettiFall {
+  0% {
+    transform: translateY(-20px) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% { opacity: 0.95; }
+  100% {
+    /* 110% overshoots so pieces clear the phone frame before fading */
+    transform: translateY(110vh) translateX(var(--conf-drift, 40px)) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+@keyframes spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

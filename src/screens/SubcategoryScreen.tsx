@@ -57,6 +57,12 @@ export default function SubcategoryScreen({
     // by the Save action inside the sheet (save with text → selected; empty/cancel → not).
     if (subId === CUSTOM_SUB_ID) {
       setCustomSheetOpen(true);
+    } else if (categoryId === 'Cigars') {
+      // Cigar strength is a single-choice scale — picking one replaces any other
+      // strength selection. Keep Custom if it was selected.
+      const customIfPresent = selectedSubcategories.includes(CUSTOM_SUB_ID) ? [CUSTOM_SUB_ID] : [];
+      const isSelected = selectedSubcategories.includes(subId);
+      onSelectionsChange(isSelected ? customIfPresent : [subId, ...customIfPresent]);
     } else {
       const isSelected = selectedSubcategories.includes(subId);
       if (isSelected) {
@@ -144,31 +150,121 @@ export default function SubcategoryScreen({
           {config.description}
         </p>
 
-        {/* Cigars: strength slider */}
+        {/* Cigars: vertical card list (strength scale) */}
         {categoryId === 'Cigars' && (
           <div
             style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
               padding: '0 16px',
               paddingBottom: 24,
               animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 160ms both',
             }}
           >
-            <CigarStrengthSlider
-              strengths={getSubcategories(config, gender)}
-              selectedId={(() => {
-                const strengthIds = new Set(getSubcategories(config, gender).map((s) => s.id));
-                return selectedSubcategories.find((id) => strengthIds.has(id)) ?? null;
-              })()}
-              onChange={(id) => {
-                const strengthIds = new Set(getSubcategories(config, gender).map((s) => s.id));
-                const withoutStrengths = selectedSubcategories.filter((sid) => !strengthIds.has(sid));
-                onSelectionsChange([...withoutStrengths, id]);
-              }}
-            />
+            {getSubcategories(config, gender).map((sub) => {
+              const selected = selectedSubcategories.includes(sub.id);
+              const ripple = ripples[sub.id];
+              return (
+                <button
+                  key={sub.id}
+                  ref={(el) => { cardRefs.current[sub.id] = el as HTMLDivElement | null; }}
+                  onClick={(e) => handleClick(e, sub.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 14,
+                    background: selected ? 'rgba(255,255,255,0.05)' : 'transparent',
+                    border: selected ? '1.5px solid #fff' : '1px solid #282828',
+                    borderRadius: 12,
+                    padding: '14px 16px',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    transition: 'border-color 300ms ease, background 300ms ease',
+                    WebkitTapHighlightColor: 'transparent',
+                    flexShrink: 0,
+                    textAlign: 'left',
+                  }}
+                >
+                  {ripple && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        pointerEvents: 'none',
+                        zIndex: 2,
+                        overflow: 'hidden',
+                        borderRadius: 12,
+                      }}
+                    >
+                      <div
+                        style={{
+                          position: 'absolute',
+                          left: `${ripple.x}%`,
+                          top: `${ripple.y}%`,
+                          width: '300%',
+                          height: '300%',
+                          marginLeft: '-150%',
+                          marginTop: '-150%',
+                          borderRadius: '50%',
+                          background: ripple.selecting
+                            ? 'rgba(255,255,255,0.15)'
+                            : 'rgba(0,0,0,0.3)',
+                          animation: 'rippleExpand 500ms cubic-bezier(0.2, 0, 0.0, 1) forwards',
+                        }}
+                      />
+                    </div>
+                  )}
+                  <span
+                    className="material-symbols-rounded"
+                    style={{
+                      fontSize: 22,
+                      fontVariationSettings: "'wght' 300",
+                      color: '#fff',
+                      opacity: selected ? 0.8 : 0.35,
+                      transition: 'opacity 300ms ease',
+                      position: 'relative',
+                      zIndex: 1,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {sub.icon ?? 'local_fire_department'}
+                  </span>
+                  <div style={{ position: 'relative', zIndex: 1, flex: 1, minWidth: 0 }}>
+                    <span
+                      style={{
+                        fontSize: 15,
+                        fontWeight: 600,
+                        color: '#fff',
+                        lineHeight: '20px',
+                        display: 'block',
+                      }}
+                    >
+                      {sub.label}
+                    </span>
+                    {sub.subtitle && (
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 400,
+                          color: '#999',
+                          lineHeight: '16px',
+                          display: 'block',
+                          marginTop: 2,
+                        }}
+                      >
+                        {sub.subtitle}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
 
-        {/* 2-column subcategory grid (all non-Cigars categories) */}
+        {/* 2-column subcategory grid (non-Cigars) */}
         {categoryId !== 'Cigars' && (
         <div
           style={{
@@ -635,220 +731,3 @@ function CustomSheet({
   );
 }
 
-// ── Cigar strength slider ────────────────────────────────────────────────────
-// Horizontal draggable scale from Mild → Extra full. Snaps to 5 positions
-// matching the subcategories array. Single-select: dragging replaces any
-// previously picked strength. VIP aesthetic: thin monochrome line, precise
-// thumb, subtle scale marks — reads like a precision instrument, not a form.
-function CigarStrengthSlider({
-  strengths,
-  selectedId,
-  onChange,
-}: {
-  strengths: { id: string; label: string; subtitle?: string }[];
-  selectedId: string | null;
-  onChange: (id: string) => void;
-}) {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState(false);
-
-  const lastIndex = strengths.length - 1;
-  const selectedIndex = selectedId ? strengths.findIndex((s) => s.id === selectedId) : -1;
-  const displayIndex = selectedIndex >= 0 ? selectedIndex : Math.floor(lastIndex / 2);
-  const displayStrength = strengths[displayIndex];
-  const hasSelection = selectedIndex >= 0;
-  const thumbPct = (displayIndex / lastIndex) * 100;
-
-  // Horizontal inset so the thumb circle (and the end ticks) sit fully inside
-  // the slider range at 0% and 100% without overflowing the container.
-  const INSET = 16;
-
-  const indexFromClientX = useCallback(
-    (clientX: number) => {
-      const track = trackRef.current;
-      if (!track) return displayIndex;
-      const rect = track.getBoundingClientRect();
-      const innerLeft = rect.left + INSET;
-      const innerWidth = rect.width - INSET * 2;
-      if (innerWidth <= 0) return displayIndex;
-      const x = Math.max(0, Math.min(innerWidth, clientX - innerLeft));
-      const pct = x / innerWidth;
-      return Math.round(pct * lastIndex);
-    },
-    [displayIndex, lastIndex]
-  );
-
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    setDragging(true);
-    const idx = indexFromClientX(e.clientX);
-    if (strengths[idx].id !== selectedId) onChange(strengths[idx].id);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragging) return;
-    const idx = indexFromClientX(e.clientX);
-    if (strengths[idx].id !== selectedId) onChange(strengths[idx].id);
-  };
-
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    setDragging(false);
-    try {
-      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch { /* no-op */ }
-  };
-
-  return (
-    <div
-      style={{
-        padding: '28px 20px 20px',
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid #282828',
-        borderRadius: 12,
-      }}
-    >
-      {/* Current strength label + subtitle + level dots (changes as you drag) */}
-      <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <div
-          style={{
-            fontSize: 20,
-            fontWeight: 500,
-            color: hasSelection ? '#fff' : '#666',
-            lineHeight: '26px',
-            transition: 'color 200ms ease',
-            letterSpacing: -0.1,
-          }}
-        >
-          {displayStrength.label}
-        </div>
-
-        {displayStrength.subtitle && (
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 400,
-              color: hasSelection ? '#999' : '#555',
-              marginTop: 4,
-              lineHeight: '18px',
-              transition: 'color 200ms ease',
-            }}
-          >
-            {displayStrength.subtitle}
-          </div>
-        )}
-      </div>
-
-      {/* Slider — thin line, precise thumb */}
-      <div
-        ref={trackRef}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        style={{
-          position: 'relative',
-          height: 44,
-          cursor: 'pointer',
-          touchAction: 'none',
-          userSelect: 'none',
-        }}
-      >
-        {/* Inset positioning layer — ticks, fill, and thumb all map to 0–100% in here */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            left: INSET,
-            right: INSET,
-            pointerEvents: 'none',
-          }}
-        >
-          {/* Line segments between ticks — 6px gap on each side of every divider */}
-          {Array.from({ length: lastIndex }).map((_, k) => {
-            const SEG_GAP = 6;
-            const isFilled = k < displayIndex;
-            return (
-              <div
-                key={`seg-${k}`}
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: `calc(${(k / lastIndex) * 100}% + ${SEG_GAP}px)`,
-                  width: `calc(${(100 / lastIndex)}% - ${SEG_GAP * 2}px)`,
-                  height: 2,
-                  transform: 'translateY(-50%)',
-                  borderRadius: 2,
-                  background: isFilled
-                    ? hasSelection
-                      ? '#f6f6f6'
-                      : 'rgba(246,246,246,0.35)'
-                    : 'rgba(255,255,255,0.12)',
-                  transition: 'background 220ms ease',
-                }}
-              />
-            );
-          })}
-
-          {/* Scale marks — thin vertical lines at each position */}
-          {strengths.map((_, i) => {
-            const isFilled = i <= displayIndex;
-            return (
-              <div
-                key={i}
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: `${(i / lastIndex) * 100}%`,
-                  transform: 'translate(-50%, -50%)',
-                  width: 1,
-                  height: 10,
-                  background: isFilled ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.18)',
-                  transition: 'background 200ms ease',
-                }}
-              />
-            );
-          })}
-
-          {/* Thumb */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: `${thumbPct}%`,
-              transform: `translate(-50%, -50%) scale(${dragging ? 1.08 : 1})`,
-              width: 24,
-              height: 24,
-              borderRadius: '50%',
-              background: '#fff',
-              boxShadow: dragging
-                ? '0 3px 14px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.08)'
-                : '0 2px 8px rgba(0,0,0,0.45), 0 0 0 1px rgba(0,0,0,0.08)',
-              transition: dragging
-                ? 'transform 120ms ease, box-shadow 120ms ease'
-                : 'left 260ms cubic-bezier(0.25, 0.1, 0.25, 1), transform 120ms ease, box-shadow 120ms ease',
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Endpoint hints — anchor the scale without crowding the track */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginTop: 4,
-          padding: `0 ${INSET - 6}px`,
-          fontSize: 10,
-          fontWeight: 500,
-          letterSpacing: 0.8,
-          color: '#666',
-          textTransform: 'uppercase',
-        }}
-      >
-        <span>{strengths[0].label}</span>
-        <span>{strengths[lastIndex].label}</span>
-      </div>
-    </div>
-  );
-}

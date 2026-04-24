@@ -20,16 +20,16 @@ const CATEGORIES: Category[] = [
   { id: 'Accessories', label: 'Accessories', imageFile: 'accessories.webp' },
   { id: 'Handbags and Leather Goods', label: 'Bags', imageFile: 'bags.webp' },
   { id: 'Vehicles', label: 'Cars', imageFile: 'cars.webp' },
-  { id: 'Cigars', label: 'Cigars', icon: 'smoking_rooms' },
+  { id: 'Cigars', label: 'Cigars', imageFile: 'cigars.png' },
   { id: 'Fashion and Apparel', label: 'Clothing', imageFile: 'clothing.webp' },
-  { id: 'Collectibles', label: 'Collectibles', icon: 'collections' },
+  { id: 'Collectibles', label: 'Collectibles', imageFile: 'collectibles.png' },
   { id: 'Fine Art', label: 'Fine Art', imageFile: 'fineart.webp' },
   { id: 'Furniture', label: 'Furniture', imageFile: 'furniture.webp' },
-  { id: 'Jewellery', label: 'Jewelry', imageFile: 'jewelry.webp' },
+  { id: 'Jewellery', label: 'Jewelry', imageFile: 'jewelry.png' },
   { id: 'Footwear', label: 'Shoes', imageFile: 'shoes.webp' },
   { id: 'Watches', label: 'Watches', imageFile: 'watches.webp' },
-  { id: 'Wine & Spirits', label: 'Wine & Spirits', icon: 'wine_bar' },
-  { id: 'Yachts & Boats', label: 'Yachts & Boats', icon: 'sailing' },
+  { id: 'Wine & Spirits', label: 'Wine & Spirits', imageFile: 'wine-spirits.png' },
+  { id: 'Yachts & Boats', label: 'Yachts & Boats', imageFile: 'yachts.png' },
 ];
 
 interface Ripple {
@@ -48,6 +48,16 @@ export default function InterestsScreen({
   const genderFolder = gender === 'female' ? 'women' : 'men';
   const [ripples, setRipples] = useState<Record<string, Ripple>>({});
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  // "Load more" placeholder — simulates LLM-backed category expansion.
+  const [loadingMore, setLoadingMore] = useState(false);
+  const loadMoreTimeoutRef = useRef<number | null>(null);
+  const handleLoadMore = useCallback(() => {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    loadMoreTimeoutRef.current = window.setTimeout(() => {
+      setLoadingMore(false);
+    }, 2200);
+  }, [loadingMore]);
 
   const handleClick = useCallback((e: React.MouseEvent, catId: string) => {
     const card = cardRefs.current[catId];
@@ -277,6 +287,53 @@ export default function InterestsScreen({
               </button>
             );
           })}
+
+        </div>
+
+        {/* "Load more" — centered link-style button after the grid. Placeholder
+            for future LLM-suggested categories. */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            padding: '4px 16px 24px',
+          }}
+        >
+          <button
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              background: 'transparent',
+              border: 'none',
+              padding: '10px 14px',
+              cursor: loadingMore ? 'default' : 'pointer',
+              color: '#cdcdcd',
+              fontSize: 14,
+              fontWeight: 500,
+              WebkitTapHighlightColor: 'transparent',
+              transition: 'opacity 200ms ease',
+              opacity: loadingMore ? 0.75 : 1,
+            }}
+          >
+            {loadingMore && (
+              <span
+                style={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: '50%',
+                  border: '2px solid rgba(255,255,255,0.2)',
+                  borderTopColor: '#fff',
+                  display: 'inline-block',
+                  animation: 'spin 900ms linear infinite',
+                }}
+                aria-hidden
+              />
+            )}
+            <span>{loadingMore ? 'Finding more…' : 'Load more'}</span>
+          </button>
         </div>
       </div>
 

@@ -1,14 +1,23 @@
 import { safeTop } from '../theme';
+import { personalizedNotification } from '../data/notificationTemplates';
 
 interface NotificationsScreenProps {
   onNext: () => void;
+  selectedInterests: string[];
+  subcategoriesByCategory: Record<string, string[]>;
 }
 
 /**
  * End-of-onboarding permission prompt. The hero is a single, prominent
- * VIP notification - centered, editorial. No decorative illustrations.
+ * VIP notification - centered, editorial. Notification body is personalized
+ * from what the user picked on Interests + Subcategory.
  */
-export default function NotificationsScreen({ onNext }: NotificationsScreenProps) {
+export default function NotificationsScreen({
+  onNext,
+  selectedInterests,
+  subcategoriesByCategory,
+}: NotificationsScreenProps) {
+  const notifBody = personalizedNotification(selectedInterests, subcategoriesByCategory);
   return (
     <div
       style={{
@@ -176,7 +185,7 @@ export default function NotificationsScreen({ onNext }: NotificationsScreenProps
                   lineHeight: '18px',
                 }}
               >
-                A new Patek Aquanaut just arrived in your size.
+                {notifBody}
               </p>
             </div>
           </div>

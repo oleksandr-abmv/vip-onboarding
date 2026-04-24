@@ -227,6 +227,11 @@ export default function RefineYourTaste({
   const [promoting, setPromoting] = useState(false);
   const [settled, setSettled] = useState(true);
   const [skipTransition, setSkipTransition] = useState(false);
+  // One-shot feedback sheets — fire once each on the very first like / skip.
+  const [celebrationOpen, setCelebrationOpen] = useState(false);
+  const firstLikeShownRef = useRef(false);
+  const [skipFeedbackOpen, setSkipFeedbackOpen] = useState(false);
+  const firstSkipShownRef = useRef(false);
   // Small one-time gesture hint: nudges the first card right-then-left so users
   // understand the deck is swipeable. Cancelled if the user touches the card first.
   const [hintX, setHintX] = useState(0);
@@ -252,9 +257,9 @@ export default function RefineYourTaste({
       const t = setTimeout(fn, ms);
       hintTimeouts.current.push(t);
     };
-    // Sequence: settle → nudge right → across to left → back to center
-    schedule(800, () => setHintX(60));
-    schedule(1300, () => setHintX(-60));
+    // Sequence: settle → nudge left (like) → across to right (skip) → back to center
+    schedule(800, () => setHintX(-60));
+    schedule(1300, () => setHintX(60));
     schedule(1800, () => setHintX(0));
     schedule(2000, () => { hintDoneRef.current = true; });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -308,11 +313,22 @@ export default function RefineYourTaste({
     setPromoting(true);
     setSettled(false);
 
-    if (direction === 'right') {
+    // Swipe semantics: LEFT = like, RIGHT = skip.
+    if (direction === 'left') {
       const current = likedRef.current;
       if (!current.includes(currentProduct.name)) {
         onLikedChangeRef.current([...current, currentProduct.name]);
+        // Trigger the first-like celebration once per session.
+        if (current.length === 0 && !firstLikeShownRef.current) {
+          firstLikeShownRef.current = true;
+          setCelebrationOpen(true);
+        }
       }
+    } else if (direction === 'right' && !firstSkipShownRef.current) {
+      // Mirror the first-like cue on the user's first skip — reinforces that
+      // skips also teach the concierge, so users keep giving signal.
+      firstSkipShownRef.current = true;
+      setSkipFeedbackOpen(true);
     }
 
     swipeTimeoutRef.current = setTimeout(() => {
@@ -425,7 +441,7 @@ export default function RefineYourTaste({
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 80ms both',
           }}
         >
-          Right to like, left to skip
+          Left to like, right to skip
         </p>
       </div>
 
@@ -489,7 +505,9 @@ export default function RefineYourTaste({
           >
             <CardContent product={currentProduct} label={labelFor(currentProduct)} />
 
-            {/* Info button - hidden while dragging */}
+            {/* Info button — hidden while dragging AND while the initial
+                gesture-hint animation is in progress (prevents overlap with
+                the LIKE badge that appears on the right during the hint). */}
             <button
               aria-label="View product details"
               onClick={(e) => {
@@ -513,9 +531,9 @@ export default function RefineYourTaste({
                 padding: 0,
                 zIndex: 6,
                 touchAction: 'none',
-                opacity: isDragging ? 0 : 1,
+                opacity: isDragging || hintX !== 0 ? 0 : 1,
                 transition: isDragging ? 'none' : 'opacity 200ms ease',
-                pointerEvents: isDragging ? 'none' : 'auto',
+                pointerEvents: isDragging || hintX !== 0 ? 'none' : 'auto',
               }}
             >
               <span
@@ -528,8 +546,10 @@ export default function RefineYourTaste({
 
             {/* Swipe labels - badge appears on the OPPOSITE side of the drag
                 (classic swipe-deck pattern: label sits at the "leading edge") */}
-            {dragX > 40 && <SwipeLabel label="LIKE" side="left" />}
-            {dragX < -40 && <SwipeLabel label="SKIP" side="right" />}
+            {/* Badges react to real drag AND to the initial gesture-hint nudge
+                so first-time users see which side means what. */}
+            {(dragX > 40 || (dragX === 0 && hintX > 40)) && <SwipeLabel label="SKIP" side="left" />}
+            {(dragX < -40 || (dragX === 0 && hintX < -40)) && <SwipeLabel label="LIKE" side="right" />}
           </div>
         )}
 
@@ -726,6 +746,269 @@ export default function RefineYourTaste({
           </>
         );
       })()}
+
+      {/* First-like celebration — one-shot modal with confetti on the first like */}
+      {celebrationOpen && (
+        <FirstLikeCelebration onClose={() => setCelebrationOpen(false)} />
+      )}
+
+      {/* First-skip feedback — one-shot bottom sheet on the first skip */}
+      {skipFeedbackOpen && (
+        <FirstSkipFeedback onClose={() => setSkipFeedbackOpen(false)} />
+      )}
     </div>
+  );
+}
+
+
+// ── First-like celebration modal ─────────────────────────────────────────────
+// Appears once per session when the user registers their very first "like".
+// CSS-only confetti rain behind a dark VIP card.
+function FirstLikeCelebration({ onClose }: { onClose: () => void }) {
+  // Stable confetti pieces — generated once per mount so they do not reshuffle.
+  const pieces = useMemo(() => {
+    const colors = ["#f6f6f6", "#d4a24b", "#8a6d3b", "#cdcdcd", "#ffffff"];
+    return Array.from({ length: 36 }).map((_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 600,
+      duration: 1600 + Math.random() * 1400,
+      size: 5 + Math.random() * 5,
+      rotate: Math.random() * 360,
+      color: colors[i % colors.length],
+      shape: i % 3 === 0 ? "circle" : "square",
+    }));
+  }, []);
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 400,
+          background: "rgba(0,0,0,0.72)",
+          animation: "backdropFadeIn 220ms ease both",
+        }}
+      />
+
+      {/* Confetti rain — sits above the backdrop, below the modal */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 401,
+          pointerEvents: "none",
+          overflow: "hidden",
+        }}
+      >
+        {pieces.map((p) => (
+          <span
+            key={p.id}
+            style={{
+              position: "absolute",
+              top: -20,
+              left: `${p.left}%`,
+              width: p.size,
+              height: p.size,
+              background: p.color,
+              borderRadius: p.shape === "circle" ? "50%" : 2,
+              transform: `rotate(${p.rotate}deg)`,
+              animation: `confettiFall ${p.duration}ms cubic-bezier(0.25, 0.46, 0.45, 0.94) ${p.delay}ms forwards`,
+              opacity: 0.95,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Bottom sheet — keeps the CTA thumb-reachable on mobile */}
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 402,
+          background: "#121212",
+          borderTop: "1px solid #282828",
+          borderRadius: "20px 20px 0 0",
+          padding: "24px 24px calc(24px + env(safe-area-inset-bottom, 0px))",
+          textAlign: "center",
+          animation: "sheetSlideUp 320ms cubic-bezier(0.25, 0.1, 0.25, 1) both",
+        }}
+      >
+        {/* Drag handle */}
+        <div
+          style={{
+            width: 40,
+            height: 4,
+            borderRadius: 2,
+            background: "rgba(255,255,255,0.18)",
+            margin: "0 auto 18px",
+          }}
+        />
+        <div style={{ fontSize: 44, lineHeight: 1, marginBottom: 12 }}>🥂</div>
+        <h3
+          style={{
+            fontSize: 22,
+            fontWeight: 600,
+            color: "#fff",
+            lineHeight: "28px",
+            margin: 0,
+            letterSpacing: -0.2,
+          }}
+        >
+          Nice taste.
+        </h3>
+        <p
+          style={{
+            fontSize: 14,
+            color: "#a8a8a8",
+            lineHeight: "20px",
+            margin: "8px auto 20px",
+            maxWidth: 300,
+          }}
+        >
+          Your first pick is in. The more you like, the sharper your VIP shortlist gets.
+        </p>
+        <button
+          onClick={onClose}
+          style={{
+            width: "100%",
+            height: 52,
+            background: "#f6f6f6",
+            color: "#121212",
+            border: "none",
+            borderRadius: 100,
+            fontSize: 16,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          Keep going
+        </button>
+      </div>
+    </>
+  );
+}
+
+// ── First-skip feedback sheet ────────────────────────────────────────────────
+// Mirrors FirstLikeCelebration for the user's very first skip — acknowledges
+// the signal, re-frames it as a refinement (not a failure). VIP-dry voice.
+// No confetti; a small sparkle sits above the copy to rhyme visually with the
+// champagne cue without overselling.
+function FirstSkipFeedback({ onClose }: { onClose: () => void }) {
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 400,
+          background: "rgba(0,0,0,0.72)",
+          animation: "backdropFadeIn 220ms ease both",
+        }}
+      />
+
+      {/* Bottom sheet */}
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 402,
+          background: "#121212",
+          borderTop: "1px solid #282828",
+          borderRadius: "20px 20px 0 0",
+          padding: "24px 24px calc(24px + env(safe-area-inset-bottom, 0px))",
+          textAlign: "center",
+          animation: "sheetSlideUp 320ms cubic-bezier(0.25, 0.1, 0.25, 1) both",
+        }}
+      >
+        {/* Drag handle */}
+        <div
+          style={{
+            width: 40,
+            height: 4,
+            borderRadius: 2,
+            background: "rgba(255,255,255,0.18)",
+            margin: "0 auto 18px",
+          }}
+        />
+
+        {/* Tune / refinement glyph */}
+        <div
+          style={{
+            width: 52,
+            height: 52,
+            margin: "0 auto 14px",
+            borderRadius: "50%",
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid #282828",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <span
+            className="material-symbols-rounded"
+            style={{
+              fontSize: 26,
+              fontVariationSettings: "'wght' 300",
+              color: "#f6f6f6",
+              opacity: 0.85,
+            }}
+            aria-hidden
+          >
+            tune
+          </span>
+        </div>
+
+        <h3
+          style={{
+            fontSize: 22,
+            fontWeight: 600,
+            color: "#fff",
+            lineHeight: "28px",
+            margin: 0,
+            letterSpacing: -0.2,
+          }}
+        >
+          Duly noted.
+        </h3>
+        <p
+          style={{
+            fontSize: 14,
+            color: "#a8a8a8",
+            lineHeight: "20px",
+            margin: "8px auto 20px",
+            maxWidth: 300,
+          }}
+        >
+          Your concierge logs every preference. Skips refine your shortlist just as much as likes — the next picks will feel closer.
+        </p>
+        <button
+          onClick={onClose}
+          style={{
+            width: "100%",
+            height: 52,
+            background: "#f6f6f6",
+            color: "#121212",
+            border: "none",
+            borderRadius: 100,
+            fontSize: 16,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          Keep going
+        </button>
+      </div>
+    </>
   );
 }

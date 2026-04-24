@@ -15,9 +15,27 @@ interface Ripple {
 }
 
 const LIFESTYLE_CARDS = [
-  { id: 'solo', icon: 'person', label: 'Single', subtitle: 'Curated just for you' },
-  { id: 'couple', icon: 'group', label: 'Couple', subtitle: 'Recommendations for two' },
-  { id: 'family', icon: 'family_restroom', label: 'Family', subtitle: 'Something for everyone' },
+  {
+    id: 'solo',
+    icon: 'person',
+    label: 'Single',
+    subtitle: 'Curated just for you',
+    example: "For example, you'll see performance sport cars, bespoke suits, and boutique hotels, along with many other selections designed just for you.",
+  },
+  {
+    id: 'couple',
+    icon: 'group',
+    label: 'Couple',
+    subtitle: 'Recommendations for two',
+    example: "For example, you'll see grand touring cars, matching watches, and private getaways for two, along with many other shared recommendations.",
+  },
+  {
+    id: 'family',
+    icon: 'family_restroom',
+    label: 'Family',
+    subtitle: 'Something for everyone',
+    example: "For example, you'll see luxury family SUVs, kids' clothes, and family-friendly hotels, along with many other selections for everyone.",
+  },
 ];
 
 export default function LifestyleScreen({
@@ -197,6 +215,52 @@ export default function LifestyleScreen({
           );
         })}
       </div>
+
+      {/* Per-status explainer — appears once a lifestyle is selected */}
+      {(() => {
+        const selectedCard = LIFESTYLE_CARDS.find((c) => c.id === lifestyle);
+        if (!selectedCard) return null;
+        return (
+          <div
+            key={selectedCard.id}
+            style={{
+              marginTop: 20,
+              padding: '14px 16px',
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid #282828',
+              borderRadius: 12,
+              display: 'flex',
+              gap: 12,
+              alignItems: 'center',
+              animation: 'fadeInUp 300ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
+            }}
+          >
+            <span
+              className="material-symbols-rounded"
+              style={{
+                fontSize: 18,
+                fontVariationSettings: "'wght' 300",
+                color: '#fff',
+                opacity: 0.45,
+                flexShrink: 0,
+              }}
+              aria-hidden
+            >
+              auto_awesome
+            </span>
+            <p
+              style={{
+                fontSize: 13,
+                color: '#cdcdcd',
+                lineHeight: '20px',
+                margin: 0,
+              }}
+            >
+              {selectedCard.example}
+            </p>
+          </div>
+        );
+      })()}
 
       {/* Spacer */}
       <div style={{ flex: 1 }} />
