@@ -472,20 +472,6 @@ export default function RefineYourTaste({
         background: 'transparent',
       }}
     >
-      {/* Floating view-mode toggle — pinned top-right over content */}
-      <div
-        style={{
-          position: 'absolute',
-          top: `calc(${safeTop(56)})`,
-          right: 16,
-          zIndex: 20,
-          animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 120ms both',
-          pointerEvents: 'auto',
-        }}
-      >
-        <ViewModeToggle mode={viewMode} onChange={setViewMode} floating />
-      </div>
-
       {/* Header */}
       <div style={{ flexShrink: 0, padding: `${safeTop(100)} 16px 20px` }}>
         <p
@@ -503,19 +489,22 @@ export default function RefineYourTaste({
           {activeCategory}
         </p>
 
-        <h1
-          style={{
-            fontSize: 20,
-            fontWeight: 500,
-            color: '#fff',
-            lineHeight: '26px',
-            margin: 0,
-            marginBottom: 6,
-            animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 40ms both',
-          }}
-        >
-          {viewMode === 'swipe' ? 'Swipe to build your taste' : 'Scroll to build your taste'}
-        </h1>
+        {/* Title row + view-mode toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
+          <h1
+            style={{
+              fontSize: 20,
+              fontWeight: 500,
+              color: '#fff',
+              lineHeight: '26px',
+              margin: 0,
+              animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 40ms both',
+            }}
+          >
+            {viewMode === 'swipe' ? 'Swipe to build your taste' : 'Scroll to build your taste'}
+          </h1>
+          <ViewModeToggle mode={viewMode} onChange={setViewMode} />
+        </div>
 
         <p
           style={{
