@@ -472,6 +472,20 @@ export default function RefineYourTaste({
         background: 'transparent',
       }}
     >
+      {/* Floating view-mode toggle — pinned top-right over content */}
+      <div
+        style={{
+          position: 'absolute',
+          top: `calc(${safeTop(56)})`,
+          right: 16,
+          zIndex: 20,
+          animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 120ms both',
+          pointerEvents: 'auto',
+        }}
+      >
+        <ViewModeToggle mode={viewMode} onChange={setViewMode} floating />
+      </div>
+
       {/* Header */}
       <div style={{ flexShrink: 0, padding: `${safeTop(100)} 16px 20px` }}>
         <p
@@ -489,22 +503,19 @@ export default function RefineYourTaste({
           {activeCategory}
         </p>
 
-        {/* Title row + view-mode toggle */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
-          <h1
-            style={{
-              fontSize: 20,
-              fontWeight: 500,
-              color: '#fff',
-              lineHeight: '26px',
-              margin: 0,
-              animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 40ms both',
-            }}
-          >
-            {viewMode === 'swipe' ? 'Swipe to build your taste' : 'Scroll to build your taste'}
-          </h1>
-          <ViewModeToggle mode={viewMode} onChange={setViewMode} />
-        </div>
+        <h1
+          style={{
+            fontSize: 20,
+            fontWeight: 500,
+            color: '#fff',
+            lineHeight: '26px',
+            margin: 0,
+            marginBottom: 6,
+            animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 40ms both',
+          }}
+        >
+          {viewMode === 'swipe' ? 'Swipe to build your taste' : 'Scroll to build your taste'}
+        </h1>
 
         <p
           style={{
@@ -987,20 +998,26 @@ function FirstLikeCelebration({ onClose }: { onClose: () => void }) {
 function ViewModeToggle({
   mode,
   onChange,
+  floating = false,
 }: {
   mode: 'swipe' | 'scroll';
   onChange: (m: 'swipe' | 'scroll') => void;
+  /** Floating mode: stronger background + shadow to read over content. */
+  floating?: boolean;
 }) {
   return (
     <div
       style={{
         display: 'flex',
         alignItems: 'center',
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid #282828',
+        background: floating ? 'rgba(20,20,20,0.86)' : 'rgba(255,255,255,0.06)',
+        border: floating ? '1px solid rgba(255,255,255,0.08)' : '1px solid #282828',
         borderRadius: 100,
         padding: 3,
         flexShrink: 0,
+        boxShadow: floating ? '0 6px 20px rgba(0,0,0,0.5)' : undefined,
+        backdropFilter: floating ? 'blur(8px)' : undefined,
+        WebkitBackdropFilter: floating ? 'blur(8px)' : undefined,
       }}
       role="tablist"
       aria-label="Card view mode"
