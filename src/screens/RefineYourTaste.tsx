@@ -974,35 +974,79 @@ function ViewModeToggle({
   /** Floating mode: stronger background + shadow to read over content. */
   floating?: boolean;
 }) {
-  // Single text button that switches to the OTHER mode. Current mode is
-  // implied by what's on screen — this control is the affordance to swap.
-  const target = mode === 'swipe' ? 'scroll' : 'swipe';
-  const label = target === 'swipe' ? 'Swipe view' : 'List view';
+  // Two-segment switcher. Each half is [icon] + one-word label.
+  // Active: filled white pill. Inactive: transparent + muted text.
   return (
-    <button
-      onClick={() => onChange(target)}
-      aria-label={`Switch to ${label}`}
+    <div
       style={{
+        display: 'flex',
+        alignItems: 'center',
         background: floating ? 'rgba(20,20,20,0.86)' : 'rgba(255,255,255,0.06)',
         border: floating ? '1px solid rgba(255,255,255,0.08)' : '1px solid #282828',
         borderRadius: 100,
-        padding: '7px 12px',
+        padding: 3,
         flexShrink: 0,
-        cursor: 'pointer',
-        color: '#cdcdcd',
-        fontSize: 13,
-        fontWeight: 500,
-        lineHeight: 1,
-        whiteSpace: 'nowrap',
         boxShadow: floating ? '0 6px 20px rgba(0,0,0,0.5)' : undefined,
         backdropFilter: floating ? 'blur(8px)' : undefined,
         WebkitBackdropFilter: floating ? 'blur(8px)' : undefined,
-        WebkitTapHighlightColor: 'transparent',
-        transition: 'background 200ms ease',
       }}
+      role="tablist"
+      aria-label="Card view mode"
     >
-      {label}
-    </button>
+      {(['swipe', 'scroll'] as const).map((m) => {
+        const active = mode === m;
+        const label = m === 'swipe' ? 'Swipe' : 'List';
+        const icon = m === 'swipe' ? 'style' : 'view_agenda';
+        return (
+          <button
+            key={m}
+            role="tab"
+            aria-selected={active}
+            aria-label={`${label} view`}
+            onClick={() => onChange(m)}
+            style={{
+              height: 30,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 5,
+              background: active ? '#fff' : 'transparent',
+              border: 'none',
+              borderRadius: 100,
+              cursor: active ? 'default' : 'pointer',
+              padding: '0 11px',
+              transition: 'background 200ms ease, color 200ms ease',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            <span
+              className="material-symbols-rounded"
+              style={{
+                fontSize: 16,
+                fontVariationSettings: "'wght' 400",
+                color: active ? '#0a0a0a' : '#cdcdcd',
+                transition: 'color 200ms ease',
+              }}
+              aria-hidden
+            >
+              {icon}
+            </span>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                lineHeight: 1,
+                color: active ? '#0a0a0a' : '#cdcdcd',
+                whiteSpace: 'nowrap',
+                transition: 'color 200ms ease',
+              }}
+            >
+              {label}
+            </span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
