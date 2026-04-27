@@ -1,5 +1,8 @@
-import { useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { theme, safeTop } from '../theme';
+import { useDelayedReveal, SkeletonBlock } from '../components/Skeleton';
+import { preloadImages } from '../utils/preloadImages';
+import { getAllOnboardingImageUrls } from '../utils/categoryImageUrls';
 
 
 interface InterestsScreenProps {
@@ -48,6 +51,13 @@ export default function InterestsScreen({
   const genderFolder = gender === 'female' ? 'women' : 'men';
   const [ripples, setRipples] = useState<Record<string, Ripple>>({});
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  // Skeleton → real-content reveal so the screen reads as actively loading.
+  const ready = useDelayedReveal(380);
+  // Warm the cache for every onboarding tile image while the user reads this
+  // screen, so subsequent screens (Subcategory, etc.) render images instantly.
+  useEffect(() => {
+    preloadImages(getAllOnboardingImageUrls(gender));
+  }, [gender]);
   // "Load more" placeholder — simulates LLM-backed category expansion.
   const [loadingMore, setLoadingMore] = useState(false);
   const loadMoreTimeoutRef = useRef<number | null>(null);
@@ -139,7 +149,7 @@ export default function InterestsScreen({
           Select 3 to 5 categories
         </p>
 
-        {/* 2-column category grid */}
+        {/* 2-column category grid (skeleton → real cards) */}
         <div
           style={{
             display: 'grid',
@@ -150,7 +160,24 @@ export default function InterestsScreen({
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 240ms both',
           }}
         >
-          {CATEGORIES.map((cat) => {
+          {!ready && CATEGORIES.map((cat) => (
+            <div
+              key={`sk-${cat.id}`}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid #282828',
+                borderRadius: 12,
+                padding: 16,
+              }}
+            >
+              <SkeletonBlock height={123} radius={6} />
+              <SkeletonBlock width="60%" height={16} radius={4} />
+            </div>
+          ))}
+          {ready && CATEGORIES.map((cat) => {
             const selected = selectedInterests.includes(cat.id);
             const ripple = ripples[cat.id];
             return (
@@ -220,6 +247,8 @@ export default function InterestsScreen({
                     <img
                       src={`/images/categories/${genderFolder}/${cat.imageFile}`}
                       alt={cat.label}
+                      decoding="async"
+                      loading="eager"
                       style={{
                         width: '100%',
                         height: '100%',

@@ -213,11 +213,6 @@ export default function RefineYourTaste({
     return map;
   }, [selectedInterests, gender]);
 
-  const activeCategory = selectedInterests.length === 1
-    ? (categoryConfigs[selectedInterests[0]]?.name || selectedInterests[0])
-    : selectedInterests.length > 1
-      ? `${selectedInterests.length} categories`
-      : 'All';
 
   // ── View mode (swipe vs scroll feed) ──────────────────────────────────────
   const [viewMode, setViewMode] = useState<'swipe' | 'scroll'>('swipe');
@@ -473,24 +468,9 @@ export default function RefineYourTaste({
       }}
     >
       {/* Header */}
-      <div style={{ flexShrink: 0, padding: `${safeTop(100)} 16px 20px` }}>
-        <p
-          style={{
-            fontSize: 12,
-            fontWeight: 500,
-            color: '#999',
-            textTransform: 'uppercase',
-            lineHeight: '18px',
-            margin: 0,
-            marginBottom: 4,
-            animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
-          }}
-        >
-          {activeCategory}
-        </p>
-
+      <div style={{ flexShrink: 0, padding: `${safeTop(92)} 16px 14px` }}>
         {/* Title row + view-mode toggle */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 2 }}>
           <h1
             style={{
               fontSize: 20,
@@ -508,9 +488,9 @@ export default function RefineYourTaste({
 
         <p
           style={{
-            fontSize: 14,
+            fontSize: 13,
             color: '#999',
-            lineHeight: '20px',
+            lineHeight: '18px',
             margin: 0,
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 80ms both',
           }}
@@ -994,63 +974,48 @@ function ViewModeToggle({
   /** Floating mode: stronger background + shadow to read over content. */
   floating?: boolean;
 }) {
+  // Single button that switches to the OTHER mode. The current mode is
+  // implied by the on-screen content; this control is purely "switch to X".
+  const target = mode === 'swipe' ? 'scroll' : 'swipe';
+  const label = target === 'swipe' ? 'Swipe view' : 'List view';
+  const icon = target === 'swipe' ? 'style' : 'view_agenda';
   return (
-    <div
+    <button
+      onClick={() => onChange(target)}
+      aria-label={`Switch to ${label}`}
       style={{
-        display: 'flex',
+        display: 'inline-flex',
         alignItems: 'center',
+        gap: 6,
         background: floating ? 'rgba(20,20,20,0.86)' : 'rgba(255,255,255,0.06)',
         border: floating ? '1px solid rgba(255,255,255,0.08)' : '1px solid #282828',
         borderRadius: 100,
-        padding: 3,
+        padding: '7px 12px',
         flexShrink: 0,
+        cursor: 'pointer',
+        color: '#cdcdcd',
         boxShadow: floating ? '0 6px 20px rgba(0,0,0,0.5)' : undefined,
         backdropFilter: floating ? 'blur(8px)' : undefined,
         WebkitBackdropFilter: floating ? 'blur(8px)' : undefined,
+        WebkitTapHighlightColor: 'transparent',
+        transition: 'background 200ms ease',
       }}
-      role="tablist"
-      aria-label="Card view mode"
     >
-      {(['swipe', 'scroll'] as const).map((m) => {
-        const active = mode === m;
-        return (
-          <button
-            key={m}
-            role="tab"
-            aria-selected={active}
-            aria-label={m === 'swipe' ? 'Swipe deck view' : 'Scroll feed view'}
-            onClick={() => onChange(m)}
-            style={{
-              minWidth: 44,
-              height: 36,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: active ? '#fff' : 'transparent',
-              border: 'none',
-              borderRadius: 100,
-              cursor: 'pointer',
-              padding: '0 12px',
-              transition: 'background 200ms ease',
-              WebkitTapHighlightColor: 'transparent',
-            }}
-          >
-            <span
-              className="material-symbols-rounded"
-              style={{
-                fontSize: 20,
-                fontVariationSettings: "'wght' 400",
-                color: active ? '#0a0a0a' : '#cdcdcd',
-                transition: 'color 200ms ease',
-              }}
-              aria-hidden
-            >
-              {m === 'swipe' ? 'style' : 'view_agenda'}
-            </span>
-          </button>
-        );
-      })}
-    </div>
+      <span
+        className="material-symbols-rounded"
+        style={{
+          fontSize: 18,
+          fontVariationSettings: "'wght' 400",
+          color: '#cdcdcd',
+        }}
+        aria-hidden
+      >
+        {icon}
+      </span>
+      <span style={{ fontSize: 13, fontWeight: 500, lineHeight: 1, whiteSpace: 'nowrap' }}>
+        {label}
+      </span>
+    </button>
   );
 }
 

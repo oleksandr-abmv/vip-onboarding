@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { safeTop } from '../theme';
 import { categoryConfigs, getSubcategoryImagePath, getSubcategories } from '../data/categoryConfig';
+import { useDelayedReveal, SkeletonBlock } from '../components/Skeleton';
 
 
 interface SubcategoryScreenProps {
@@ -39,6 +40,8 @@ export default function SubcategoryScreen({
   const [ripples, setRipples] = useState<Record<string, Ripple>>({});
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [customSheetOpen, setCustomSheetOpen] = useState(false);
+  // Skeleton → real-content reveal
+  const ready = useDelayedReveal(360);
 
   const handleClick = useCallback((e: React.MouseEvent, subId: string) => {
     const card = cardRefs.current[subId];
@@ -162,7 +165,27 @@ export default function SubcategoryScreen({
               animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 160ms both',
             }}
           >
-            {getSubcategories(config, gender).map((sub) => {
+            {!ready && getSubcategories(config, gender).map((sub) => (
+              <div
+                key={`sk-cigar-${sub.id}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid #282828',
+                  borderRadius: 12,
+                  padding: '14px 16px',
+                }}
+              >
+                <SkeletonBlock width={22} height={22} radius={11} />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                  <SkeletonBlock width="40%" height={14} radius={3} />
+                  <SkeletonBlock width="70%" height={10} radius={3} />
+                </div>
+              </div>
+            ))}
+            {ready && getSubcategories(config, gender).map((sub) => {
               const selected = selectedSubcategories.includes(sub.id);
               const ripple = ripples[sub.id];
               return (
@@ -276,7 +299,28 @@ export default function SubcategoryScreen({
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 160ms both',
           }}
         >
-          {[
+          {!ready && [
+            ...getSubcategories(config, gender),
+            { id: CUSTOM_SUB_ID, label: '', subtitle: '' },
+          ].map((sub) => (
+            <div
+              key={`sk-${sub.id}`}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid #282828',
+                borderRadius: 12,
+                padding: 16,
+              }}
+            >
+              <SkeletonBlock height={130} radius={6} />
+              <SkeletonBlock width="55%" height={14} radius={4} />
+              <SkeletonBlock width="80%" height={11} radius={4} />
+            </div>
+          ))}
+          {ready && [
             ...getSubcategories(config, gender),
             // Always-present Custom tile - lets user specify their own preference
             { id: CUSTOM_SUB_ID, label: 'Custom', subtitle: 'Tell us what you want', icon: 'edit' as const },
@@ -364,6 +408,8 @@ export default function SubcategoryScreen({
                     <img
                       src={getSubcategoryImagePath(config, sub.image, gender)}
                       alt={sub.label}
+                      decoding="async"
+                      loading="eager"
                       style={{
                         maxWidth: '100%',
                         maxHeight: '100%',
