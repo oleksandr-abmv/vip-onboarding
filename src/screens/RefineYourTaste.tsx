@@ -80,10 +80,15 @@ function CardContent({ product, label, dim = false }: CardBaseProps) {
             src={product.image}
             alt={product.name}
             draggable={false}
+            decoding="async"
+            loading="eager"
             style={{
+              display: 'block',
+              margin: 'auto',
               maxWidth: '100%',
               maxHeight: '100%',
               objectFit: 'contain',
+              objectPosition: 'center',
               opacity: dim ? 0.55 : 1,
             }}
           />
@@ -1412,7 +1417,7 @@ function ScrollFeedCard({
         </div>
 
         {/* Thumb buttons — centered row below the meta */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, marginTop: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 4 }}>
           <ThumbButton
             kind="down"
             active={isSkipped}
@@ -1447,8 +1452,8 @@ function ThumbButton({
       onClick={onClick}
       aria-label={ariaLabel}
       style={{
-        width: 56,
-        height: 56,
+        width: 48,
+        height: 48,
         borderRadius: '50%',
         background: active ? '#f6f6f6' : 'rgba(255,255,255,0.06)',
         border: active ? '1.5px solid #fff' : '1px solid #313131',
@@ -1468,7 +1473,7 @@ function ThumbButton({
       <span
         className="material-symbols-rounded"
         style={{
-          fontSize: 26,
+          fontSize: 22,
           fontVariationSettings: active ? "'wght' 500, 'FILL' 1" : "'wght' 400",
           color: active ? '#0a0a0a' : '#cdcdcd',
         }}
