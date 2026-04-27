@@ -211,7 +211,7 @@ export default function NotificationsScreen({
               letterSpacing: '-0.3px',
             }}
           >
-            Get first access.
+            Get first access
           </h1>
           <p
             style={{

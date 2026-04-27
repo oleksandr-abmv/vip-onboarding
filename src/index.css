@@ -298,3 +298,14 @@ html, body, #root {
   0%   { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* Scroll-feed card exit animations */
+@keyframes cardExitLike {
+  0%   { transform: translateX(0) scale(1);    opacity: 1; }
+  100% { transform: translateX(-32%) scale(0.92); opacity: 0; }
+}
+
+@keyframes cardExitSkip {
+  0%   { transform: translateX(0) scale(1);    opacity: 1; }
+  100% { transform: translateX(32%) scale(0.92);  opacity: 0; }
+}

@@ -219,6 +219,12 @@ export default function RefineYourTaste({
       ? `${selectedInterests.length} categories`
       : 'All';
 
+  // ── View mode (swipe vs scroll feed) ──────────────────────────────────────
+  const [viewMode, setViewMode] = useState<'swipe' | 'scroll'>('swipe');
+  // Local "skipped" set used only by the scroll-feed thumb-down button. Lets
+  // the icon stay filled when scrolling away and back.
+  const [skippedSet, setSkippedSet] = useState<Set<string>>(() => new Set());
+
   // ── Swipe deck state ──────────────────────────────────────────────────────
   const [currentIndex, setCurrentIndex] = useState(0);
   const [dragX, setDragX] = useState(0);
@@ -227,11 +233,59 @@ export default function RefineYourTaste({
   const [promoting, setPromoting] = useState(false);
   const [settled, setSettled] = useState(true);
   const [skipTransition, setSkipTransition] = useState(false);
-  // One-shot feedback sheets — fire once each on the very first like / skip.
+  // One-shot feedback sheets — fire once each on the very first like / skip,
+  // shared across both swipe and scroll modes.
   const [celebrationOpen, setCelebrationOpen] = useState(false);
   const firstLikeShownRef = useRef(false);
   const [skipFeedbackOpen, setSkipFeedbackOpen] = useState(false);
   const firstSkipShownRef = useRef(false);
+
+  // Helpers for scroll-feed actions (also fire the celebration sheets)
+  const scrollLike = useCallback((productName: string) => {
+    const current = likedRef.current;
+    const wasLiked = current.includes(productName);
+    if (wasLiked) {
+      // Toggle off
+      onLikedChangeRef.current(current.filter((n) => n !== productName));
+    } else {
+      onLikedChangeRef.current([...current, productName]);
+      if (current.length === 0 && !firstLikeShownRef.current) {
+        firstLikeShownRef.current = true;
+        setCelebrationOpen(true);
+      }
+    }
+    // Always clear from skipped if newly liked
+    if (!wasLiked) {
+      setSkippedSet((prev) => {
+        if (!prev.has(productName)) return prev;
+        const next = new Set(prev);
+        next.delete(productName);
+        return next;
+      });
+    }
+  }, []);
+
+  const scrollSkip = useCallback((productName: string) => {
+    setSkippedSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(productName)) {
+        next.delete(productName);
+      } else {
+        next.add(productName);
+        // Remove from liked if previously liked
+        const current = likedRef.current;
+        if (current.includes(productName)) {
+          onLikedChangeRef.current(current.filter((n) => n !== productName));
+        }
+        // Fire first-skip sheet on the very first skip across modes
+        if (!firstSkipShownRef.current) {
+          firstSkipShownRef.current = true;
+          setSkipFeedbackOpen(true);
+        }
+      }
+      return next;
+    });
+  }, []);
   // Small one-time gesture hint: nudges the first card right-then-left so users
   // understand the deck is swipeable. Cancelled if the user touches the card first.
   const [hintX, setHintX] = useState(0);
@@ -249,10 +303,17 @@ export default function RefineYourTaste({
     hintTimeouts.current.forEach(clearTimeout);
   }, []);
 
-  // Run the one-shot gesture hint when the component mounts (and there's a card to nudge)
+  // Gesture hint replays every time the user enters swipe mode (mount, or
+  // toggling from scroll → swipe). Reminds users which side is like vs skip.
   useEffect(() => {
-    if (hintDoneRef.current) return;
+    if (viewMode !== 'swipe') return;
     if (allProducts.length === 0) return;
+    // Reset state so the hint can re-run
+    hintDoneRef.current = false;
+    hintTimeouts.current.forEach(clearTimeout);
+    hintTimeouts.current = [];
+    setHintX(0);
+
     const schedule = (ms: number, fn: () => void) => {
       const t = setTimeout(fn, ms);
       hintTimeouts.current.push(t);
@@ -262,8 +323,12 @@ export default function RefineYourTaste({
     schedule(1300, () => setHintX(60));
     schedule(1800, () => setHintX(0));
     schedule(2000, () => { hintDoneRef.current = true; });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    return () => {
+      hintTimeouts.current.forEach(clearTimeout);
+      hintTimeouts.current = [];
+    };
+  }, [viewMode, allProducts.length]);
 
   const cancelHint = () => {
     if (hintDoneRef.current) return;
@@ -423,19 +488,24 @@ export default function RefineYourTaste({
         >
           {activeCategory}
         </p>
-        <h1
-          style={{
-            fontSize: 20,
-            fontWeight: 500,
-            color: '#fff',
-            lineHeight: '26px',
-            margin: 0,
-            marginBottom: 6,
-            animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 40ms both',
-          }}
-        >
-          Swipe to build your taste
-        </h1>
+
+        {/* Title row + view-mode toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
+          <h1
+            style={{
+              fontSize: 20,
+              fontWeight: 500,
+              color: '#fff',
+              lineHeight: '26px',
+              margin: 0,
+              animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 40ms both',
+            }}
+          >
+            {viewMode === 'swipe' ? 'Swipe to build your taste' : 'Scroll to build your taste'}
+          </h1>
+          <ViewModeToggle mode={viewMode} onChange={setViewMode} />
+        </div>
+
         <p
           style={{
             fontSize: 14,
@@ -445,11 +515,12 @@ export default function RefineYourTaste({
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 80ms both',
           }}
         >
-          Left to like, right to skip
+          {viewMode === 'swipe' ? 'Left to like, right to skip' : 'Tap thumb up to like, thumb down to skip'}
         </p>
       </div>
 
-      {/* Card stack area */}
+      {/* Card stack area (swipe mode) */}
+      {viewMode === 'swipe' && (
       <div style={{ flex: 1, position: 'relative' }}>
         {/* Back card */}
         {nextProduct && !isDone && (
@@ -600,6 +671,20 @@ export default function RefineYourTaste({
           </div>
         )}
       </div>
+      )}
+
+      {/* Scroll feed (alternative view mode) */}
+      {viewMode === 'scroll' && (
+        <ScrollFeed
+          products={allProducts}
+          labelFor={labelFor}
+          likedProducts={likedProducts}
+          skippedSet={skippedSet}
+          onLike={scrollLike}
+          onSkip={scrollSkip}
+          onOpenView={handleOpenView}
+        />
+      )}
 
       {/* Sticky bottom bar */}
       <div
@@ -864,7 +949,7 @@ function FirstLikeCelebration({ onClose }: { onClose: () => void }) {
             letterSpacing: -0.2,
           }}
         >
-          Nice taste.
+          Nice taste
         </h3>
         <p
           style={{
@@ -895,6 +980,497 @@ function FirstLikeCelebration({ onClose }: { onClose: () => void }) {
         </button>
       </div>
     </>
+  );
+}
+
+// ── View-mode toggle (swipe / scroll) ────────────────────────────────────────
+function ViewModeToggle({
+  mode,
+  onChange,
+}: {
+  mode: 'swipe' | 'scroll';
+  onChange: (m: 'swipe' | 'scroll') => void;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        background: 'rgba(255,255,255,0.06)',
+        border: '1px solid #282828',
+        borderRadius: 100,
+        padding: 3,
+        flexShrink: 0,
+      }}
+      role="tablist"
+      aria-label="Card view mode"
+    >
+      {(['swipe', 'scroll'] as const).map((m) => {
+        const active = mode === m;
+        return (
+          <button
+            key={m}
+            role="tab"
+            aria-selected={active}
+            aria-label={m === 'swipe' ? 'Swipe deck view' : 'Scroll feed view'}
+            onClick={() => onChange(m)}
+            style={{
+              minWidth: 44,
+              height: 36,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: active ? '#fff' : 'transparent',
+              border: 'none',
+              borderRadius: 100,
+              cursor: 'pointer',
+              padding: '0 12px',
+              transition: 'background 200ms ease',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            <span
+              className="material-symbols-rounded"
+              style={{
+                fontSize: 20,
+                fontVariationSettings: "'wght' 400",
+                color: active ? '#0a0a0a' : '#cdcdcd',
+                transition: 'color 200ms ease',
+              }}
+              aria-hidden
+            >
+              {m === 'swipe' ? 'style' : 'view_agenda'}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Scroll feed (alternative to swipe deck) ──────────────────────────────────
+// Vertical list of cards. Each card starts as a skeleton, fades to real
+// content after a staggered delay (loading-state feel). Like / skip buttons
+// live on the card itself; first-action celebrations still fire via the
+// shared one-shot guards.
+function ScrollFeed({
+  products,
+  labelFor,
+  likedProducts,
+  skippedSet,
+  onLike,
+  onSkip,
+  onOpenView,
+}: {
+  products: Product[];
+  labelFor: (p: Product) => string;
+  likedProducts: string[];
+  skippedSet: Set<string>;
+  onLike: (productName: string) => void;
+  onSkip: (productName: string) => void;
+  onOpenView: (p: Product, label: string) => void;
+}) {
+  // Track which cards have "loaded" (skeleton → content). Use IntersectionObserver
+  // so cards that scroll into view get a brief skeleton before revealing.
+  const [loaded, setLoaded] = useState<Set<number>>(() => new Set());
+  const containerRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const timersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+
+  // Card-exit animation tracking (for like/skip actions in scroll mode)
+  // Phase 1: exitingMap → card slides + fades
+  // Phase 2: collapsedSet → wrapper max-height transitions to 0
+  // Phase 3: removedSet → card filtered out of the rendered list
+  const [exitingMap, setExitingMap] = useState<Map<string, 'like' | 'skip'>>(() => new Map());
+  const [collapsedSet, setCollapsedSet] = useState<Set<string>>(() => new Set());
+  const [removedSet, setRemovedSet] = useState<Set<string>>(() => new Set());
+
+  const handleAction = useCallback((name: string, action: 'like' | 'skip') => {
+    if (exitingMap.has(name)) return; // already animating out
+    // Fire the actual state change (records like/skip + may trigger first-action sheet)
+    if (action === 'like') onLike(name);
+    else onSkip(name);
+    // Phase 1: slide + fade
+    setExitingMap((prev) => new Map(prev).set(name, action));
+    // Phase 2: collapse height to close the gap
+    setTimeout(() => {
+      setCollapsedSet((prev) => {
+        if (prev.has(name)) return prev;
+        const next = new Set(prev);
+        next.add(name);
+        return next;
+      });
+    }, 220);
+    // Phase 3: drop from DOM entirely
+    setTimeout(() => {
+      setRemovedSet((prev) => {
+        if (prev.has(name)) return prev;
+        const next = new Set(prev);
+        next.add(name);
+        return next;
+      });
+    }, 600);
+  }, [exitingMap, onLike, onSkip]);
+
+  // Initial load: stagger-reveal first 3 cards
+  useEffect(() => {
+    [0, 1, 2].forEach((i) => {
+      if (i >= products.length) return;
+      const t = setTimeout(() => {
+        setLoaded((prev) => {
+          if (prev.has(i)) return prev;
+          const next = new Set(prev);
+          next.add(i);
+          return next;
+        });
+      }, 250 + i * 350);
+      timersRef.current.set(i, t);
+    });
+    return () => {
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current.clear();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Reveal additional cards as they scroll into view
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const idx = Number((entry.target as HTMLElement).dataset.index);
+            if (Number.isFinite(idx) && !loaded.has(idx) && !timersRef.current.has(idx)) {
+              const t = setTimeout(() => {
+                setLoaded((prev) => {
+                  if (prev.has(idx)) return prev;
+                  const next = new Set(prev);
+                  next.add(idx);
+                  return next;
+                });
+                timersRef.current.delete(idx);
+              }, 500);
+              timersRef.current.set(idx, t);
+            }
+          }
+        });
+      },
+      { root: container, threshold: 0.2 }
+    );
+    cardRefs.current.forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, [products.length, loaded]);
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        flex: 1,
+        overflowY: 'auto',
+        padding: '0 16px 24px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 16,
+        WebkitOverflowScrolling: 'touch',
+      }}
+    >
+      {products.map((p, i) => {
+        if (removedSet.has(p.name)) return null;
+        const isLoaded = loaded.has(i);
+        const isLiked = likedProducts.includes(p.name);
+        const isSkipped = skippedSet.has(p.name);
+        const exitAction = exitingMap.get(p.name);
+        const isCollapsed = collapsedSet.has(p.name);
+        return (
+          <div
+            key={`${p.name}-${i}`}
+            // Outer wrapper handles height collapse so the gap closes smoothly
+            style={{
+              maxHeight: isCollapsed ? 0 : 1200,
+              marginBottom: isCollapsed ? -16 : 0, // counteract the parent gap
+              overflow: 'hidden',
+              transition: isCollapsed
+                ? 'max-height 360ms cubic-bezier(0.4, 0, 0.2, 1), margin-bottom 360ms cubic-bezier(0.4, 0, 0.2, 1)'
+                : undefined,
+              flexShrink: 0,
+              pointerEvents: exitAction ? 'none' : 'auto',
+            }}
+          >
+            <div
+              data-index={i}
+              ref={(el) => {
+                if (el) cardRefs.current.set(i, el);
+                else cardRefs.current.delete(i);
+              }}
+              style={{
+                background: '#0c0c0c',
+                border: '1px solid #313131',
+                borderRadius: 16,
+                overflow: 'hidden',
+                animation: exitAction === 'like'
+                  ? 'cardExitLike 240ms cubic-bezier(0.5, 0, 0.75, 0) both'
+                  : exitAction === 'skip'
+                    ? 'cardExitSkip 240ms cubic-bezier(0.5, 0, 0.75, 0) both'
+                    : isLoaded
+                      ? 'fadeInUp 320ms cubic-bezier(0.25, 0.1, 0.25, 1) both'
+                      : undefined,
+              }}
+            >
+              {isLoaded ? (
+                <ScrollFeedCard
+                  product={p}
+                  label={labelFor(p)}
+                  isLiked={isLiked}
+                  isSkipped={isSkipped}
+                  onLike={() => handleAction(p.name, 'like')}
+                  onSkip={() => handleAction(p.name, 'skip')}
+                  onOpenView={() => onOpenView(p, labelFor(p))}
+                />
+              ) : (
+                <SkeletonCard />
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SkeletonCard() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div
+        style={{
+          width: '100%',
+          aspectRatio: '4 / 3',
+          background:
+            'linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 100%)',
+          backgroundSize: '200% 100%',
+          animation: 'skeletonShimmer 1.4s linear infinite',
+        }}
+      />
+      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div
+          style={{
+            width: 70,
+            height: 10,
+            borderRadius: 3,
+            background:
+              'linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 100%)',
+            backgroundSize: '200% 100%',
+            animation: 'skeletonShimmer 1.4s linear infinite',
+          }}
+        />
+        <div
+          style={{
+            width: '60%',
+            height: 16,
+            borderRadius: 4,
+            background:
+              'linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 100%)',
+            backgroundSize: '200% 100%',
+            animation: 'skeletonShimmer 1.4s linear infinite',
+          }}
+        />
+        <div
+          style={{
+            width: '40%',
+            height: 14,
+            borderRadius: 4,
+            background:
+              'linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 100%)',
+            backgroundSize: '200% 100%',
+            animation: 'skeletonShimmer 1.4s linear infinite',
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ScrollFeedCard({
+  product,
+  label,
+  isLiked,
+  isSkipped,
+  onLike,
+  onSkip,
+  onOpenView,
+}: {
+  product: Product;
+  label: string;
+  isLiked: boolean;
+  isSkipped: boolean;
+  onLike: () => void;
+  onSkip: () => void;
+  onOpenView: () => void;
+}) {
+  const isPlaceholder = product.image === '/vip-logo.svg';
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {/* Image — tap to open detail */}
+      <button
+        onClick={onOpenView}
+        style={{
+          width: '100%',
+          aspectRatio: '4 / 3',
+          background: '#212020',
+          border: 'none',
+          padding: 0,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          WebkitTapHighlightColor: 'transparent',
+        }}
+        aria-label="View details"
+      >
+        {isPlaceholder ? (
+          <img
+            src="/vip-logo.svg"
+            alt=""
+            aria-hidden
+            style={{ width: 96, height: 96, opacity: 0.35, display: 'block' }}
+          />
+        ) : (
+          <img
+            src={product.image}
+            alt={product.name}
+            draggable={false}
+            style={{
+              maxWidth: '70%',
+              maxHeight: '85%',
+              objectFit: 'contain',
+              display: 'block',
+            }}
+          />
+        )}
+      </button>
+
+      {/* Body — vertically stacked, all content centered */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 14,
+          padding: '16px 16px 18px',
+          textAlign: 'center',
+        }}
+      >
+        <div style={{ width: '100%', minWidth: 0 }}>
+          <p
+            style={{
+              fontSize: 12,
+              fontWeight: 500,
+              color: '#999',
+              textTransform: 'uppercase',
+              lineHeight: '18px',
+              margin: 0,
+              marginBottom: 4,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {label}
+          </p>
+          <p
+            style={{
+              fontSize: 16,
+              fontWeight: 600,
+              color: '#f7f7f7',
+              lineHeight: '22px',
+              margin: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {product.name}
+          </p>
+          <p
+            style={{
+              fontSize: 14,
+              fontWeight: 400,
+              color: '#dedfe1',
+              lineHeight: '20px',
+              margin: '2px 0 0',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {product.brand}
+          </p>
+        </div>
+
+        {/* Thumb buttons — centered row below the meta */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+          <ThumbButton
+            kind="down"
+            active={isSkipped}
+            onClick={onSkip}
+            ariaLabel={isSkipped ? 'Undo skip' : 'Skip this product'}
+          />
+          <ThumbButton
+            kind="up"
+            active={isLiked}
+            onClick={onLike}
+            ariaLabel={isLiked ? 'Undo like' : 'Like this product'}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ThumbButton({
+  kind,
+  active,
+  onClick,
+  ariaLabel,
+}: {
+  kind: 'up' | 'down';
+  active: boolean;
+  onClick: () => void;
+  ariaLabel: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={ariaLabel}
+      style={{
+        width: 40,
+        height: 40,
+        borderRadius: '50%',
+        background: active ? '#f6f6f6' : 'rgba(255,255,255,0.06)',
+        border: active ? '1.5px solid #fff' : '1px solid #313131',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        padding: 0,
+        transition: 'background 200ms ease, border-color 200ms ease',
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >
+      <span
+        className="material-symbols-rounded"
+        style={{
+          fontSize: 20,
+          fontVariationSettings: active ? "'wght' 500, 'FILL' 1" : "'wght' 400",
+          color: active ? '#0a0a0a' : '#cdcdcd',
+        }}
+        aria-hidden
+      >
+        {kind === 'up' ? 'thumb_up' : 'thumb_down'}
+      </span>
+    </button>
   );
 }
 
@@ -983,7 +1559,7 @@ function FirstSkipFeedback({ onClose }: { onClose: () => void }) {
             letterSpacing: -0.2,
           }}
         >
-          Learning your taste.
+          Learning your taste
         </h3>
         <p
           style={{
