@@ -974,48 +974,80 @@ function ViewModeToggle({
   /** Floating mode: stronger background + shadow to read over content. */
   floating?: boolean;
 }) {
-  // Single button that switches to the OTHER mode. The current mode is
-  // implied by the on-screen content; this control is purely "switch to X".
-  const target = mode === 'swipe' ? 'scroll' : 'swipe';
-  const label = target === 'swipe' ? 'Swipe view' : 'List view';
-  const icon = target === 'swipe' ? 'style' : 'view_agenda';
+  // Two-segment toggle. Active half shows just the icon (compact — active is
+  // implied by what's on screen). Inactive half shows just the text label
+  // (the affordance to switch).
   return (
-    <button
-      onClick={() => onChange(target)}
-      aria-label={`Switch to ${label}`}
+    <div
       style={{
-        display: 'inline-flex',
+        display: 'flex',
         alignItems: 'center',
-        gap: 6,
         background: floating ? 'rgba(20,20,20,0.86)' : 'rgba(255,255,255,0.06)',
         border: floating ? '1px solid rgba(255,255,255,0.08)' : '1px solid #282828',
         borderRadius: 100,
-        padding: '7px 12px',
+        padding: 3,
         flexShrink: 0,
-        cursor: 'pointer',
-        color: '#cdcdcd',
         boxShadow: floating ? '0 6px 20px rgba(0,0,0,0.5)' : undefined,
         backdropFilter: floating ? 'blur(8px)' : undefined,
         WebkitBackdropFilter: floating ? 'blur(8px)' : undefined,
-        WebkitTapHighlightColor: 'transparent',
-        transition: 'background 200ms ease',
       }}
+      role="tablist"
+      aria-label="Card view mode"
     >
-      <span
-        className="material-symbols-rounded"
-        style={{
-          fontSize: 18,
-          fontVariationSettings: "'wght' 400",
-          color: '#cdcdcd',
-        }}
-        aria-hidden
-      >
-        {icon}
-      </span>
-      <span style={{ fontSize: 13, fontWeight: 500, lineHeight: 1, whiteSpace: 'nowrap' }}>
-        {label}
-      </span>
-    </button>
+      {(['swipe', 'scroll'] as const).map((m) => {
+        const active = mode === m;
+        const label = m === 'swipe' ? 'Swipe view' : 'List view';
+        const icon = m === 'swipe' ? 'style' : 'view_agenda';
+        return (
+          <button
+            key={m}
+            role="tab"
+            aria-selected={active}
+            aria-label={label}
+            onClick={() => onChange(m)}
+            style={{
+              height: 30,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: active ? '#fff' : 'transparent',
+              border: 'none',
+              borderRadius: 100,
+              cursor: active ? 'default' : 'pointer',
+              padding: active ? '0 9px' : '0 12px',
+              transition: 'background 200ms ease, padding 200ms ease',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            {active ? (
+              <span
+                className="material-symbols-rounded"
+                style={{
+                  fontSize: 18,
+                  fontVariationSettings: "'wght' 400",
+                  color: '#0a0a0a',
+                }}
+                aria-hidden
+              >
+                {icon}
+              </span>
+            ) : (
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 500,
+                  lineHeight: 1,
+                  color: '#cdcdcd',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {label}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
