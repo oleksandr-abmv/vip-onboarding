@@ -10,6 +10,7 @@ import SubcategoryScreen from './screens/SubcategoryScreen';
 import RefineYourTaste from './screens/RefineYourTaste';
 import NotificationsScreen from './screens/NotificationsScreen';
 import TailoringScreen from './screens/TailoringScreen';
+import FeedScreen from './screens/FeedScreen';
 import { theme, safeTop } from './theme';
 
 
@@ -23,7 +24,8 @@ type Screen =
   | 'subcategory'
   | 'products'
   | 'notifications'
-  | 'tailoring';
+  | 'tailoring'
+  | 'feed';
 
 // The gender step is counted in the progress bar but does NOT show "Finish later"
 // (user should commit to an identity before being offered a skip hatch).
@@ -70,6 +72,16 @@ function App() {
   // Free-form "custom" text per category, captured when user picks the Custom tile on a Subcategory screen.
   const [customByCategory, setCustomByCategory] = useState<Record<string, string>>({});
   const [likedProducts, setLikedProducts] = useState<string[]>([]);
+  // Feed "favorites" - the products the user saves from the Discover feed. Kept
+  // separate from `likedProducts` (the onboarding taste-deck signal) so saving on
+  // the feed never moves the onboarding completion percentage.
+  const [savedProducts, setSavedProducts] = useState<string[]>([]);
+  // Set once the user passes the Notifications step - the final onboarding signal.
+  const [notificationsDone, setNotificationsDone] = useState(false);
+  // The onboarding screen the user left from (via "Finish later") so the feed can
+  // drop them back exactly where they stopped, rather than recomputing a step.
+  const [resumeScreen, setResumeScreen] = useState<Screen | null>(null);
+  const [resumeIndex, setResumeIndex] = useState(0);
   const [overlayVisible, setOverlayVisible] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   // Track which interest category we're currently processing (subcategory + products)
@@ -81,6 +93,27 @@ function App() {
   const catCount = Math.max(selectedInterests.length, 1);
   const hasKidsStep = lifestyle === 'family';
   const totalSteps = 6 + (hasKidsStep ? 1 : 0) + catCount;
+
+  // ── Onboarding completion (drives the Feed's "Complete onboarding" banner) ──
+  // The percentage is based on how many onboarding PAGES the user has passed.
+  // Finishing the flow normally (passing Notifications) marks it complete, so the
+  // banner disappears. Leaving early via "Finish later" shows the page-based %.
+  const onboardingPages: Screen[] = [
+    'gender',
+    'lifestyle',
+    ...(hasKidsStep ? (['kids'] as Screen[]) : []),
+    'lifestyleType',
+    'interests',
+    'subcategory',
+    'products',
+    'notifications',
+  ];
+  const onboardingComplete = notificationsDone;
+  // Pages completed = the ones before the screen the user left from.
+  const completedPages = resumeScreen ? Math.max(0, onboardingPages.indexOf(resumeScreen)) : 0;
+  const onboardingPct = onboardingComplete
+    ? 100
+    : Math.round((completedPages / onboardingPages.length) * 100);
 
   // Ref to renderScreen so goTo can capture a snapshot of the current screen's JSX
   // before state updates propagate (keeps the exit animation visually consistent).
@@ -104,6 +137,19 @@ function App() {
     },
     [screen],
   );
+
+  // Resume from the feed → return to the exact screen the user left from when
+  // they tapped "Finish later". Falls back to the first onboarding step only if
+  // we somehow have no record of where they stopped.
+  const resumeOnboarding = useCallback(() => {
+    if (resumeScreen) {
+      if (resumeScreen === 'subcategory' || resumeScreen === 'products') {
+        setCurrentCategoryIndex(resumeIndex);
+      }
+      return goTo(resumeScreen, 'back');
+    }
+    return goTo('gender', 'back');
+  }, [goTo, resumeScreen, resumeIndex]);
 
   // Navigation handlers
   // Flow: welcome → gender → lifestyle → [kids if family] → lifestyleType → interests → ...
@@ -178,7 +224,10 @@ function App() {
     }
   }, [goTo, selectedInterests]);
 
-  const handleNotificationsNext = useCallback(() => goTo('tailoring', 'forward'), [goTo]);
+  const handleNotificationsNext = useCallback(() => {
+    setNotificationsDone(true);
+    goTo('tailoring', 'forward');
+  }, [goTo]);
   const handleNotificationsBack = useCallback(() => goTo('products', 'back'), [goTo]);
 
   // Nav visibility - welcome and tailoring render without top nav
@@ -198,8 +247,8 @@ function App() {
   }, [screen, goTo, handleGenderBack, handleLifestyleBack, handleKidsBack, handleLifestyleTypeBack, handleInterestsBack, handleSubcategoryBack, handleProductsBack, handleNotificationsBack]);
 
   const handleTailoringComplete = useCallback(() => {
-    /* Navigate to chat or next experience */
-  }, []);
+    goTo('feed', 'forward');
+  }, [goTo]);
 
   // Current category for subcategory + products screens
   const currentCategoryId = selectedInterests[currentCategoryIndex] || '';
@@ -311,6 +360,18 @@ function App() {
         );
       case 'tailoring':
         return <TailoringScreen onComplete={handleTailoringComplete} />;
+      case 'feed':
+        return (
+          <FeedScreen
+            gender={gender}
+            selectedInterests={selectedInterests}
+            savedProducts={savedProducts}
+            onSavedChange={setSavedProducts}
+            onboardingPct={onboardingPct}
+            onboardingComplete={onboardingComplete}
+            onResumeOnboarding={resumeOnboarding}
+          />
+        );
     }
   };
 
@@ -382,8 +443,9 @@ function App() {
       </div>
 
       {/* Persistent top nav bar - matches Figma: back arrow, center text, Help.
-          Hidden on 'onboardingGate' which renders its own modal-style close button. */}
-      {screen !== 'welcome' && screen !== 'tailoring' && (
+          Hidden on 'onboardingGate' which renders its own modal-style close button.
+          The feed renders its own "Discover" header, so skip it here too. */}
+      {screen !== 'welcome' && screen !== 'tailoring' && screen !== 'feed' && (
         <div
           style={{
             position: 'absolute',
@@ -449,7 +511,14 @@ function App() {
                 secondary pill so it reads as a tappable control, not body text. */}
             {showFinishLater ? (
               <button
-                onClick={() => goTo('tailoring', 'forward')}
+                onClick={() => {
+                  // Remember where they stopped so the feed can resume them here.
+                  setResumeScreen(screen);
+                  setResumeIndex(currentCategoryIndex);
+                  // Go straight to the feed - the "Personalizing your experience"
+                  // loader only plays when the whole onboarding is finished.
+                  goTo('feed', 'forward');
+                }}
                 aria-label="Finish personalization later"
                 style={{
                   background: 'rgba(246,246,246,0.1)',

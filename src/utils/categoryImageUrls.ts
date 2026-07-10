@@ -13,6 +13,7 @@ const TOP_LEVEL_FILENAMES = [
   'clothing.webp',
   'collectibles.png',
   'fineart.webp',
+  'fragrance-oud.png',
   'furniture.webp',
   'jewelry.png',
   'shoes.webp',

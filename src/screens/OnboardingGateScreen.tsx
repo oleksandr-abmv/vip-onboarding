@@ -30,7 +30,7 @@ export default function OnboardingGateScreen({ onStart, onSkip, onClose }: Onboa
           right: 16,
           width: 36,
           height: 36,
-          borderRadius: '50%',
+          borderRadius: 12,
           background: '#2a2a2a',
           border: 'none',
           display: 'flex',

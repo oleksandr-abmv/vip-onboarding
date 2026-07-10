@@ -239,29 +239,56 @@ export default function LifestyleTypeScreen({
         })}
       </div>
 
-      {/* CTA */}
-      <button
-        onClick={onNext}
-        disabled={!lifestyleType}
+      {/* Skip / Continue bar */}
+      <div
         style={{
-          width: '100%',
-          height: 48,
+          display: 'flex',
+          gap: 12,
+          alignItems: 'center',
           flexShrink: 0,
           marginTop: 12,
           marginBottom: `calc(24px + env(safe-area-inset-bottom, 0px))`,
-          background: lifestyleType ? '#f6f6f6' : '#252525',
-          color: lifestyleType ? '#121212' : '#666',
-          border: 'none',
-          borderRadius: 100,
-          fontSize: 16,
-          fontWeight: 500,
-          cursor: lifestyleType ? 'pointer' : 'default',
-          transition: 'background 200ms ease, color 200ms ease',
           animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 320ms both',
         }}
       >
-        Continue
-      </button>
+        {/* Skip */}
+        <button
+          onClick={onNext}
+          style={{
+            flex: 1,
+            height: 48,
+            background: 'rgba(246,246,246,0.1)',
+            color: '#f6f6f6',
+            border: 'none',
+            borderRadius: 100,
+            fontSize: 16,
+            fontWeight: 500,
+            cursor: 'pointer',
+          }}
+        >
+          Skip
+        </button>
+
+        {/* Continue */}
+        <button
+          onClick={onNext}
+          disabled={!lifestyleType}
+          style={{
+            flex: 1,
+            height: 48,
+            background: lifestyleType ? '#f6f6f6' : '#252525',
+            color: lifestyleType ? '#121212' : '#666',
+            border: 'none',
+            borderRadius: 100,
+            fontSize: 16,
+            fontWeight: 500,
+            cursor: lifestyleType ? 'pointer' : 'default',
+            transition: 'background 200ms ease, color 200ms ease',
+          }}
+        >
+          Continue
+        </button>
+      </div>
     </div>
   );
 }

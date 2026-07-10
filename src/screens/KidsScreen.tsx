@@ -8,8 +8,9 @@ interface KidsScreenProps {
   onKidsCountChange: (n: number) => void;
   kidsAges: (number | null)[];
   onKidsAgesChange: (ages: (number | null)[]) => void;
-  kidsNames: (string | null)[];
-  onKidsNamesChange: (names: (string | null)[]) => void;
+  // Kept for App.tsx compatibility - name capture is no longer part of this screen
+  kidsNames?: (string | null)[];
+  onKidsNamesChange?: (names: (string | null)[]) => void;
 }
 
 const MIN_KIDS = 1;
@@ -22,8 +23,6 @@ export default function KidsScreen({
   onKidsCountChange,
   kidsAges,
   onKidsAgesChange,
-  kidsNames,
-  onKidsNamesChange,
 }: KidsScreenProps) {
   // Keep kidsAges array length in sync with kidsCount
   useEffect(() => {
@@ -34,23 +33,6 @@ export default function KidsScreen({
       onKidsAgesChange(next);
     }
   }, [kidsCount, kidsAges, onKidsAgesChange]);
-
-  // Keep kidsNames array length in sync with kidsCount
-  useEffect(() => {
-    if (kidsNames.length !== kidsCount) {
-      const next = [...kidsNames];
-      while (next.length < kidsCount) next.push(null);
-      next.length = kidsCount;
-      onKidsNamesChange(next);
-    }
-  }, [kidsCount, kidsNames, onKidsNamesChange]);
-
-  const setName = useCallback((i: number, raw: string) => {
-    const trimmed = raw.slice(0, 24);
-    const next = [...kidsNames];
-    next[i] = trimmed === '' ? null : trimmed;
-    onKidsNamesChange(next);
-  }, [kidsNames, onKidsNamesChange]);
 
   const dec = useCallback(() => {
     if (kidsCount > MIN_KIDS) onKidsCountChange(kidsCount - 1);
@@ -110,7 +92,7 @@ export default function KidsScreen({
           animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 80ms both',
         }}
       >
-        We'll tailor recommendations for their age groups
+        We'll tailor recommendations for their age.
       </p>
 
       {/* Stepper */}
@@ -119,25 +101,24 @@ export default function KidsScreen({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '14px 18px',
+          padding: '14px 16px',
           background: 'rgba(255,255,255,0.02)',
           border: '1px solid #282828',
           borderRadius: 12,
-          marginBottom: 24,
           animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 160ms both',
         }}
       >
-        <span style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>
+        <span style={{ fontSize: 16, fontWeight: 500, color: '#fff' }}>
           Number of kids
         </span>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <StepperButton label="−" onClick={dec} disabled={kidsCount <= MIN_KIDS} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <StepperButton icon="remove" onClick={dec} disabled={kidsCount <= MIN_KIDS} />
           <span
             style={{
-              minWidth: 28,
+              minWidth: 24,
               textAlign: 'center',
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: 600,
               color: '#fff',
               fontVariantNumeric: 'tabular-nums',
@@ -145,11 +126,14 @@ export default function KidsScreen({
           >
             {kidsCount}
           </span>
-          <StepperButton label="+" onClick={inc} disabled={kidsCount >= MAX_KIDS} />
+          <StepperButton icon="add" onClick={inc} disabled={kidsCount >= MAX_KIDS} />
         </div>
       </div>
 
-      {/* Age inputs - scrollable if many */}
+      {/* Divider */}
+      <div style={{ height: 1, background: '#282828', margin: '16px -16px' }} />
+
+      {/* Kid age fields - scrollable if many */}
       <div
         ref={listRef}
         style={{
@@ -157,17 +141,15 @@ export default function KidsScreen({
           overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
-          gap: 10,
+          gap: 12,
           paddingBottom: 8,
           WebkitOverflowScrolling: 'touch',
         }}
       >
         {Array.from({ length: kidsCount }).map((_, i) => (
-          <AgeRow
+          <KidAgeField
             key={i}
             index={i}
-            name={kidsNames[i] ?? null}
-            onNameChange={(raw) => setName(i, raw)}
             value={kidsAges[i] ?? null}
             onOpenPicker={() => setPickerIndex(i)}
           />
@@ -229,7 +211,7 @@ export default function KidsScreen({
       {pickerIndex !== null && (
         <AgePickerSheet
           currentValue={kidsAges[pickerIndex] ?? null}
-          title={`How old is ${kidsNames[pickerIndex] ?? `Kid ${pickerIndex + 1}`}?`}
+          title={`Kid ${pickerIndex + 1} age`}
           onSelect={(age) => {
             setAge(pickerIndex, age);
             closePicker();
@@ -326,48 +308,41 @@ function AgePickerSheet({
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
-        {/* Header: title + close */}
+        {/* Header: centered title + circular close */}
         <div
           style={{
+            position: 'relative',
             display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
+            alignItems: 'center',
+            justifyContent: 'center',
             padding: '20px 20px 4px',
           }}
         >
-          <div>
-            <p
-              style={{
-                fontSize: 18,
-                fontWeight: 700,
-                color: '#fff',
-                margin: 0,
-                lineHeight: '24px',
-              }}
-            >
-              Age
-            </p>
-            <p
-              style={{
-                fontSize: 14,
-                color: '#8a8a8a',
-                margin: '4px 0 0',
-                lineHeight: '20px',
-              }}
-            >
-              {title}
-            </p>
-          </div>
+          <p
+            style={{
+              fontSize: 18,
+              fontWeight: 700,
+              color: '#fff',
+              margin: 0,
+              lineHeight: '24px',
+            }}
+          >
+            {title}
+          </p>
           <button
             onClick={onClose}
             aria-label="Close"
             style={{
+              position: 'absolute',
+              right: 20,
+              top: 18,
               width: 32,
               height: 32,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'transparent',
+              background: '#2a2a2a',
+              borderRadius: 12,
               border: 'none',
               cursor: 'pointer',
               padding: 0,
@@ -511,11 +486,11 @@ function AgePickerSheet({
 }
 
 function StepperButton({
-  label,
+  icon,
   onClick,
   disabled,
 }: {
-  label: string;
+  icon: string;
   onClick: () => void;
   disabled: boolean;
 }) {
@@ -524,15 +499,12 @@ function StepperButton({
       onClick={onClick}
       disabled={disabled}
       style={{
-        width: 34,
-        height: 34,
+        width: 32,
+        height: 32,
         borderRadius: 999,
-        border: '1px solid #3a3a3a',
-        background: disabled ? 'transparent' : '#1b1b1b',
+        border: 'none',
+        background: disabled ? '#1a1a1a' : '#2a2a2a',
         color: disabled ? '#555' : '#fff',
-        fontSize: 18,
-        lineHeight: '18px',
-        fontWeight: 500,
         cursor: disabled ? 'default' : 'pointer',
         display: 'flex',
         alignItems: 'center',
@@ -542,174 +514,68 @@ function StepperButton({
         WebkitTapHighlightColor: 'transparent',
       }}
     >
-      {label}
+      <span
+        className="material-symbols-rounded"
+        style={{ fontSize: 20, fontVariationSettings: "'wght' 300" }}
+      >
+        {icon}
+      </span>
     </button>
   );
 }
 
-function AgeRow({
+function KidAgeField({
   index,
-  name,
-  onNameChange,
   value,
   onOpenPicker,
 }: {
   index: number;
-  name: string | null;
-  onNameChange: (raw: string) => void;
   value: number | null;
   onOpenPicker: () => void;
 }) {
   const hasVal = value != null;
-  const [editing, setEditing] = useState(false);
-  const nameInputRef = useRef<HTMLInputElement>(null);
-  const displayName = name ?? `Kid ${index + 1}`;
-
-  useEffect(() => {
-    if (editing) {
-      nameInputRef.current?.focus();
-      nameInputRef.current?.select();
-    }
-  }, [editing]);
-
-  const commit = () => setEditing(false);
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 12,
-        padding: '12px 16px',
-        background: 'rgba(255,255,255,0.02)',
-        border: `1px solid ${hasVal ? '#3a3a3a' : '#282828'}`,
-        borderRadius: 12,
-        flexShrink: 0,
-        transition: 'border-color 200ms ease',
-      }}
-    >
-      {/* Name - display or edit */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
-        {editing ? (
-          <input
-            ref={nameInputRef}
-            type="text"
-            value={name ?? ''}
-            onChange={(e) => onNameChange(e.target.value)}
-            onBlur={commit}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === 'Escape') {
-                e.currentTarget.blur();
-              }
-            }}
-            placeholder={`Kid ${index + 1}`}
-            maxLength={24}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              color: '#fff',
-              fontSize: 15,
-              fontWeight: 500,
-              padding: 0,
-            }}
-          />
-        ) : (
-          <span
-            style={{
-              fontSize: 15,
-              fontWeight: 500,
-              color: '#fff',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {displayName}
-          </span>
-        )}
-
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setEditing((v) => !v);
-          }}
-          aria-label={editing ? 'Save name' : 'Edit name'}
-          style={{
-            width: 28,
-            height: 28,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 0,
-            color: '#999',
-            flexShrink: 0,
-            WebkitTapHighlightColor: 'transparent',
-          }}
-        >
-          <span
-            className="material-symbols-rounded"
-            style={{
-              fontSize: 18,
-              fontVariationSettings: "'wght' 300",
-              color: editing ? '#fff' : '#777',
-              transition: 'color 200ms ease',
-            }}
-          >
-            {editing ? 'check' : 'edit'}
-          </span>
-        </button>
-      </div>
-
-      {/* Age picker trigger */}
+    <div style={{ flexShrink: 0 }}>
+      <span
+        style={{
+          display: 'block',
+          fontSize: 12,
+          color: '#999',
+          lineHeight: '16px',
+          marginBottom: 6,
+        }}
+      >
+        Kid {index + 1}
+      </span>
       <button
         type="button"
         onClick={onOpenPicker}
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 6,
-          background: 'transparent',
-          border: 'none',
-          padding: 0,
+          justifyContent: 'space-between',
+          width: '100%',
+          height: 48,
+          padding: '12px 16px',
+          background: 'rgba(255,255,255,0.02)',
+          border: `1px solid ${hasVal ? '#3a3a3a' : '#282828'}`,
+          borderRadius: 12,
           cursor: 'pointer',
           color: 'inherit',
+          transition: 'border-color 200ms ease',
           WebkitTapHighlightColor: 'transparent',
         }}
       >
-        <span
-          style={{
-            fontSize: 17,
-            fontWeight: 600,
-            color: hasVal ? '#fff' : '#777',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
-          {hasVal ? value : '-'}
+        <span style={{ fontSize: 16, color: hasVal ? '#fff' : '#777' }}>
+          {hasVal ? `${value} years` : 'Select'}
         </span>
-        <span style={{ fontSize: 13, color: '#777' }}>yrs</span>
-        <svg
-          width="8"
-          height="5"
-          viewBox="0 0 8 5"
-          fill="none"
-          style={{ marginLeft: 2 }}
+        <span
+          className="material-symbols-rounded"
+          style={{ fontSize: 22, fontVariationSettings: "'wght' 300", color: '#999' }}
         >
-          <path
-            d="M1 1L4 4L7 1"
-            stroke="#777"
-            strokeWidth="1.3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+          keyboard_arrow_down
+        </span>
       </button>
     </div>
   );

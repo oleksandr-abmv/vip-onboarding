@@ -105,7 +105,7 @@ export default function LifestyleScreen({
           animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 80ms both',
         }}
       >
-        We use this to personalize your recommendations
+        We use this to personalize your recommendations.
       </p>
 
       {/* Lifestyle cards - horizontal rows */}
@@ -216,49 +216,24 @@ export default function LifestyleScreen({
         })}
       </div>
 
-      {/* Per-status explainer — appears once a lifestyle is selected */}
+      {/* Per-status explainer — plain body text, appears once a lifestyle is selected */}
       {(() => {
         const selectedCard = LIFESTYLE_CARDS.find((c) => c.id === lifestyle);
         if (!selectedCard) return null;
         return (
-          <div
+          <p
             key={selectedCard.id}
             style={{
-              marginTop: 20,
-              padding: '14px 16px',
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid #282828',
-              borderRadius: 12,
-              display: 'flex',
-              gap: 12,
-              alignItems: 'center',
+              marginTop: 17,
+              marginBottom: 0,
+              fontSize: 15,
+              color: '#cdcdcd',
+              lineHeight: '22px',
               animation: 'fadeInUp 300ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
             }}
           >
-            <span
-              className="material-symbols-rounded"
-              style={{
-                fontSize: 18,
-                fontVariationSettings: "'wght' 300",
-                color: '#fff',
-                opacity: 0.45,
-                flexShrink: 0,
-              }}
-              aria-hidden
-            >
-              auto_awesome
-            </span>
-            <p
-              style={{
-                fontSize: 13,
-                color: '#cdcdcd',
-                lineHeight: '20px',
-                margin: 0,
-              }}
-            >
-              {selectedCard.example}
-            </p>
-          </div>
+            {selectedCard.example}
+          </p>
         );
       })()}
 

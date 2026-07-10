@@ -67,7 +67,6 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
       { id: 'totes', label: 'Totes', subtitle: 'Spacious and open', image: 'totes.webp' },
     ],
     subcategoriesWomen: [
-      { id: 'backpacks', label: 'Backpacks', subtitle: 'Hands-free and modern' },
       { id: 'clutches', label: 'Clutches', subtitle: 'Evening-ready', image: 'clutches.webp' },
       { id: 'crossbody', label: 'Crossbody', subtitle: 'Compact and light', image: 'crossbody.webp' },
       { id: 'mini-bags', label: 'Mini bags', subtitle: 'Small and statement', image: 'mini-bags.webp' },
@@ -131,6 +130,32 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
       { id: 'abstract-expressionism', label: 'Abstract Expressionism', subtitle: '1940 - 1965', image: 'abstract-expressionism.webp' },
       { id: 'pop-art', label: 'Pop Art', subtitle: '1955 - 1970', image: 'pop-art.png' },
       { id: 'contemporary', label: 'Contemporary', subtitle: '1960 - present', image: 'contemporary.png' },
+    ],
+  },
+
+  'Fragrance & Oud': {
+    id: 'Fragrance & Oud',
+    name: 'Fragrance & Oud',
+    folder: 'fragrance-oud',
+    gendered: true,
+    title: 'What do you wear?',
+    description: 'Select as many as you like',
+    subcategories: [
+      { id: 'oud', label: 'Oud', subtitle: 'Deep and resinous', image: 'oud.png' },
+      { id: 'woody', label: 'Woody', subtitle: 'Dry and grounded', image: 'woody.png' },
+      { id: 'amber', label: 'Amber', subtitle: 'Warm and golden', image: 'amber.png' },
+      { id: 'fresh', label: 'Fresh', subtitle: 'Citrus and clean', image: 'fresh.png' },
+      { id: 'aromatic', label: 'Aromatic', subtitle: 'Herbal and cool', image: 'aromatic.png' },
+      { id: 'leather', label: 'Leather', subtitle: 'Smoky and refined', image: 'leather.png' },
+    ],
+    subcategoriesWomen: [
+      { id: 'oud', label: 'Oud', subtitle: 'Deep and resinous', image: 'oud.png' },
+      { id: 'floral', label: 'Floral', subtitle: 'Petals and blooms', image: 'floral.png' },
+      { id: 'amber', label: 'Amber', subtitle: 'Warm and golden', image: 'amber.png' },
+      { id: 'woody', label: 'Woody', subtitle: 'Dry and grounded', image: 'woody.png' },
+      { id: 'fresh', label: 'Fresh', subtitle: 'Citrus and clean', image: 'fresh.png' },
+      { id: 'gourmand', label: 'Gourmand', subtitle: 'Sweet and rich', image: 'gourmand.png' },
+      { id: 'musk', label: 'Musk', subtitle: 'Soft and skin-close', image: 'musk.png' },
     ],
   },
 
@@ -230,11 +255,11 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
     title: 'What\'s your cigar strength?',
     description: 'Pick the strength you prefer',
     subcategories: [
-      { id: 'mild', label: 'Mild', subtitle: 'Soft and approachable', icon: 'spa' },
-      { id: 'medium', label: 'Medium', subtitle: 'Balanced and smooth', icon: 'whatshot' },
-      { id: 'medium-full', label: 'Medium-full', subtitle: 'Warm and layered', icon: 'local_fire_department' },
+      { id: 'mild', label: 'Mild', subtitle: 'Soft and approachable', icon: 'air' },
+      { id: 'medium', label: 'Medium', subtitle: 'Balanced and smooth', icon: 'local_fire_department' },
+      { id: 'medium-full', label: 'Medium-full', subtitle: 'Warm and layered', icon: 'whatshot' },
       { id: 'full', label: 'Full-bodied', subtitle: 'Rich and intense', icon: 'bolt' },
-      { id: 'extra-full', label: 'Extra full', subtitle: 'Bold and powerful', icon: 'flash_on' },
+      { id: 'extra-full', label: 'Extra full', subtitle: 'Bold and powerful', icon: 'flare' },
     ],
   },
 
@@ -247,13 +272,13 @@ export const categoryConfigs: Record<string, CategoryConfig> = {
     description: 'Select as many as you like',
     subcategories: [
       { id: 'sneakers', label: 'Sneakers', subtitle: 'Grails and rarities', image: 'sneakers.png' },
-      { id: 'trading-cards', label: 'Trading cards', subtitle: 'Cards and collections', image: 'trading-cards.png' },
+      { id: 'trading-cards', label: 'Trading Cards', subtitle: 'Cards and collections', image: 'trading-cards.png' },
       { id: 'coins', label: 'Coins', subtitle: 'Numismatic and bullion', image: 'coins.png' },
       { id: 'stamps', label: 'Stamps', subtitle: 'Rare and historic', image: 'stamps.png' },
       { id: 'memorabilia', label: 'Memorabilia', subtitle: 'Signed and storied', image: 'memorabilia.png' },
-      { id: 'toys-figures', label: 'Toys & figures', subtitle: 'Designer and vintage', image: 'toys-figures.png' },
+      { id: 'toys-figures', label: 'Toys & Figures', subtitle: 'Designer and vintage', image: 'toys-figures.png' },
       { id: 'comics', label: 'Comics', subtitle: 'First editions and rarities', image: 'comics.png' },
-      { id: 'vinyl', label: 'Vinyl records', subtitle: 'Rare pressings and first issues', image: 'vinyl.png' },
+      { id: 'vinyl', label: 'Vinyl Records', subtitle: 'Rare pressings and first issues', image: 'vinyl.png' },
     ],
   },
 

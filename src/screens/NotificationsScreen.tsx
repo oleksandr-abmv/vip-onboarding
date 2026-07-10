@@ -37,14 +37,38 @@ export default function NotificationsScreen({
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 36,
+          gap: 28,
           textAlign: 'center',
         }}
       >
-        {/* Hero: illustrated "phone peeking up" scene with a VIP notification
-            landing on top. Matches the Swarm reference layout, retuned for our dark theme. */}
+        {/* Bell icon */}
         <div
           style={{
+            width: 56,
+            height: 56,
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid #282828',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            animation: 'fadeInUp 500ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
+          }}
+        >
+          <span
+            className="material-symbols-rounded"
+            style={{ fontSize: 26, color: '#f6f6f6', fontVariationSettings: "'wght' 300" }}
+            aria-hidden
+          >
+            notifications
+          </span>
+        </div>
+
+        {/* Hero: illustrated "phone peeking up" scene with a VIP notification
+            landing on top. Sits below the copy, matching Figma order. */}
+        <div
+          style={{
+            order: 2,
             position: 'relative',
             width: '100%',
             maxWidth: 340,
@@ -194,6 +218,7 @@ export default function NotificationsScreen({
         {/* Copy */}
         <div
           style={{
+            order: 1,
             display: 'flex',
             flexDirection: 'column',
             gap: 10,

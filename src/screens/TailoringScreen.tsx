@@ -30,7 +30,7 @@ export default function TailoringScreen({ onComplete }: TailoringScreenProps) {
         style={{
           width: 48,
           height: 48,
-          marginBottom: 32,
+          marginBottom: 20,
           animation: 'fadeIn 600ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
         }}
       />
@@ -69,7 +69,7 @@ export default function TailoringScreen({ onComplete }: TailoringScreenProps) {
           animation: 'fadeIn 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 300ms both',
         }}
       >
-        Tailoring your concierge
+        Personalizing your experience
       </p>
     </div>
   );

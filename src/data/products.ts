@@ -7,6 +7,8 @@ export interface Product {
   category: string;
   subcategory?: string;
   gender?: 'male' | 'female' | 'unisex';
+  /** Optional spec bullets shown on the Product Page. Derived when absent. */
+  details?: string[];
 }
 
 // All products are auto-discovered from image files in /products/

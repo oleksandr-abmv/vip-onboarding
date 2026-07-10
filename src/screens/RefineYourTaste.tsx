@@ -102,7 +102,6 @@ function CardContent({ product, label, dim = false }: CardBaseProps) {
             fontSize: 12,
             fontWeight: 500,
             color: '#999',
-            textTransform: 'uppercase',
             lineHeight: '18px',
             margin: 0,
             marginBottom: 4,
@@ -486,7 +485,7 @@ export default function RefineYourTaste({
               animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 40ms both',
             }}
           >
-            {viewMode === 'swipe' ? 'Swipe to build your taste' : 'Scroll to build your taste'}
+            Refine your taste
           </h1>
           <ViewModeToggle mode={viewMode} onChange={setViewMode} />
         </div>
@@ -500,7 +499,7 @@ export default function RefineYourTaste({
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 80ms both',
           }}
         >
-          {viewMode === 'swipe' ? 'Left to like, right to skip' : 'Tap thumb up to like, thumb down to skip'}
+          {viewMode === 'swipe' ? 'Left to like, right to skip.' : 'Tap thumb up to like, thumb down to skip.'}
         </p>
       </div>
 
@@ -581,7 +580,7 @@ export default function RefineYourTaste({
                 right: 12,
                 width: 40,
                 height: 40,
-                borderRadius: '50%',
+                borderRadius: 12,
                 background: '#181818',
                 border: '1px solid #494949',
                 display: 'flex',
@@ -743,7 +742,7 @@ export default function RefineYourTaste({
                 onClick={(e) => { e.stopPropagation(); handleCloseView(); }}
                 style={{
                   position: 'absolute', top: 16, right: 16, width: 40, height: 40, zIndex: 204,
-                  borderRadius: 10000, background: '#313131', border: 'none',
+                  borderRadius: 12, background: '#313131', border: 'none',
                   cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
                   opacity: exp ? 1 : 0,
                   transform: exp ? 'scale(1)' : 'scale(0.8)',
@@ -793,7 +792,7 @@ export default function RefineYourTaste({
                   transform: exp ? 'translateY(0)' : 'translateY(12px)',
                   transition: `opacity 300ms ${ease} 250ms, transform 300ms ${ease} 250ms`,
                 }}>
-                  <p style={{ fontSize: 12, fontWeight: 500, color: '#999', textTransform: 'uppercase', lineHeight: '22px', margin: 0 }}>{viewProduct.label}</p>
+                  <p style={{ fontSize: 12, fontWeight: 500, color: '#999', lineHeight: '22px', margin: 0 }}>{viewProduct.label}</p>
                   <p style={{ fontSize: 15, fontWeight: 600, color: '#fff', lineHeight: '22px', margin: '1px 0 0' }}>{viewProduct.product.name}</p>
                   <p style={{ fontSize: 14, fontWeight: 400, color: '#fff', opacity: 0.7, lineHeight: '17px', margin: '4px 0 0' }}>{viewProduct.product.brand}</p>
                 </div>
@@ -913,17 +912,60 @@ function FirstLikeCelebration({ onClose }: { onClose: () => void }) {
           animation: "sheetSlideUp 320ms cubic-bezier(0.25, 0.1, 0.25, 1) both",
         }}
       >
-        {/* Drag handle */}
+        {/* Close */}
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          style={{
+            position: "absolute",
+            top: 16,
+            right: 16,
+            width: 32,
+            height: 32,
+            borderRadius: 12,
+            background: "#2a2a2a",
+            border: "none",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            padding: 0,
+            color: "#fff",
+            WebkitTapHighlightColor: "transparent",
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+            <path d="M4 4L14 14M14 4L4 14" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+        </button>
+
+        {/* Celebration glyph */}
         <div
           style={{
-            width: 40,
-            height: 4,
-            borderRadius: 2,
-            background: "rgba(255,255,255,0.18)",
-            margin: "0 auto 18px",
+            width: 52,
+            height: 52,
+            margin: "0 auto 14px",
+            borderRadius: "50%",
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid #282828",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
-        />
-        <div style={{ fontSize: 44, lineHeight: 1, marginBottom: 12 }}>🥂</div>
+        >
+          <span
+            className="material-symbols-rounded"
+            style={{
+              fontSize: 26,
+              fontVariationSettings: "'wght' 300",
+              color: "#f6f6f6",
+              opacity: 0.85,
+            }}
+            aria-hidden
+          >
+            celebration
+          </span>
+        </div>
         <h3
           style={{
             fontSize: 22,
@@ -1375,7 +1417,6 @@ function ScrollFeedCard({
               fontSize: 12,
               fontWeight: 500,
               color: '#999',
-              textTransform: 'uppercase',
               lineHeight: '18px',
               margin: 0,
               marginBottom: 4,
@@ -1454,7 +1495,7 @@ function ThumbButton({
       style={{
         width: 48,
         height: 48,
-        borderRadius: '50%',
+        borderRadius: 12,
         background: active ? '#f6f6f6' : 'rgba(255,255,255,0.06)',
         border: active ? '1.5px solid #fff' : '1px solid #313131',
         display: 'flex',
@@ -1521,16 +1562,32 @@ function FirstSkipFeedback({ onClose }: { onClose: () => void }) {
           animation: "sheetSlideUp 320ms cubic-bezier(0.25, 0.1, 0.25, 1) both",
         }}
       >
-        {/* Drag handle */}
-        <div
+        {/* Close */}
+        <button
+          onClick={onClose}
+          aria-label="Close"
           style={{
-            width: 40,
-            height: 4,
-            borderRadius: 2,
-            background: "rgba(255,255,255,0.18)",
-            margin: "0 auto 18px",
+            position: "absolute",
+            top: 16,
+            right: 16,
+            width: 32,
+            height: 32,
+            borderRadius: 12,
+            background: "#2a2a2a",
+            border: "none",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            padding: 0,
+            color: "#fff",
+            WebkitTapHighlightColor: "transparent",
           }}
-        />
+        >
+          <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+            <path d="M4 4L14 14M14 4L4 14" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+        </button>
 
         {/* Tune / refinement glyph */}
         <div

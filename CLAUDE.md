@@ -144,6 +144,11 @@ Any category or subcategory **without an image asset yet** uses the **VIP logoty
 
 ## Styling conventions
 
+**Full design system: [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md).** Follow its tokens and
+component specs for any UI work. Key invariant: every button / icon button with a
+background is a rounded square (12px), never sharp or circular; primary CTA pills are
+100px; cards are 16px. Quick reference below.
+
 - Background: `#0A0A0A` (near-black) or `transparent` on inner screens
 - Primary text: `#FFFFFF`
 - Secondary text: `#999`

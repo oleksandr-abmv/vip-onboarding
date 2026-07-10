@@ -27,6 +27,7 @@ const CATEGORIES: Category[] = [
   { id: 'Fashion and Apparel', label: 'Clothing', imageFile: 'clothing.webp' },
   { id: 'Collectibles', label: 'Collectibles', imageFile: 'collectibles.png' },
   { id: 'Fine Art', label: 'Fine Art', imageFile: 'fineart.webp' },
+  { id: 'Fragrance & Oud', label: 'Fragrance & Oud', imageFile: 'fragrance-oud.png' },
   { id: 'Furniture', label: 'Furniture', imageFile: 'furniture.webp' },
   { id: 'Jewellery', label: 'Jewelry', imageFile: 'jewelry.png' },
   { id: 'Footwear', label: 'Shoes', imageFile: 'shoes.webp' },
@@ -146,7 +147,7 @@ export default function InterestsScreen({
             animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 160ms both',
           }}
         >
-          Select 3 to 5 categories
+          Your concierge learns from your selections.
         </p>
 
         {/* 2-column category grid (skeleton → real cards) */}
@@ -374,55 +375,27 @@ export default function InterestsScreen({
           padding: `12px 16px calc(28px + env(safe-area-inset-bottom, 0px))`,
         }}
       >
-        {/* Shield-check privacy note */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            padding: '12px 0',
-          }}
-        >
-          <span
-            className="material-symbols-rounded"
-            style={{ fontSize: 20, color: '#fff', opacity: 0.7 }}
-          >
-            verified_user
-          </span>
-          <span
-            style={{
-              fontSize: 14,
-              fontWeight: 400,
-              color: '#999',
-              textAlign: 'center',
-            }}
-          >
-            Private to you. Easy to update anytime.
-          </span>
-        </div>
-
         {/* CTA */}
         <button
           onClick={onNext}
-          disabled={count < 3}
+          disabled={count < 1}
           style={{
             width: '100%',
             height: 48,
             marginBottom: 8,
-            background: count >= 3 ? '#f6f6f6' : '#252525',
-            color: count >= 3 ? '#121212' : theme.colors.textTertiary,
+            background: count >= 1 ? '#f6f6f6' : '#252525',
+            color: count >= 1 ? '#121212' : theme.colors.textTertiary,
             border: 'none',
             borderRadius: 100,
             fontSize: 16,
             fontWeight: 500,
-            cursor: count >= 3 ? 'pointer' : 'default',
+            cursor: count >= 1 ? 'pointer' : 'default',
             transition: 'background 200ms ease, color 200ms ease',
           }}
         >
-          {count < 3
-            ? `Select ${3 - count} more`
-            : `Continue with ${count} categories`
+          {count < 1
+            ? 'Select a category'
+            : `Continue with ${count} ${count === 1 ? 'category' : 'categories'}`
           }
         </button>
       </div>

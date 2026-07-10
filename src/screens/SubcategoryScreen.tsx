@@ -111,10 +111,9 @@ export default function SubcategoryScreen({
         <p
           style={{
             fontSize: 12,
-            fontWeight: 500,
+            fontWeight: 400,
             color: '#999',
-            textTransform: 'uppercase',
-            lineHeight: '18px',
+            lineHeight: '16px',
             margin: 0,
             marginBottom: 4,
             padding: '0 15px',
@@ -323,7 +322,7 @@ export default function SubcategoryScreen({
           {ready && [
             ...getSubcategories(config, gender),
             // Always-present Custom tile - lets user specify their own preference
-            { id: CUSTOM_SUB_ID, label: 'Custom', subtitle: 'Tell us what you want', icon: 'edit' as const },
+            { id: CUSTOM_SUB_ID, label: 'Custom', subtitle: 'Type your own option', icon: 'edit' as const },
           ].map((sub) => {
             const selected = selectedSubcategories.includes(sub.id);
             const ripple = ripples[sub.id];
@@ -551,7 +550,6 @@ export default function SubcategoryScreen({
       {/* Custom preference bottom sheet */}
       {customSheetOpen && (
         <CustomSheet
-          categoryName={config.name}
           initialText={customText}
           onSave={(text) => {
             const trimmed = text.trim();
@@ -579,13 +577,11 @@ export default function SubcategoryScreen({
 
 // ── Custom preference bottom sheet ───────────────────────────────────────────
 function CustomSheet({
-  categoryName,
   initialText,
   onSave,
   onRemove,
   onClose,
 }: {
-  categoryName: string;
   initialText: string;
   onSave: (text: string) => void;
   onRemove: () => void;
@@ -594,6 +590,9 @@ function CustomSheet({
   const [text, setText] = useState(initialText);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hadInitial = initialText.trim().length > 0;
+  const trimmed = text.trim();
+  // Existing preference, untouched (or fully cleared) -> offer Remove; otherwise Save.
+  const showRemove = hadInitial && (trimmed === '' || trimmed === initialText.trim());
 
   useEffect(() => {
     // Auto-focus the textarea when the sheet opens
@@ -631,144 +630,137 @@ function CustomSheet({
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
-        {/* Header */}
+        {/* Header - centered title with circular close */}
         <div
           style={{
+            position: 'relative',
             display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
+            alignItems: 'center',
+            justifyContent: 'center',
             padding: '20px 20px 4px',
           }}
         >
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p
-              style={{
-                fontSize: 18,
-                fontWeight: 700,
-                color: '#fff',
-                margin: 0,
-                lineHeight: '24px',
-              }}
-            >
-              Tell us what you want
-            </p>
-            <p
-              style={{
-                fontSize: 14,
-                color: '#8a8a8a',
-                margin: '4px 0 0',
-                lineHeight: '20px',
-              }}
-            >
-              Anything specific about {categoryName.toLowerCase()} we should know?
-            </p>
-          </div>
+          <p
+            style={{
+              fontSize: 18,
+              fontWeight: 700,
+              color: '#fff',
+              margin: 0,
+              lineHeight: '24px',
+            }}
+          >
+            Custom
+          </p>
           <button
             onClick={onClose}
             aria-label="Close"
             style={{
+              position: 'absolute',
+              right: 20,
+              top: 18,
               width: 32,
               height: 32,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'transparent',
+              background: '#2a2a2a',
+              borderRadius: 12,
               border: 'none',
               cursor: 'pointer',
               padding: 0,
               color: '#fff',
-              flexShrink: 0,
               WebkitTapHighlightColor: 'transparent',
             }}
           >
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
               <path d="M4 4L14 14M14 4L4 14" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
             </svg>
           </button>
         </div>
 
-        {/* Textarea */}
+        {/* Textarea field - counter sits inside the field, bottom-left */}
         <div style={{ padding: '16px 20px 0' }}>
-          <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="A few sentences - preferred brands, sizes, styles, anything else."
-            rows={5}
-            maxLength={280}
+          <div
             style={{
-              width: '100%',
               background: '#151515',
               border: '1px solid #282828',
               borderRadius: 12,
               padding: '12px 14px',
-              color: '#fff',
-              fontSize: 15,
-              lineHeight: '22px',
-              fontFamily: 'inherit',
-              outline: 'none',
-              resize: 'none',
-              boxSizing: 'border-box',
-            }}
-          />
-          <p
-            style={{
-              fontSize: 12,
-              color: '#666',
-              margin: '8px 2px 0',
-              lineHeight: '16px',
-              textAlign: 'right',
             }}
           >
-            {text.length}/280
-          </p>
+            <textarea
+              ref={textareaRef}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="A few sentences - preferred brands, sizes, styles, anything else."
+              rows={5}
+              maxLength={250}
+              style={{
+                width: '100%',
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                color: '#fff',
+                fontSize: 15,
+                lineHeight: '22px',
+                fontFamily: 'inherit',
+                outline: 'none',
+                resize: 'none',
+                boxSizing: 'border-box',
+                display: 'block',
+              }}
+            />
+            <p
+              style={{
+                fontSize: 12,
+                color: '#666',
+                margin: '8px 0 0',
+                lineHeight: '16px',
+                textAlign: 'left',
+              }}
+            >
+              {text.length}/250 characters
+            </p>
+          </div>
         </div>
 
-        {/* Actions */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 10,
-            padding: '16px 20px 24px',
-          }}
-        >
-          <button
-            onClick={() => onSave(text)}
-            disabled={text.trim().length === 0}
-            style={{
-              width: '100%',
-              height: 52,
-              background: text.trim().length === 0 ? '#252525' : '#f6f6f6',
-              color: text.trim().length === 0 ? '#666' : '#121212',
-              border: 'none',
-              borderRadius: 100,
-              fontSize: 16,
-              fontWeight: 600,
-              cursor: text.trim().length === 0 ? 'default' : 'pointer',
-              transition: 'background 200ms ease, color 200ms ease',
-            }}
-          >
-            Save
-          </button>
-
-          {/* Only shown when there is already a saved preference to remove */}
-          {hadInitial && (
+        {/* Action - Save (new / edited) or Remove (existing, unchanged) */}
+        <div style={{ padding: '16px 20px 24px' }}>
+          {showRemove ? (
             <button
               onClick={onRemove}
               style={{
                 width: '100%',
-                height: 44,
-                background: 'transparent',
-                color: '#ef6f6f',
+                height: 52,
+                background: '#2a2a2a',
+                color: '#fff',
                 border: 'none',
                 borderRadius: 100,
-                fontSize: 14,
-                fontWeight: 500,
+                fontSize: 16,
+                fontWeight: 600,
                 cursor: 'pointer',
               }}
             >
-              Remove custom preference
+              Remove
+            </button>
+          ) : (
+            <button
+              onClick={() => onSave(text)}
+              disabled={trimmed.length === 0}
+              style={{
+                width: '100%',
+                height: 52,
+                background: trimmed.length === 0 ? '#252525' : '#f6f6f6',
+                color: trimmed.length === 0 ? '#666' : '#121212',
+                border: 'none',
+                borderRadius: 100,
+                fontSize: 16,
+                fontWeight: 600,
+                cursor: trimmed.length === 0 ? 'default' : 'pointer',
+                transition: 'background 200ms ease, color 200ms ease',
+              }}
+            >
+              Save
             </button>
           )}
         </div>

@@ -87,7 +87,7 @@ export default function GenderScreen({
           animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 80ms both',
         }}
       >
-        We use this to personalize your recommendations
+        We use this to personalize your recommendations.
       </p>
 
       {/* Gender cards - Figma layout: icon top-left, label bottom-left */}
@@ -108,7 +108,7 @@ export default function GenderScreen({
               onClick={(e) => select(e, opt.id)}
               style={{
                 flex: 1,
-                height: 109,
+                height: 104,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -174,6 +174,22 @@ export default function GenderScreen({
 
       {/* Spacer */}
       <div style={{ flex: 1 }} />
+
+      {/* Privacy reassurance microcopy */}
+      <p
+        style={{
+          fontSize: 16,
+          fontWeight: 400,
+          color: 'rgba(255, 255, 255, 0.7)',
+          lineHeight: '22px',
+          textAlign: 'center',
+          margin: 0,
+          marginBottom: 16,
+          animation: 'fadeInUp 400ms cubic-bezier(0.25, 0.1, 0.25, 1) 240ms both',
+        }}
+      >
+        Private to you, used only to personalize your experience.
+      </p>
 
       {/* CTA */}
       <button

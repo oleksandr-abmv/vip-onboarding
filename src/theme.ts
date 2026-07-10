@@ -25,13 +25,16 @@ export const theme = {
     profileGradientStart: '#131313',
     profileGradientEnd: '#1A1A1A',
   },
+  // Canonical radius scale. See DESIGN_SYSTEM.md.
+  // Rule: every button / icon button with a background is a rounded square,
+  // never sharp (0) and never a circle (50%).
   radii: {
-    card: '10px',
-    cardLg: '14px',
-    button: '10px',
-    chip: '20px',
-    pill: '6px',
-    phone: '32px',
+    button: '12px',   // buttons AND icon buttons with a background
+    card: '16px',     // product / content cards, banner
+    cardSm: '12px',   // compact cards, inner tiles
+    pill: '100px',    // primary CTA pills, segmented toggles, chips
+    sheet: '20px',    // bottom-sheet top corners (20px 20px 0 0)
+    phone: '32px',    // PhoneFrame shell
   },
   spacing: {
     screenPadding: '24px',
