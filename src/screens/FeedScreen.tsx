@@ -1,5 +1,5 @@
 import { useMemo, useState, useRef, useEffect } from 'react';
-import { safeTop } from '../theme';
+import { createPortal } from 'react-dom';
 import PRODUCTS, { type Product } from '../data/products';
 import { categoryConfigs } from '../data/categoryConfig';
 import ProductPage from './ProductPage';
@@ -20,8 +20,12 @@ interface FeedScreenProps {
 }
 
 type FeedSection = { id: string; name: string; items: Product[] };
-// A "See all" detail view: either a category or the saved list.
-type Detail = { kind: 'category'; id: string; name: string } | { kind: 'saved' };
+// A full-screen detail view: the saved list, a category, or a titled product list
+// (opened from a "View all" on the Discover groups).
+type Detail =
+  | { kind: 'category'; id: string; name: string }
+  | { kind: 'saved' }
+  | { kind: 'list'; title: string; items: Product[] };
 // Transient toast shown after saving / removing a product.
 type Snack = { message: string; actionLabel: string; onAction: () => void; id: number };
 
@@ -39,12 +43,44 @@ function fallbackCategories(): string[] {
   return Object.keys(counts).filter((id) => counts[id] >= 2).slice(0, 4);
 }
 
+function dedupeByName(items: Product[]): Product[] {
+  const seen = new Set<string>();
+  return items.filter((p) => (seen.has(p.name) ? false : (seen.add(p.name), true)));
+}
+
 function genderFilter(items: Product[], gender: string | null): Product[] {
   if (gender === 'male' || gender === 'female') {
     const g = items.filter((p) => !p.gender || p.gender === 'unisex' || p.gender === gender);
     if (g.length > 0) return g;
   }
   return items;
+}
+
+// Wearable categories (by product.category id) that get styled into "outfits",
+// plus a few outfit labels.
+const WEARABLE_CATEGORIES = [
+  'Fashion and Apparel',
+  'Footwear',
+  'Handbags and Leather Goods',
+  'Accessories',
+  'Jewellery',
+  'Watches',
+];
+const OUTFIT_NAMES = ['Weekend Edit', 'Evening Out', 'Off Duty', 'City Break', 'Boardroom'];
+
+// Build coordinated looks: each outfit takes ONE piece from each of up to four
+// distinct wearable categories (a top, shoes, a bag, an accessory) so the pieces
+// actually go together rather than being four of the same thing.
+function buildOutfits(byCat: Record<string, Product[]>): FeedSection[] {
+  const slots = WEARABLE_CATEGORIES.filter((c) => (byCat[c]?.length ?? 0) > 0).slice(0, 4);
+  if (slots.length < 2) return [];
+  const maxOutfits = Math.min(OUTFIT_NAMES.length, Math.max(...slots.map((c) => byCat[c].length)));
+  const outfits: FeedSection[] = [];
+  for (let i = 0; i < maxOutfits; i++) {
+    const items = slots.map((c) => byCat[c][i % byCat[c].length]);
+    outfits.push({ id: `outfit-${i}`, name: OUTFIT_NAMES[i], items });
+  }
+  return outfits;
 }
 
 export default function FeedScreen({
@@ -59,7 +95,12 @@ export default function FeedScreen({
   const [detail, setDetail] = useState<Detail | null>(null);
   const [snack, setSnack] = useState<Snack | null>(null);
   const [openProduct, setOpenProduct] = useState<Product | null>(null);
-  const [savedFilter, setSavedFilter] = useState<string>('all');
+  // Products the user hit "Do not recommend" on - filtered out of the Discover feed.
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set());
+  // Saved view sub-tab: saved products vs saved stores.
+  const [savedTab, setSavedTab] = useState<'products' | 'stores'>('products');
+  // Which card's "..." menu is open (single source of truth so only one shows).
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   // Always-current view of savedProducts so the snackbar's "Undo" re-adds against
   // the latest list, not a stale snapshot from when the toast was shown.
@@ -72,6 +113,16 @@ export default function FeedScreen({
   // to the feed, instead of inheriting the previous scroll position.
   const bodyRef = useRef<HTMLDivElement>(null);
   useEffect(() => { bodyRef.current?.scrollTo(0, 0); }, [detail]);
+
+  // Close any open card menu the moment the user scrolls (vertical body or a
+  // horizontal carousel - capture catches nested scrollers), per best practice.
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    const close = () => setOpenMenuId(null);
+    el.addEventListener('scroll', close, true);
+    return () => el.removeEventListener('scroll', close, true);
+  }, []);
   const showSnack = (message: string, actionLabel: string, onAction: () => void) => {
     if (snackTimer.current) clearTimeout(snackTimer.current);
     setSnack({ message, actionLabel, onAction, id: Date.now() });
@@ -112,36 +163,50 @@ export default function FeedScreen({
 
   const isSaved = (name: string) => savedProducts.includes(name);
 
+  // Card "..." menu actions.
+  const hideProduct = (name: string) => {
+    setHidden((prev) => new Set(prev).add(name));
+    showSnack('Removed from recommendations', 'Undo', () => {
+      setHidden((prev) => {
+        const next = new Set(prev);
+        next.delete(name);
+        return next;
+      });
+      setSnack(null);
+    });
+  };
+  const moreLikeThis = () => showSnack('We will show more like this', 'Got it', () => setSnack(null));
+
   // ── "See all" detail view (per-category / saved grid) ─────────────────────
   if (detail) {
     const isSavedView = detail.kind === 'saved';
-    // Categories present across saved items - drives the filter chips.
-    const savedCats = isSavedView
-      ? Array.from(new Set(savedItems.map((p) => p.category)))
-      : [];
-    const activeFilter = savedCats.includes(savedFilter) ? savedFilter : 'all';
-    const detailItems = isSavedView
-      ? activeFilter === 'all'
+    const detailItems =
+      detail.kind === 'saved'
         ? savedItems
-        : savedItems.filter((p) => p.category === activeFilter)
-      : genderFilter(PRODUCTS.filter((p) => p.category === detail.id), gender);
-    const detailTitle = isSavedView ? 'Saved Products' : `All ${detail.name}`;
+        : detail.kind === 'list'
+          ? detail.items
+          : genderFilter(PRODUCTS.filter((p) => p.category === detail.id), gender);
+    const detailTitle =
+      detail.kind === 'saved' ? 'Saved Products' : detail.kind === 'list' ? detail.title : `All ${detail.name}`;
+    // Category "See all" is a single-column list; saved + list views use a 2-col grid.
+    const gridStyle: React.CSSProperties =
+      detail.kind === 'category'
+        ? { display: 'flex', flexDirection: 'column', gap: 16, padding: PAGE }
+        : { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: `12px ${PAGE}px ${PAGE}px` };
     return (
       <div style={screenStyle}>
-        {/* Saved is a top-level tab, so no back button; category "See all" keeps one. */}
+        {/* Saved is a top-level tab, so no back button; other detail views keep one. */}
         <Header title={detailTitle} onBack={isSavedView ? undefined : () => setDetail(null)} />
         <div ref={bodyRef} style={{ ...bodyStyle }}>
-          {isSavedView && savedItems.length > 0 && (
-            <FilterChips categories={savedCats} active={activeFilter} onChange={setSavedFilter} />
-          )}
-          {detailItems.length > 0 ? (
-            <div
-              style={
-                isSavedView
-                  ? { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: `4px ${PAGE}px ${PAGE}px` }
-                  : { display: 'flex', flexDirection: 'column', gap: 16, padding: PAGE }
-              }
-            >
+          {/* Saved view splits into Products / Stores via a full-width switcher. */}
+          {isSavedView && <SavedSegments tab={savedTab} onChange={setSavedTab} />}
+          {isSavedView && savedTab === 'stores' ? (
+            <CenteredEmptyState
+              title="No saved stores yet"
+              subtitle="Save a boutique from any product page and it will show up here."
+            />
+          ) : detailItems.length > 0 ? (
+            <div style={gridStyle}>
               {detailItems.map((product) => (
                 <ProductCard
                   key={product.name}
@@ -150,12 +215,16 @@ export default function FeedScreen({
                   onToggleSave={() => toggleSave(product.name)}
                   onOpen={() => setOpenProduct(product)}
                   width="100%"
-                  badge={isSavedView ? categoryConfigs[product.category]?.name || product.category : undefined}
                 />
               ))}
             </div>
+          ) : isSavedView ? (
+            <CenteredEmptyState
+              title="No saved pieces yet"
+              subtitle="Tap the heart on any piece to save it here and build your personal edit."
+            />
           ) : (
-            <EmptyNote text="Nothing here yet. Tap the heart on any piece to save it." />
+            <EmptyNote text="Nothing here yet." />
           )}
         </div>
         {snack && (
@@ -164,13 +233,13 @@ export default function FeedScreen({
             message={snack.message}
             actionLabel={snack.actionLabel}
             onAction={snack.onAction}
-            bottom={openProduct ? `calc(145px + env(safe-area-inset-bottom, 0px))` : undefined}
+            bottom={openProduct ? `calc(80px + env(safe-area-inset-bottom, 0px))` : undefined}
           />
         )}
         <BottomBar
           active={detail.kind === 'saved' ? 'saved' : 'home'}
           onHome={() => setDetail(null)}
-          onSaved={() => { setSavedFilter('all'); setDetail({ kind: 'saved' }); }}
+          onSaved={() => setDetail({ kind: 'saved' })}
         />
         {openProduct && (
           <ProductPage
@@ -185,12 +254,39 @@ export default function FeedScreen({
     );
   }
 
-  // Discover feed - a Pinterest-style masonry. Products are dealt alternately into
-  // two columns (so categories mix), then varied card heights + a small offset on
-  // the right column make the layout uneven.
-  const feedItems = sections.flatMap((s) => s.items);
-  const feedCols: Product[][] = [[], []];
-  feedItems.forEach((p, i) => feedCols[i % 2].push(p));
+  // Products in a stable shuffle so categories spread evenly across every group
+  // (deterministic, so the feed doesn't reshuffle on re-render).
+  const feedItems: Product[] = (() => {
+    // Hide products without real imagery (VIP-logo placeholder) and anything the
+    // user marked "Do not recommend".
+    const a = sections
+      .flatMap((s) => s.items)
+      .filter((p) => p.image !== '/vip-logo.svg' && !hidden.has(p.name));
+    let s = 0x9e3779b9;
+    const rand = () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 0x100000000);
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  })();
+  // Discover groups: a daily 1-column pick stack, a trending carousel, and
+  // Collections (each interest category as a themed group).
+  const topPicks = feedItems.slice(0, 10);
+  const trending = feedItems.slice(10, 20);
+  const collections = sections
+    .map((s) => ({ ...s, items: s.items.filter((p) => p.image !== '/vip-logo.svg' && !hidden.has(p.name)) }))
+    .filter((s) => s.items.length > 0);
+  // Coordinated looks, built across the whole catalog (one piece per category).
+  const outfits = (() => {
+    const byCat: Record<string, Product[]> = {};
+    for (const p of genderFilter(PRODUCTS, gender)) {
+      if (p.image === '/vip-logo.svg' || hidden.has(p.name)) continue;
+      if (!WEARABLE_CATEGORIES.includes(p.category)) continue;
+      (byCat[p.category] ||= []).push(p);
+    }
+    return buildOutfits(byCat);
+  })();
 
   return (
     <div style={screenStyle}>
@@ -244,34 +340,118 @@ export default function FeedScreen({
           </div>
         )}
 
-        {/* Pinterest-style masonry: two columns, the right one offset lower. */}
         {sections.length > 0 ? (
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: `12px ${PAGE}px ${PAGE}px` }}>
-            {feedCols.map((col, ci) => (
-              <div
-                key={ci}
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12,
-                  marginTop: ci === 1 ? 28 : 0,
-                }}
+          <>
+            {/* Top picks - horizontal carousel (same treatment as Trending) */}
+            {topPicks.length > 0 && (
+              <Section
+                title="Top picks for you"
+                onViewAll={() => setDetail({ kind: 'list', title: 'Top picks for you', items: topPicks })}
               >
-                {col.map((product) => (
+                {topPicks.map((product) => (
                   <ProductCard
                     key={product.name}
                     product={product}
                     saved={isSaved(product.name)}
                     onToggleSave={() => toggleSave(product.name)}
                     onOpen={() => setOpenProduct(product)}
-                    width="100%"
+                    onMoreLikeThis={moreLikeThis}
+                    onHide={() => hideProduct(product.name)}
+                    menuOpen={openMenuId === product.name}
+                    onToggleMenu={() =>
+                      setOpenMenuId((id) => (id === product.name ? null : product.name))
+                    }
+                    onCloseMenu={() => setOpenMenuId(null)}
+                    width={230}
                   />
                 ))}
-              </div>
-            ))}
-          </div>
+              </Section>
+            )}
+
+            {/* Trending - horizontal carousel (keeps the "..." menu) */}
+            {trending.length > 0 && (
+              <Section
+                title="Trending"
+                onViewAll={() => setDetail({ kind: 'list', title: 'Trending', items: trending })}
+              >
+                {trending.map((product) => (
+                  <ProductCard
+                    key={product.name}
+                    product={product}
+                    saved={isSaved(product.name)}
+                    onToggleSave={() => toggleSave(product.name)}
+                    onOpen={() => setOpenProduct(product)}
+                    onMoreLikeThis={moreLikeThis}
+                    onHide={() => hideProduct(product.name)}
+                    menuOpen={openMenuId === product.name}
+                    onToggleMenu={() =>
+                      setOpenMenuId((id) => (id === product.name ? null : product.name))
+                    }
+                    onCloseMenu={() => setOpenMenuId(null)}
+                    width={230}
+                  />
+                ))}
+              </Section>
+            )}
+
+            {/* Collections - coordinated looks, before the category list */}
+            {outfits.length > 0 && (
+              <Section
+                title="Collections"
+                onViewAll={() =>
+                  setDetail({
+                    kind: 'list',
+                    title: 'Collections',
+                    items: dedupeByName(outfits.flatMap((o) => o.items)),
+                  })
+                }
+              >
+                {outfits.map((o) => (
+                  <CollectionCard
+                    key={o.id}
+                    name={o.name}
+                    count={o.items.length}
+                    items={o.items}
+                    unit="pieces"
+                    onOpen={() => setDetail({ kind: 'list', title: o.name, items: o.items })}
+                    onMoreLikeThis={moreLikeThis}
+                    onHide={() => showSnack('Noted, fewer like this', 'Got it', () => setSnack(null))}
+                  />
+                ))}
+              </Section>
+            )}
+
+            {/* Categories - compact list rows, two per column, horizontal scroll */}
+            {collections.length > 0 && (
+              <section style={{ paddingTop: 8, paddingBottom: 8 }}>
+                <SectionHeader title="Categories" />
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridAutoFlow: 'column',
+                      gridTemplateRows: 'auto auto',
+                      gridAutoColumns: 'max-content',
+                      gap: 10,
+                      // Padding on the grid (not the scroller) so the right inset
+                      // survives at scroll end.
+                      padding: `0 ${PAGE}px`,
+                    }}
+                  >
+                    {collections.map((c) => (
+                      <CategoryRow
+                        key={c.id}
+                        name={c.name}
+                        count={c.items.length}
+                        cover={c.items[0].image}
+                        onOpen={() => setDetail({ kind: 'list', title: c.name, items: c.items })}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )}
+          </>
         ) : (
           <EmptyNote text="Your feed is being tailored. Complete onboarding to start seeing pieces picked for you." />
         )}
@@ -283,7 +463,7 @@ export default function FeedScreen({
           message={snack.message}
           actionLabel={snack.actionLabel}
           onAction={snack.onAction}
-          bottom={openProduct ? `calc(145px + env(safe-area-inset-bottom, 0px))` : undefined}
+          bottom={openProduct ? `calc(80px + env(safe-area-inset-bottom, 0px))` : undefined}
         />
       )}
       <BottomBar
@@ -320,21 +500,32 @@ const bodyStyle: React.CSSProperties = {
   overflowY: 'auto',
   overflowX: 'hidden',
   WebkitOverflowScrolling: 'touch',
-  // clears the fixed bottom bar
-  paddingBottom: `calc(76px + env(safe-area-inset-bottom, 0px))`,
+  // Content scrolls under the gradient-fade header (which is absolutely positioned).
+  paddingTop: `calc(env(safe-area-inset-top, 0px) + 56px)`,
+  paddingBottom: 16,
 };
 
-// ── Header (optional back arrow + centered title) ────────────────────────────
+// ── Header (gradient-fade overlay: content scrolls under it, ChatGPT-style) ───
 function Header({ title, onBack }: { title: string; onBack?: () => void }) {
   return (
     <div
       style={{
-        flexShrink: 0,
-        padding: `${safeTop(12)} 8px 12px`,
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 20,
+        height: `calc(env(safe-area-inset-top, 0px) + 64px)`,
+        paddingTop: `env(safe-area-inset-top, 0px)`,
         display: 'flex',
         alignItems: 'center',
-        position: 'relative',
-        height: 56,
+        // Container ignores taps so scrolling passes through; only the back button
+        // (below) re-enables pointer events.
+        pointerEvents: 'none',
+        // Solid at the top for legibility, fading to transparent so content
+        // dissolves as it scrolls beneath the bar.
+        background:
+          'linear-gradient(to bottom, #0A0A0A 0%, #0A0A0A 52%, rgba(10,10,10,0) 100%)',
       }}
     >
       {onBack && (
@@ -342,6 +533,8 @@ function Header({ title, onBack }: { title: string; onBack?: () => void }) {
           onClick={onBack}
           aria-label="Back"
           style={{
+            pointerEvents: 'auto',
+            marginLeft: 8,
             width: 44,
             height: 44,
             display: 'flex',
@@ -366,6 +559,7 @@ function Header({ title, onBack }: { title: string; onBack?: () => void }) {
         style={{
           position: 'absolute',
           left: '50%',
+          top: `calc(env(safe-area-inset-top, 0px) + 20px)`,
           transform: 'translateX(-50%)',
           fontSize: 16,
           fontWeight: 600,
@@ -374,6 +568,468 @@ function Header({ title, onBack }: { title: string; onBack?: () => void }) {
       >
         {title}
       </span>
+    </div>
+  );
+}
+
+// ── Section header (title + optional "View all" or custom right slot) ────────
+function SectionHeader({
+  title,
+  onViewAll,
+  right,
+}: {
+  title: string;
+  onViewAll?: () => void;
+  right?: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: `0 ${PAGE}px`,
+        marginBottom: 12,
+      }}
+    >
+      <h2 style={{ fontSize: 18, fontWeight: 600, color: '#fff', margin: 0, lineHeight: '24px' }}>
+        {title}
+      </h2>
+      {right !== undefined
+        ? right
+        : onViewAll && (
+            <button
+              onClick={onViewAll}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px 0 4px 8px',
+                color: '#cfcfcf',
+                fontSize: 14,
+                fontWeight: 500,
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              View all
+            </button>
+          )}
+    </div>
+  );
+}
+
+// ── Section (title + "View all" + horizontal card carousel) ──────────────────
+function Section({
+  title,
+  onViewAll,
+  children,
+}: {
+  title: string;
+  onViewAll?: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <section style={{ paddingTop: 8, paddingBottom: 8 }}>
+      <SectionHeader title={title} onViewAll={onViewAll} />
+      <div
+        style={{
+          display: 'flex',
+          gap: 12,
+          overflowX: 'auto',
+          padding: `0 ${PAGE}px`,
+          scrollPadding: `0 ${PAGE}px`,
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
+        {children}
+      </div>
+    </section>
+  );
+}
+
+// ── Self-contained overflow "..." menu (button + portaled dropdown) ──────────
+// Portaled to <body> so it escapes card/carousel overflow; closes on outside tap
+// and on scroll. Used where a card isn't wired into the lifted openMenuId system.
+function OverflowMenu({ onMoreLikeThis, onHide }: { onMoreLikeThis: () => void; onHide: () => void }) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
+  useEffect(() => {
+    if (open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
+    }
+  }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener('scroll', close, true);
+    return () => window.removeEventListener('scroll', close, true);
+  }, [open]);
+  return (
+    <>
+      <button
+        ref={btnRef}
+        onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
+        aria-label="More options"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        style={{
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          width: 32,
+          height: 32,
+          borderRadius: 100,
+          background: open ? 'rgba(40,40,40,0.92)' : 'rgba(20,20,20,0.72)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          padding: 0,
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+          WebkitTapHighlightColor: 'transparent',
+          zIndex: 3,
+        }}
+      >
+        <span className="material-symbols-rounded" style={{ fontSize: 18, color: '#e7e7e7' }} aria-hidden>
+          more_vert
+        </span>
+      </button>
+      {open && pos &&
+        createPortal(
+          <>
+            <div
+              onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+              style={{ position: 'fixed', inset: 0, zIndex: 200 }}
+            />
+            <div
+              role="menu"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: 'fixed',
+                top: pos.top,
+                right: pos.right,
+                minWidth: 202,
+                zIndex: 201,
+                background: '#1f1f1f',
+                border: '1px solid rgba(255,255,255,0.09)',
+                borderRadius: 14,
+                overflow: 'hidden',
+                boxShadow: '0 16px 38px rgba(0,0,0,0.6)',
+                transformOrigin: 'top right',
+                animation: 'menuPop 130ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
+              }}
+            >
+              <MenuRow icon="thumb_up" label="More like this" onClick={() => { setOpen(false); onMoreLikeThis(); }} />
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+              <MenuRow icon="block" label="Do not recommend" destructive onClick={() => { setOpen(false); onHide(); }} />
+            </div>
+          </>,
+          document.body,
+        )}
+    </>
+  );
+}
+
+// ── Collection card (regular product-card shell; image split into 4 tiles) ───
+function CollectionCard({
+  name,
+  count,
+  items,
+  onOpen,
+  onMoreLikeThis,
+  onHide,
+  width = 230,
+  unit = 'items',
+}: {
+  name: string;
+  count: number;
+  items: Product[];
+  onOpen: () => void;
+  /** When provided, the card shows a "..." menu (like a product card). */
+  onMoreLikeThis?: () => void;
+  onHide?: () => void;
+  width?: number;
+  unit?: string;
+}) {
+  // First four items fill a 2x2 image grid (no "+N" overflow, just four tiles).
+  const cells = [0, 1, 2, 3].map((i) => items[i]);
+  const showControls = !!(onMoreLikeThis && onHide);
+  return (
+    <div
+      onClick={onOpen}
+      style={{
+        position: 'relative',
+        width,
+        flexShrink: 0,
+        background: '#0c0c0c',
+        border: '1px solid #282828',
+        borderRadius: 16,
+        overflow: 'hidden',
+        cursor: 'pointer',
+        scrollSnapAlign: 'start',
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >
+      {showControls && <OverflowMenu onMoreLikeThis={onMoreLikeThis!} onHide={onHide!} />}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gridTemplateRows: '1fr 1fr',
+          gap: 1,
+          aspectRatio: '4 / 3',
+          background: '#282828',
+        }}
+      >
+        {cells.map((p, i) => (
+          <div
+            key={i}
+            style={{
+              background: '#ececec',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+            }}
+          >
+            {p && (
+              <img
+                src={p.image}
+                alt=""
+                aria-hidden
+                draggable={false}
+                style={{ maxWidth: '76%', maxHeight: '80%', objectFit: 'contain', display: 'block' }}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+      <div style={{ padding: '12px 14px 14px' }}>
+        <p
+          style={{
+            fontSize: 15,
+            fontWeight: 600,
+            color: '#f7f7f7',
+            lineHeight: '20px',
+            margin: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {name}
+        </p>
+        <span style={{ fontSize: 13, fontWeight: 400, color: '#999', lineHeight: '18px' }}>
+          {count} {unit}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ── Category row (compact list item: thumbnail + name + count) ───────────────
+function CategoryRow({
+  name,
+  count,
+  cover,
+  onOpen,
+}: {
+  name: string;
+  count: number;
+  cover: string;
+  onOpen: () => void;
+}) {
+  return (
+    <div
+      onClick={onOpen}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        width: 208,
+        padding: 8,
+        background: '#0c0c0c',
+        border: '1px solid #282828',
+        borderRadius: 14,
+        cursor: 'pointer',
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >
+      <div
+        style={{
+          width: 54,
+          height: 54,
+          borderRadius: 10,
+          background: '#ececec',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          flexShrink: 0,
+        }}
+      >
+        <img
+          src={cover}
+          alt=""
+          aria-hidden
+          draggable={false}
+          style={{ maxWidth: '78%', maxHeight: '80%', objectFit: 'contain', display: 'block' }}
+        />
+      </div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <p
+          style={{
+            fontSize: 15,
+            fontWeight: 600,
+            color: '#f7f7f7',
+            lineHeight: '20px',
+            margin: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {name}
+        </p>
+        <span style={{ fontSize: 13, fontWeight: 400, color: '#999', lineHeight: '18px' }}>
+          {count} items
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ── Saved sub-tab switcher (full-width 2-segment control) ────────────────────
+function SavedSegments({
+  tab,
+  onChange,
+}: {
+  tab: 'products' | 'stores';
+  onChange: (t: 'products' | 'stores') => void;
+}) {
+  const segs: { id: 'products' | 'stores'; label: string }[] = [
+    { id: 'products', label: 'Products' },
+    { id: 'stores', label: 'Stores' },
+  ];
+  return (
+    <div style={{ padding: `4px ${PAGE}px 12px` }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: 4,
+          background: '#141414',
+          border: '1px solid #282828',
+          borderRadius: 100,
+          padding: 4,
+        }}
+      >
+        {segs.map((s) => {
+          const active = tab === s.id;
+          return (
+            <button
+              key={s.id}
+              onClick={() => onChange(s.id)}
+              style={{
+                flex: 1,
+                height: 36,
+                borderRadius: 100,
+                border: 'none',
+                cursor: 'pointer',
+                background: active ? '#f6f6f6' : 'transparent',
+                color: active ? '#121212' : '#999',
+                fontSize: 14,
+                fontWeight: 500,
+                transition: 'background 200ms ease, color 200ms ease',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              {s.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Skeleton illustration (fanned ghost cards for empty states) ──────────────
+// A single shared illustration; the stack gently floats (no loading shimmer).
+function SkeletonCards() {
+  const cardW = 152;
+  const Card = ({ rotate, dim }: { rotate: number; dim?: boolean }) => (
+    <div
+      style={{
+        width: cardW,
+        borderRadius: 14,
+        background: '#101010',
+        border: '1px solid #242424',
+        padding: 9,
+        transform: `rotate(${rotate}deg)`,
+        boxShadow: '0 10px 26px rgba(0,0,0,0.4)',
+        opacity: dim ? 0.5 : 1,
+      }}
+    >
+      <div style={{ height: 74, borderRadius: 9, background: '#1c1c1c', marginBottom: 9 }} />
+      <div style={{ height: 8, borderRadius: 4, background: '#212121', width: '80%', marginBottom: 6 }} />
+      <div style={{ height: 8, borderRadius: 4, background: '#181818', width: '52%' }} />
+    </div>
+  );
+  return (
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: 132,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 28,
+      }}
+    >
+      <div style={{ position: 'absolute', transform: 'translateX(-46px)' }}>
+        <Card rotate={-9} dim />
+      </div>
+      <div style={{ position: 'absolute', transform: 'translateX(46px)' }}>
+        <Card rotate={9} dim />
+      </div>
+      <div style={{ position: 'relative' }}>
+        <Card rotate={0} />
+      </div>
+    </div>
+  );
+}
+
+// ── Centered empty state (skeleton illustration + title + subtitle) ──────────
+function CenteredEmptyState({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
+        minHeight: '58vh',
+        padding: `0 32px`,
+      }}
+    >
+      <SkeletonCards />
+      <h2 style={{ fontSize: 18, fontWeight: 600, color: '#fff', margin: 0, lineHeight: '24px' }}>
+        {title}
+      </h2>
+      <p style={{ fontSize: 14, color: '#999', lineHeight: '20px', margin: '8px 0 0', maxWidth: 280 }}>
+        {subtitle}
+      </p>
     </div>
   );
 }
@@ -405,55 +1061,48 @@ function ProgressPie({ pct }: { pct: number }) {
   );
 }
 
-// ── Category filter chips (horizontal scroll, used on the Saved view) ────────
-function FilterChips({
-  categories,
-  active,
-  onChange,
+// ── Card overflow-menu row ───────────────────────────────────────────────────
+function MenuRow({
+  icon,
+  label,
+  onClick,
+  destructive = false,
 }: {
-  categories: string[];
-  active: string;
-  onChange: (c: string) => void;
+  icon: string;
+  label: string;
+  onClick: () => void;
+  destructive?: boolean;
 }) {
-  const chips = ['all', ...categories];
+  const color = destructive ? '#ef8a99' : '#f2f2f2';
+  const iconColor = destructive ? '#ef8a99' : '#cfcfcf';
   return (
-    <div
+    <button
+      role="menuitem"
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
       style={{
         display: 'flex',
-        gap: 8,
-        overflowX: 'auto',
-        padding: `12px ${PAGE}px 8px`,
-        scrollPadding: `0 ${PAGE}px`,
-        WebkitOverflowScrolling: 'touch',
+        alignItems: 'center',
+        gap: 12,
+        width: '100%',
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        padding: '13px 16px',
+        textAlign: 'left',
+        WebkitTapHighlightColor: 'transparent',
       }}
     >
-      {chips.map((c) => {
-        const isActive = c === active;
-        const label = c === 'all' ? 'All' : categoryConfigs[c]?.name || c;
-        return (
-          <button
-            key={c}
-            onClick={() => onChange(c)}
-            style={{
-              flexShrink: 0,
-              padding: '7px 14px',
-              borderRadius: 100,
-              border: isActive ? '1px solid #f6f6f6' : '1px solid #2a2a2a',
-              background: isActive ? '#f6f6f6' : 'rgba(255,255,255,0.04)',
-              color: isActive ? '#121212' : '#cfcfcf',
-              fontSize: 13,
-              fontWeight: 500,
-              lineHeight: '16px',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              WebkitTapHighlightColor: 'transparent',
-            }}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
+      <span
+        className="material-symbols-rounded"
+        style={{ fontSize: 20, color: iconColor, fontVariationSettings: "'wght' 400", flexShrink: 0 }}
+        aria-hidden
+      >
+        {icon}
+      </span>
+      <span style={{ fontSize: 14, fontWeight: 500, color, lineHeight: '18px', whiteSpace: 'nowrap' }}>
+        {label}
+      </span>
+    </button>
   );
 }
 
@@ -463,21 +1112,42 @@ function ProductCard({
   saved,
   onToggleSave,
   onOpen,
+  onMoreLikeThis,
+  onHide,
+  menuOpen = false,
+  onToggleMenu,
+  onCloseMenu,
   width = 200,
-  badge,
   aspect = '4 / 3',
 }: {
   product: Product;
   saved: boolean;
   onToggleSave: () => void;
   onOpen?: () => void;
+  /** "..." menu → "More like this". Menu only renders when a handler is passed. */
+  onMoreLikeThis?: () => void;
+  /** "..." menu → "Do not recommend". */
+  onHide?: () => void;
+  /** Controlled menu state (lifted so only one card's menu is open at a time). */
+  menuOpen?: boolean;
+  onToggleMenu?: () => void;
+  onCloseMenu?: () => void;
   width?: number | string;
-  /** Optional category badge shown below the brand (e.g. in the saved grid). */
-  badge?: string;
-  /** Image aspect ratio - varied on the feed masonry to stagger the columns. */
+  /** Image aspect ratio (defaults to 4:3). */
   aspect?: string;
 }) {
   const isPlaceholder = product.image === '/vip-logo.svg';
+  const showMenu = !!((onMoreLikeThis || onHide) && onToggleMenu);
+  // The menu is portaled to <body> (fixed to the "..." button) so it escapes the
+  // card + carousel overflow clipping ("menu shows behind the screen").
+  const menuBtnRef = useRef<HTMLButtonElement>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+  useEffect(() => {
+    if (menuOpen && menuBtnRef.current) {
+      const r = menuBtnRef.current.getBoundingClientRect();
+      setMenuPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
+    }
+  }, [menuOpen]);
   return (
     <div
       onClick={onOpen}
@@ -525,17 +1195,18 @@ function ProductCard({
       </div>
 
       {/* Favorite icon button - rounded brand corners. Saved shows a filled
-          accent-red heart; unsaved shows an outline heart. */}
+          accent-red heart; unsaved shows an outline heart. When the overflow
+          menu is present, the heart sits inboard and "..." takes the corner. */}
       <button
         onClick={(e) => { e.stopPropagation(); onToggleSave(); }}
         aria-label={saved ? 'Remove from saved' : 'Save to favorites'}
         style={{
           position: 'absolute',
           top: 8,
-          right: 8,
+          right: showMenu ? 48 : 8,
           width: 32,
           height: 32,
-          borderRadius: 12,
+          borderRadius: 100,
           background: 'rgba(20,20,20,0.72)',
           border: '1px solid rgba(255,255,255,0.12)',
           display: 'flex',
@@ -560,6 +1231,82 @@ function ProductCard({
           favorite
         </span>
       </button>
+
+      {/* Overflow "..." menu (takes the top-right corner; heart sits to its left) */}
+      {showMenu && (
+        <button
+          ref={menuBtnRef}
+          onClick={(e) => { e.stopPropagation(); onToggleMenu?.(); }}
+          aria-label="More options"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            width: 32,
+            height: 32,
+            borderRadius: 100,
+            background: menuOpen ? 'rgba(40,40,40,0.92)' : 'rgba(20,20,20,0.72)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            padding: 0,
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            WebkitTapHighlightColor: 'transparent',
+            zIndex: 6,
+          }}
+        >
+          <span className="material-symbols-rounded" style={{ fontSize: 18, color: '#e7e7e7' }} aria-hidden>
+            more_vert
+          </span>
+        </button>
+      )}
+      {showMenu && menuOpen && menuPos &&
+        createPortal(
+          <>
+            {/* Full-screen tap-away catcher */}
+            <div
+              onClick={(e) => { e.stopPropagation(); onCloseMenu?.(); }}
+              style={{ position: 'fixed', inset: 0, zIndex: 200 }}
+            />
+            <div
+              role="menu"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: 'fixed',
+                top: menuPos.top,
+                right: menuPos.right,
+                minWidth: 202,
+                zIndex: 201,
+                background: '#1f1f1f',
+                border: '1px solid rgba(255,255,255,0.09)',
+                borderRadius: 14,
+                overflow: 'hidden',
+                boxShadow: '0 16px 38px rgba(0,0,0,0.6)',
+                transformOrigin: 'top right',
+                animation: 'menuPop 130ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
+              }}
+            >
+              <MenuRow
+                icon="thumb_up"
+                label="More like this"
+                onClick={() => { onCloseMenu?.(); onMoreLikeThis?.(); }}
+              />
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+              <MenuRow
+                icon="block"
+                label="Do not recommend"
+                destructive
+                onClick={() => { onCloseMenu?.(); onHide?.(); }}
+              />
+            </div>
+          </>,
+          document.body,
+        )}
 
       {/* Meta */}
       <div style={{ padding: '12px 14px 14px' }}>
@@ -599,28 +1346,6 @@ function ProductCard({
             </span>
           )}
         </div>
-        {badge && (
-          <span
-            style={{
-              display: 'inline-block',
-              marginTop: 8,
-              maxWidth: '100%',
-              padding: '3px 9px',
-              borderRadius: 100,
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid #2a2a2a',
-              fontSize: 11,
-              fontWeight: 500,
-              color: '#bdbdbd',
-              lineHeight: '16px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {badge}
-          </span>
-        )}
       </div>
     </div>
   );
@@ -631,10 +1356,13 @@ function BottomBar({
   active,
   onHome,
   onSaved,
+  bare = false,
 }: {
   active: 'home' | 'saved';
   onHome: () => void;
   onSaved: () => void;
+  /** Drop the surface + top border when nested inside the combined chat dock. */
+  bare?: boolean;
 }) {
   const tabs: {
     icon: string;
@@ -653,14 +1381,12 @@ function BottomBar({
     <div
       style={{
         flexShrink: 0,
-        background: '#0d0d0d',
-        borderTop: '1px solid #282828',
-        paddingTop: 8,
-        paddingBottom: `calc(10px + env(safe-area-inset-bottom, 0px))`,
+        background: bare ? 'transparent' : '#0d0d0d',
+        borderTop: bare ? 'none' : '1px solid #282828',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: `8px ${PAGE}px calc(10px + env(safe-area-inset-bottom, 0px))`,
+        padding: `4px ${PAGE}px calc(10px + env(safe-area-inset-bottom, 0px))`,
       }}
     >
       {tabs.map((t) =>
@@ -772,7 +1498,7 @@ function Snackbar({
           flexShrink: 0,
           background: '#121212',
           border: 'none',
-          borderRadius: 12,
+          borderRadius: 100,
           color: '#f6f6f6',
           fontSize: 14,
           fontWeight: 500,

@@ -12,13 +12,10 @@ copy tone, and the VIP-logo placeholder rule). Styling questions → this file.
 
 ## 0. The golden rules
 
-1. **Rounded corners, always - never sharp.** No interactive button is a sharp
-   rectangle (`borderRadius: 0`).
-   - **In-content icon buttons** (card favorite, sheet/deck controls) → rounded
-     square **12px**.
-   - **Primary CTA buttons** (Continue, Explore, Ask VIP.ai) → **pill 100px**.
-   - **Floating / nav controls and the primary nav action** (bottom-bar concierge,
-     product-page back / share / heart) → **circle** (`50%`).
+1. **Fully rounded, always.** Every button and icon button uses **`borderRadius: 100`**
+   - a pill for wide buttons, a circle for square icon buttons (card favorite,
+   store favorite, product-page nav, bottom-bar concierge). Never sharp, never a
+   rounded square.
 2. **Dark, monochrome, luxury.** Near-black backgrounds, white/off-white text,
    one warm accent (`#ef4d63`) reserved for the saved/favorite heart. No blues,
    purples, or brand colors from the light-mode Figma - the app is monochrome dark.
@@ -133,28 +130,62 @@ Examples: card favorite, sheet close, deck info, thumb up/down, bottom-bar cente
 Favorite: bg `rgba(20,20,20,0.72)`, saved icon `#ef4d63` filled, unsaved `#e7e7e7`.
 
 ### Discover feed
-Top-level tab: **centered "Discover" title** (no back button, search, or subtitle),
-the onboarding banner (while incomplete), then a **Pinterest-style masonry** - two
-columns of product cards (no chips, no badges). Products are dealt alternately into
-the two columns (so categories mix); the right column is offset down `28px` and card
-image heights vary (`FEED_RATIOS`) so the layout reads uneven/staggered. (The Saved
-view keeps its chips + badges + even 2-column grid.)
+Top-level tab. The header is a **gradient-fade bar** (ChatGPT-style): a centered
+"Discover" title on a `linear-gradient(#0A0A0A -> transparent)` that is
+absolutely positioned over the scroll area (`pointer-events: none` so scrolling
+passes through), so content **dissolves as it scrolls beneath it** rather than
+hitting a hard edge. The body carries `padding-top` to clear it. Below: the
+onboarding banner (while incomplete), then three groups:
+- **Top picks for you** and **Trending** - identical treatment: a horizontal
+  **carousel** of 230px `ProductCard`s (heart + "..." menu) + "View all".
+- **Collections** - a horizontal carousel of `CollectionCard`s (+ "View all"),
+  each a **coordinated look**: one piece from each of up to four distinct wearable
+  categories (a top, shoes, a bag, an accessory) with a themed name + "N pieces".
+  Cards carry a "..." menu (no favorite).
+- **Categories** - a **2-row horizontally-scrolling list** of compact `CategoryRow`s
+  (`grid-auto-flow: column`, two rows). Each row is a list item: a 54px rounded
+  thumbnail + category name + "N items". Tapping opens the category as a list.
+
+`CollectionCard` (used by **Collections**) matches the **regular product card**
+(230px wide, 4:3 image, same height): its image is a **2x2 grid of the first four
+items** (1px even gutters, no "+N" overflow) + name + "N pieces", plus a "..." menu
+(self-contained `OverflowMenu`, portaled like the product-card menu). The
+Categories/carousel scrollers keep their horizontal padding on the **inner track**
+so the right inset survives at scroll end.
+
+The Discover bottom is just the **tab bar** (the search `ChatBar` was removed here
+as redundant; it stays on the Product Page). Products are stably shuffled
+(deterministic) so every group mixes categories. Products **without real imagery**
+(the VIP-logo placeholder) are hidden from the feed, as is anything marked "Do not
+recommend". "View all" / a collection opens a titled full-screen list.
 
 ### Saved Products view
 A **top-level tab** (heart in the bottom bar), so **no back button**. Header
-"Saved Products". Horizontal **category filter chips** at the top (`All` + each saved
-category; active = white pill), resetting to `All` each time it opens. Below: a
-**2-column grid** (Pinterest-like) of product cards, each with a **category badge**
-(pill, `rgba(255,255,255,0.06)` + `#2a2a2a` border) below the brand. The feed itself
-no longer carries a saved section - saved lives only in this tab. Category "See all"
-pages keep a back button + single-column large cards.
+"Saved Products", then a **full-width 2-segment switcher** (`Products` / `Stores`,
+pill track `#141414`, active segment filled `#f6f6f6`/`#121212`). **Products**
+shows a plain **2-column grid** of saved cards - no filter chips, no category
+badges. **Stores** is its own tab (saved boutiques). Each tab has a **centered
+empty state** (no button): one shared **skeleton illustration** (`SkeletonCards` -
+three static fanned ghost cards mimicking the real content, no animation), title,
+and subtitle. Category "See all" pages keep a back button
++ single-column large cards. The shared `CenteredEmptyState` renders these.
 
 ### Product card
 `background #0c0c0c`, `border 1px solid #282828`, `borderRadius 16`, `overflow hidden`.
 - Image area: `aspect-ratio 4/3`, `background #ececec` (both modes), image `objectFit contain`.
 - Placeholder (no asset): VIP logo, `filter brightness(0)`, `opacity 0.3` on the gray.
 - Meta: title 15/600, then brand (left, `#999`) + price (right, `#dedfe1`).
-- Favorite icon button top-right (see above).
+- Top-right controls: the **overflow "..." button** (`more_vert`) takes the
+  corner, with the **favorite** button directly to its left (both same pill
+  treatment). On menu-less cards (detail / saved grids) the heart keeps the
+  corner. Tapping "..." opens an in-card dropdown (`#1f1f1f`, `borderRadius 14`,
+  top-right anchored, `menuPop` scale-in) with **"More like this"** (`thumb_up`)
+  and **"Do not recommend"** (`block`, destructive pink `#ef8a99`). The open menu
+  is **controlled by a single lifted `openMenuId`** so only one card's menu shows
+  at a time, and any **scroll closes it immediately** (capture listener on the
+  scroll body). It is **portaled to `<body>`** with fixed positioning anchored to
+  the "..." button, so it escapes the card + carousel `overflow` clipping (never
+  hidden behind the edge). It renders on the Top-picks and Trending carousel cards.
 
 ### Snackbar / toast (reversed for prominence)
 Floats **8px above the bottom bar** (`bottom: calc(71px + safe-bottom)`, where the
@@ -172,16 +203,23 @@ Tabs: Home, Saved (**heart** icon - matches the app's heart save action), Concie
 
 ### Product Page (`src/screens/ProductPage.tsx`)
 Full-screen overlay opened by tapping any product card.
-- **Nav**: three circular icon buttons - back (left), share + heart (right,
-  heart fills `#ef4d63` when saved), "Details" centered. Circles (`50%`), bg
-  `rgba(255,255,255,0.08)`, border `#282828`.
-- **Hero**: 250px, `background #ececec`, image `objectFit contain`.
+- **Nav**: a **gradient-fade overlay** (same pattern as the Discover header) -
+  absolutely positioned, `rgba(10,10,10,.92) -> transparent`, `pointer-events:
+  none` so the hero scrolls underneath. Three circular icon buttons - back (left),
+  share + heart (right, heart fills `#ef4d63` when saved), "Details" centered.
+  Buttons use a **translucent dark fill** (`rgba(20,20,20,.55)` + blur,
+  `1px solid rgba(255,255,255,.14)`, `borderRadius 100`) so they stay legible as
+  the scrim fades over the light hero.
+- **Hero**: 300px with `padding-top` clearing the nav, `background #ececec`,
+  image `objectFit contain`.
 - **Title** 24/600 (`brand + name`), **price** 16/500 `#bdbdbd` (hidden if empty).
-- **CTAs**: pinned to a **fixed bottom action bar** (not in the scroll flow),
-  `borderTop 1px #1c1c1c`, safe-area padding. Two stacked pills - primary = filled
-  `#f6f6f6`/`#121212`; secondary = **outlined** (transparent, `1px solid #3a3a3a`).
-  The favorite snackbar raises to `bottom: calc(145px + safe)` here so it clears
-  the action bar.
+- **Primary action**: **"Explore on Official Site"** (filled pill
+  `#f6f6f6`/`#121212`) sits **inline right under the description bullets**, not in a
+  pinned bar.
+- **Floating chat**: an **"Ask about this product"** `ChatBar` floats over the
+  bottom with a **fade-up gradient** (`to top, #0A0A0A -> transparent`), like the
+  nav bar, so content scrolls underneath it. The scroll body carries bottom padding
+  to clear it; the favorite snackbar raises to `bottom: calc(80px + safe)`.
 - **Description**: paragraph + derived bullet list (category / type / gender).
 - **Spec table**: Brand / For / Category rows, label `#999` medium left, value
   `#f2f2f2` right, hairline dividers.
@@ -195,6 +233,15 @@ fallback to the brand wordmark (uppercase, letter-spaced, `#1a1a1a` on `#ececec`
 A "Nkm from you" pill tag (bottom-right) and a rounded-square favorite (top-right,
 toggles + fires the snackbar). Meta: name 16/600, tagline `#999`, then location +
 phone rows (Material icon + text).
+
+### Chat bar (`src/components/ChatBar.tsx`)
+A pill input reused with a context placeholder: **"Search for products"** on
+Discover, **"Ask about this product"** on the Product Page. A `#161616` pill
+(`borderRadius 100`, `1px solid #282828`); on the right, a **`+`** (attach) icon
+then a round button that shows a **mic** when empty and fills to `#f6f6f6` with an
+`arrow_upward` once there's text. On Discover it's part of the **combined dock**
+(input directly above the tab bar on one surface); on the Product Page it's pinned
+on its own. Prototype: send is a no-op that clears the field.
 
 ### Snackbar z-order
 The snackbar (`z 90`) sits above the product-page overlay (`z 80`) so favorite

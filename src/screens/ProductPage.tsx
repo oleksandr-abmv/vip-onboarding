@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { safeTop } from '../theme';
 import { type Product } from '../data/products';
 import { categoryConfigs, getSubcategories } from '../data/categoryConfig';
+import ChatBar from '../components/ChatBar';
 
 const PAGE = 16;
 
@@ -98,16 +99,24 @@ export default function ProductPage({ product, saved, onToggleSave, onClose, gen
         background: '#0A0A0A',
       }}
     >
-      {/* Nav bar: back / Details / share + heart */}
+      {/* Nav bar: gradient-fade overlay (matches the Discover header) so the hero
+          scrolls underneath it instead of sitting below a hard bar. */}
       <div
         style={{
-          flexShrink: 0,
-          padding: `${safeTop(10)} ${PAGE}px 10px`,
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 5,
+          padding: `${safeTop(10)} ${PAGE}px 24px`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 8,
-          position: 'relative',
+          // Scrolling passes through; the buttons re-enable pointer events.
+          pointerEvents: 'none',
+          background:
+            'linear-gradient(to bottom, rgba(10,10,10,0.92) 0%, rgba(10,10,10,0.55) 45%, rgba(10,10,10,0) 100%)',
         }}
       >
         <NavIconButton label="Back" onClick={onClose}>
@@ -120,6 +129,7 @@ export default function ProductPage({ product, saved, onToggleSave, onClose, gen
           style={{
             position: 'absolute',
             left: '50%',
+            top: `calc(env(safe-area-inset-top, 0px) + 20px)`,
             transform: 'translateX(-50%)',
             fontSize: 16,
             fontWeight: 600,
@@ -151,13 +161,24 @@ export default function ProductPage({ product, saved, onToggleSave, onClose, gen
         </div>
       </div>
 
-      {/* Scroll body */}
-      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
-        {/* Hero image */}
+      {/* Scroll body (extra bottom padding clears the floating chat input) */}
+      <div
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+          paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + 60px)`,
+        }}
+      >
+        {/* Hero image. Extra top padding keeps the product clear of the floating
+            nav overlay (the hero backdrop still runs up under the gradient). */}
         <div
           style={{
             width: '100%',
-            height: 250,
+            height: 300,
+            paddingTop: `calc(env(safe-area-inset-top, 0px) + 56px)`,
+            boxSizing: 'border-box',
             background: '#ececec',
             display: 'flex',
             alignItems: 'center',
@@ -216,6 +237,24 @@ export default function ProductPage({ product, saved, onToggleSave, onClose, gen
               ))}
             </ul>
           )}
+          {/* Primary retail action lives inline under the description (the pinned
+              bottom is now the "ask about this product" chat). */}
+          <button
+            style={{
+              width: '100%',
+              height: 48,
+              marginTop: 4,
+              background: '#f6f6f6',
+              color: '#121212',
+              border: 'none',
+              borderRadius: 100,
+              fontSize: 16,
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            Explore on Official Site
+          </button>
         </div>
 
         {/* Spec table */}
@@ -262,51 +301,28 @@ export default function ProductPage({ product, saved, onToggleSave, onClose, gen
           </div>
         </div>
 
-        <div style={{ height: 20 }} />
       </div>
 
-      {/* Pinned bottom action bar */}
+      {/* Floating "ask about this product" chat input - fades up from the bottom
+          (like the nav bar) so content scrolls underneath it. */}
       <div
         style={{
-          flexShrink: 0,
-          background: '#0A0A0A',
-          borderTop: '1px solid #1c1c1c',
-          padding: `12px ${PAGE}px calc(16px + env(safe-area-inset-bottom, 0px))`,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 5,
+          paddingTop: 24,
+          paddingBottom: `env(safe-area-inset-bottom, 0px)`,
+          // Container ignores taps; the input itself re-enables them.
+          pointerEvents: 'none',
+          background:
+            'linear-gradient(to top, #0A0A0A 0%, #0A0A0A 55%, rgba(10,10,10,0) 100%)',
         }}
       >
-        <button
-          style={{
-            width: '100%',
-            height: 48,
-            background: '#f6f6f6',
-            color: '#121212',
-            border: 'none',
-            borderRadius: 100,
-            fontSize: 16,
-            fontWeight: 500,
-            cursor: 'pointer',
-          }}
-        >
-          Explore on Official Site
-        </button>
-        <button
-          style={{
-            width: '100%',
-            height: 48,
-            background: 'transparent',
-            color: '#f6f6f6',
-            border: '1px solid #3a3a3a',
-            borderRadius: 100,
-            fontSize: 16,
-            fontWeight: 500,
-            cursor: 'pointer',
-          }}
-        >
-          Ask VIP.ai
-        </button>
+        <div style={{ pointerEvents: 'auto' }}>
+          <ChatBar placeholder="Ask about this product" />
+        </div>
       </div>
     </div>
   );
@@ -327,11 +343,17 @@ function NavIconButton({
       onClick={onClick}
       aria-label={label}
       style={{
+        // Re-enable taps (the gradient nav container sets pointer-events: none).
+        pointerEvents: 'auto',
         width: 40,
         height: 40,
-        borderRadius: '50%',
-        background: 'rgba(255,255,255,0.08)',
-        border: '1px solid #282828',
+        borderRadius: 100,
+        // Translucent dark fill so the button stays legible over both the dark
+        // scrim and the light hero as the gradient fades.
+        background: 'rgba(20,20,20,0.55)',
+        border: '1px solid rgba(255,255,255,0.14)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -441,7 +463,7 @@ function StoreCard({
           right: 8,
           width: 32,
           height: 32,
-          borderRadius: 12,
+          borderRadius: 100,
           background: 'rgba(20,20,20,0.72)',
           border: '1px solid rgba(255,255,255,0.12)',
           display: 'flex',
