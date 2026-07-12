@@ -2,7 +2,7 @@ import { useMemo, useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import PRODUCTS, { type Product } from '../data/products';
 import { categoryConfigs } from '../data/categoryConfig';
-import ProductPage from './ProductPage';
+import ProductPage, { type SavedStore } from './ProductPage';
 
 const PAGE = 16; // horizontal page margin, matches Figma page/margins token
 
@@ -99,6 +99,8 @@ export default function FeedScreen({
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
   // Saved view sub-tab: saved products vs saved stores.
   const [savedTab, setSavedTab] = useState<'products' | 'stores'>('products');
+  // Stores saved from a product page (shown in the Saved > Stores tab).
+  const [savedStores, setSavedStores] = useState<SavedStore[]>([]);
   // Which card's "..." menu is open (single source of truth so only one shows).
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
@@ -176,6 +178,24 @@ export default function FeedScreen({
     });
   };
   const moreLikeThis = () => showSnack('We will show more like this', 'Got it', () => setSnack(null));
+  const toggleStore = (store: SavedStore) => {
+    const willSave = !savedStores.some((s) => s.name === store.name);
+    setSavedStores((prev) =>
+      willSave ? [...prev, store] : prev.filter((s) => s.name !== store.name),
+    );
+    if (willSave) {
+      showSnack('Saved to your list', 'View', () => {
+        setSnack(null);
+        setSavedTab('stores');
+        setDetail({ kind: 'saved' });
+      });
+    } else {
+      showSnack('Removed from your list', 'Undo', () => {
+        setSavedStores((prev) => (prev.some((s) => s.name === store.name) ? prev : [...prev, store]));
+        setSnack(null);
+      });
+    }
+  };
 
   // ── "See all" detail view (per-category / saved grid) ─────────────────────
   if (detail) {
@@ -201,10 +221,18 @@ export default function FeedScreen({
           {/* Saved view splits into Products / Stores via a full-width switcher. */}
           {isSavedView && <SavedSegments tab={savedTab} onChange={setSavedTab} />}
           {isSavedView && savedTab === 'stores' ? (
-            <CenteredEmptyState
-              title="No saved stores yet"
-              subtitle="Save a boutique from any product page and it will show up here."
-            />
+            savedStores.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: `12px ${PAGE}px ${PAGE}px` }}>
+                {savedStores.map((store) => (
+                  <SavedStoreCard key={store.name} store={store} onRemove={() => toggleStore(store)} />
+                ))}
+              </div>
+            ) : (
+              <CenteredEmptyState
+                title="No saved stores yet"
+                subtitle="Save a boutique from any product page and it will show up here."
+              />
+            )
           ) : detailItems.length > 0 ? (
             <div style={gridStyle}>
               {detailItems.map((product) => (
@@ -248,6 +276,8 @@ export default function FeedScreen({
             onToggleSave={() => toggleSave(openProduct.name)}
             onClose={() => setOpenProduct(null)}
             gender={gender}
+            savedStores={savedStores.map((s) => s.name)}
+            onToggleStore={toggleStore}
           />
         )}
       </div>
@@ -421,34 +451,49 @@ export default function FeedScreen({
               </Section>
             )}
 
-            {/* Categories - compact list rows, two per column, horizontal scroll */}
+            {/* Categories - full-width stack when few, else a 2-row horizontal scroll */}
             {collections.length > 0 && (
               <section style={{ paddingTop: 8, paddingBottom: 8 }}>
                 <SectionHeader title="Categories" />
-                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridAutoFlow: 'column',
-                      gridTemplateRows: 'auto auto',
-                      gridAutoColumns: 'max-content',
-                      gap: 10,
-                      // Padding on the grid (not the scroller) so the right inset
-                      // survives at scroll end.
-                      padding: `0 ${PAGE}px`,
-                    }}
-                  >
+                {collections.length <= 2 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: `0 ${PAGE}px` }}>
                     {collections.map((c) => (
                       <CategoryRow
                         key={c.id}
                         name={c.name}
                         count={c.items.length}
                         cover={c.items[0].image}
+                        width="100%"
                         onOpen={() => setDetail({ kind: 'list', title: c.name, items: c.items })}
                       />
                     ))}
                   </div>
-                </div>
+                ) : (
+                  <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridAutoFlow: 'column',
+                        gridTemplateRows: 'auto auto',
+                        gridAutoColumns: 'max-content',
+                        gap: 10,
+                        // Padding on the grid (not the scroller) so the right inset
+                        // survives at scroll end.
+                        padding: `0 ${PAGE}px`,
+                      }}
+                    >
+                      {collections.map((c) => (
+                        <CategoryRow
+                          key={c.id}
+                          name={c.name}
+                          count={c.items.length}
+                          cover={c.items[0].image}
+                          onOpen={() => setDetail({ kind: 'list', title: c.name, items: c.items })}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </section>
             )}
           </>
@@ -478,7 +523,8 @@ export default function FeedScreen({
           onToggleSave={() => toggleSave(openProduct.name)}
           onClose={() => setOpenProduct(null)}
           gender={gender}
-          onNotify={showSnack}
+          savedStores={savedStores.map((s) => s.name)}
+          onToggleStore={toggleStore}
         />
       )}
     </div>
@@ -837,11 +883,13 @@ function CategoryRow({
   count,
   cover,
   onOpen,
+  width = 208,
 }: {
   name: string;
   count: number;
   cover: string;
   onOpen: () => void;
+  width?: number | string;
 }) {
   return (
     <div
@@ -850,7 +898,7 @@ function CategoryRow({
         display: 'flex',
         alignItems: 'center',
         gap: 12,
-        width: 208,
+        width,
         padding: 8,
         background: '#0c0c0c',
         border: '1px solid #282828',
@@ -898,6 +946,137 @@ function CategoryRow({
         <span style={{ fontSize: 13, fontWeight: 400, color: '#999', lineHeight: '18px' }}>
           {count} items
         </span>
+      </div>
+    </div>
+  );
+}
+
+// ── Saved store card (full-width; shown in the Saved > Stores tab) ───────────
+function SavedStoreCard({ store, onRemove }: { store: SavedStore; onRemove: () => void }) {
+  const [imgError, setImgError] = useState(false);
+  return (
+    <div
+      style={{
+        position: 'relative',
+        background: '#0c0c0c',
+        border: '1px solid #282828',
+        borderRadius: 16,
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          height: 150,
+          background: '#ececec',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {imgError ? (
+          <span
+            style={{
+              fontSize: 19,
+              fontWeight: 600,
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              color: '#1a1a1a',
+              textAlign: 'center',
+              padding: '0 20px',
+            }}
+          >
+            {store.brand}
+          </span>
+        ) : (
+          <img
+            src={store.image}
+            alt={store.name}
+            loading="lazy"
+            onError={() => setImgError(true)}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        )}
+        <span
+          style={{
+            position: 'absolute',
+            right: 8,
+            bottom: 8,
+            background: 'rgba(20,20,20,0.82)',
+            color: '#f2f2f2',
+            fontSize: 12,
+            fontWeight: 500,
+            padding: '3px 8px',
+            borderRadius: 100,
+            backdropFilter: 'blur(4px)',
+          }}
+        >
+          {store.distance}
+        </span>
+      </div>
+      <button
+        onClick={onRemove}
+        aria-label="Remove store from saved"
+        style={{
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          width: 32,
+          height: 32,
+          borderRadius: 100,
+          background: 'rgba(20,20,20,0.72)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          padding: 0,
+          backdropFilter: 'blur(4px)',
+          WebkitTapHighlightColor: 'transparent',
+        }}
+      >
+        <span
+          className="material-symbols-rounded"
+          style={{ fontSize: 18, fontVariationSettings: "'wght' 500, 'FILL' 1", color: '#ef4d63' }}
+          aria-hidden
+        >
+          favorite
+        </span>
+      </button>
+      <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <p
+          style={{
+            fontSize: 16,
+            fontWeight: 600,
+            color: '#f7f7f7',
+            lineHeight: '20px',
+            margin: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {store.name}
+        </p>
+        <p style={{ fontSize: 14, color: '#999', lineHeight: '18px', margin: 0 }}>{store.tagline}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+          <span className="material-symbols-rounded" style={{ fontSize: 16, color: '#cfcfcf', flexShrink: 0 }} aria-hidden>
+            location_on
+          </span>
+          <span
+            style={{
+              fontSize: 14,
+              color: '#dedede',
+              lineHeight: '20px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {store.address}
+          </span>
+        </div>
       </div>
     </div>
   );

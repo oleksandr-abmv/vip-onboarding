@@ -143,6 +143,8 @@ onboarding banner (while incomplete), then three groups:
   categories (a top, shoes, a bag, an accessory) with a themed name + "N pieces".
   Cards carry a "..." menu (no favorite).
 - **Categories** - a **2-row horizontally-scrolling list** of compact `CategoryRow`s
+  (thumbnail + name + count); when there are **only two**, they render **full-width
+  stacked** instead of scrolling.
   (`grid-auto-flow: column`, two rows). Each row is a list item: a 54px rounded
   thumbnail + category name + "N items". Tapping opens the category as a list.
 
@@ -164,7 +166,9 @@ A **top-level tab** (heart in the bottom bar), so **no back button**. Header
 "Saved Products", then a **full-width 2-segment switcher** (`Products` / `Stores`,
 pill track `#141414`, active segment filled `#f6f6f6`/`#121212`). **Products**
 shows a plain **2-column grid** of saved cards - no filter chips, no category
-badges. **Stores** is its own tab (saved boutiques). Each tab has a **centered
+badges. **Stores** is its own tab: boutiques saved via the heart on a product
+page's store card persist here as full-width `SavedStoreCard`s (storefront photo +
+name + tagline + address, filled heart to remove). Each empty tab has a **centered
 empty state** (no button): one shared **skeleton illustration** (`SkeletonCards` -
 three static fanned ghost cards mimicking the real content, no animation), title,
 and subtitle. Category "See all" pages keep a back button

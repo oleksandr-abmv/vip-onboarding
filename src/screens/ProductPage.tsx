@@ -12,8 +12,9 @@ interface ProductPageProps {
   onToggleSave: () => void;
   onClose: () => void;
   gender: string | null;
-  /** Fire a snackbar (shared with the feed) for favorite actions. */
-  onNotify?: (message: string, actionLabel: string, onAction: () => void) => void;
+  /** Names of stores already saved, and a toggle that persists them upstream. */
+  savedStores?: string[];
+  onToggleStore?: (store: SavedStore) => void;
 }
 
 type Store = {
@@ -24,6 +25,9 @@ type Store = {
   distance: string;
   image: string;
 };
+
+/** A store plus its brand, persisted so it can render in the Saved > Stores tab. */
+export type SavedStore = Store & { brand: string };
 
 // Real storefront photos pulled from the internet (keyword-matched, stable per
 // `lock`). Falls back to the brand wordmark if a photo fails to load.
@@ -55,7 +59,7 @@ function storesFor(product: Product): Store[] {
   ];
 }
 
-export default function ProductPage({ product, saved, onToggleSave, onClose, gender, onNotify }: ProductPageProps) {
+export default function ProductPage({ product, saved, onToggleSave, onClose, gender, savedStores, onToggleStore }: ProductPageProps) {
   const isPlaceholder = product.image === '/vip-logo.svg';
   const categoryName = categoryConfigs[product.category]?.name || product.category;
 
@@ -296,7 +300,13 @@ export default function ProductPage({ product, saved, onToggleSave, onClose, gen
             }}
           >
             {stores.map((store) => (
-              <StoreCard key={store.name} store={store} brand={product.brand} onNotify={onNotify} />
+              <StoreCard
+                key={store.name}
+                store={store}
+                brand={product.brand}
+                saved={savedStores?.includes(store.name) ?? false}
+                onToggle={() => onToggleStore?.({ ...store, brand: product.brand })}
+              />
             ))}
           </div>
         </div>
@@ -372,19 +382,15 @@ function NavIconButton({
 function StoreCard({
   store,
   brand,
-  onNotify,
+  saved,
+  onToggle,
 }: {
   store: Store;
   brand: string;
-  onNotify?: (message: string, actionLabel: string, onAction: () => void) => void;
+  saved: boolean;
+  onToggle: () => void;
 }) {
-  const [saved, setSaved] = useState(false);
   const [imgError, setImgError] = useState(false);
-  const toggle = () => {
-    const next = !saved;
-    setSaved(next);
-    onNotify?.(next ? 'Saved to your list' : 'Removed from your list', 'Undo', () => setSaved(!next));
-  };
   return (
     <div
       style={{
@@ -455,7 +461,7 @@ function StoreCard({
 
       {/* Favorite icon button */}
       <button
-        onClick={toggle}
+        onClick={onToggle}
         aria-label={saved ? 'Remove store from saved' : 'Save store'}
         style={{
           position: 'absolute',
