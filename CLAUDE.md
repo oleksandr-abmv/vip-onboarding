@@ -192,8 +192,8 @@ Once the user reaches the feed, `FeedScreen` owns the tab state and everything t
 tabs share. Anything two tabs both touch belongs here, not inside a tab:
 
 - `tab: 'home' | 'menu' | 'chat'` - `home` also carries the detail views.
-- `memoryEnabled: boolean`, `memoryFacts: MemoryFact[]` - **Memory**. The Menu
-  tab edits them (Memory sheet, Manage Memory) and the Chat tab writes to them,
+- `memoryEnabled: boolean`, `memoryFacts: MemoryFact[]` - **Data Memory**. The Menu
+  tab edits them (Data Memory sheet, Manage Data Memory) and the Chat tab writes to them,
   so both must read the same store. See `src/data/memory.ts`.
 - `chatMessages`, `chatRatings` - the concierge thread. Held here so switching tabs
   does not discard the conversation.

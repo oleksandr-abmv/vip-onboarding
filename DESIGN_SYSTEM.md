@@ -252,20 +252,20 @@ stack of labelled groups on `#101111`, `gap 16`, page margin 16.
   pill (48px, `#f6f6f6`/`#121212`).
 - **Group**: a 16/400 `#f6f6f6` label, then an `#1b1b1c` `radius 16` card padded
   `8px 12px` holding rows separated by `gap 8` (no dividers). Groups:
-  **Personalization** (Appearance, Language, Memory, Haptic feedback),
+  **Personalization** (Appearance, Language, Data Memory, Haptic feedback),
   **Support & Legal** (Legal, Share your feedback, Need help? Contact us),
   **Account** (Sign out, Delete account).
 - **Row**: 24px `<MIcon />` + 16/400 label + optional 12/400 `#f4f5f7` value +
   `keyboard_arrow_right`, `padding 12px 0`. Destructive rows tint icon, label, and
   chevron `#dc8589`.
 - **Row icons** (Figma "Settings", node 5380-6999 - Material Symbols names taken
-  verbatim from the design): Appearance `routine`, Language `language`, Memory
+  verbatim from the design): Appearance `routine`, Language `language`, Data Memory
   `menu_book`, Haptic feedback `vibration`, Legal `balance`, Share your feedback
   `feedback`, Need help `help`, Sign out `logout`, Delete account `delete`.
 - **Toggle** (Haptic feedback, Enable Memory): 52x32 track, `radius 100`, 24px
   thumb `#252526`; off `#9a979b`, on `#f6f6f6` (same white as the CTA pill), 200ms
   slide. Presentational `<Toggle>`; the wrapping control owns `role="switch"`.
-- **Sheets**: Appearance, Language, and Memory open `<Sheet>` (below). Delete
+- **Sheets**: Appearance, Language, and Data Memory open `<Sheet>` (below). Delete
   account opens the centered `<Dialog>` instead.
 - **Footer**: "VIP AI V1.0", centered, 12/`16px`, `#f4f5f7` at 60% opacity.
 - Sign out / Delete account / the guest CTA all return to **Welcome**.
@@ -293,11 +293,11 @@ destructive confirmations (delete memory, delete account).
 - Motion: `dialogPop` 240ms - the keyframe carries the `translateY(-50%)` through,
   since that is what centers the card.
 
-### Memory (`src/data/memory.ts`, `src/screens/MemoryScreen.tsx`)
+### Data Memory (`src/data/memory.ts`, `src/screens/MemoryScreen.tsx`)
 Figma "Memory" section (node 5381-8698). Facts the concierge keeps about the user.
 State lives in `FeedScreen` so the Menu tab and the Chat tab share one store.
-- **Memory sheet** (`src/components/MemorySheet.tsx`, Figma nodes 5303-20603 "[On]"
-  and 5385-13776 "[Off]"): a **`full`** `<Sheet>` titled "Memory". "Enable Memory"
+- **Data Memory sheet** (`src/components/MemorySheet.tsx`, Figma nodes 5303-20603 "[On]"
+  and 5385-13776 "[Off]"): a **`full`** `<Sheet>` titled "Data Memory". "Enable Memory"
   row (16/22 label + 14/20 subtitle + `<Toggle>`, `padding 12px 8px`) then a
   **pill** outline **Manage Memory** button (48px). Row and button share a 28px
   optical margin (sheet padding 20 + the row's own 8). Reached from Menu >
@@ -305,7 +305,7 @@ State lives in `FeedScreen` so the Menu tab and the Chat tab share one store.
   The Menu row shows `On` / `Off` as its value.
 - **Off is "paused", not "locked"**: Manage Memory stays enabled and a 14/20
   centred note reads "Memory is paused. You still can access and manage your data."
-- **Manage Memory** (Figma node 5381-8376): full-screen push (`z 200`,
+- **Manage Data Memory** (Figma node 5381-8376): full-screen push (`z 200`,
   `screenSlideInRight`) over **whichever tab opened it**, so Back returns there.
   Header carries a circular back and a circular `more_horiz`, plus the subtitle
   "Updated <relative>".
@@ -313,7 +313,7 @@ State lives in `FeedScreen` so the Menu tab and the Chat tab share one store.
   **Maisons & brands**, **Preferences**, **Places** - inside one `radius 16`
   `#1b1b1c` card, `padding 16`, `gap 20`. Each group is a 16/20/500 heading plus a
   **14/20** paragraph joining that group's facts. Empty groups are dropped.
-- **`more_horiz` menu** (`<ContextualMenu>`, Figma node 5385-13724): "Update data"
+- **`more_horiz` menu** (`<ContextualMenu>`, Figma node 5385-13724): "Update Data Memory"
   (`refresh`) and "Delete all memory" (`delete`), both on textPrimary - the warning
   is left to the dialog.
 - **Prompt field**: `<BottomDock>` with `showAttach={false}` and the placeholder
@@ -354,7 +354,7 @@ tab does not discard the conversation.
 - **Thinking**: three 6px dots on `typingDot`, 700ms before the reply lands. If the
   user leaves the tab first the reply is delivered immediately rather than dropped.
 - With memory **off** a remember-style message gets no chip, and the reply points
-  at Menu > Memory instead of pretending it saved.
+  at Settings > Data Memory instead of pretending it saved.
 
 ### Product Page (`src/screens/ProductPage.tsx`)
 Full-screen overlay opened by tapping any product card.
@@ -487,7 +487,7 @@ Uniform VIP logotype (`/vip-logo.svg`) - never per-item icons. On dark: white lo
 
 - Tokens: `src/theme.ts` (colors, `radii`, spacing, animation, safe-area helpers)
 - Feed / cards / snackbar / bottom bar / tab + memory state: `src/screens/FeedScreen.tsx`
-- Memory store + intent parsing: `src/data/memory.ts`
+- Data Memory store + intent parsing: `src/data/memory.ts`
 - Swipe deck, thumb & icon buttons: `src/screens/RefineYourTaste.tsx`
 - Flow, nav, progress, onboarding %: `src/App.tsx`
 - Flow logic, copy tone, placeholder rule, gender/lifestyle branches: `CLAUDE.md`

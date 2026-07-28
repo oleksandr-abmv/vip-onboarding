@@ -12,7 +12,7 @@ import { screenStyle, bodyStyle, Header } from './screenChrome';
 // signed-in-without-a-name, and guest variants. Layout is a stack of labelled
 // groups, each an `#1b1b1c` card of list rows, closed by the version footer.
 //
-// Rows that carry a value (Appearance, Language, Memory) open a bottom
+// Rows that carry a value (Appearance, Language, Data Memory) open a bottom
 // sheet; Haptic feedback is an inline toggle; the rest are chevron rows.
 
 const PAGE = 16;
@@ -91,7 +91,7 @@ export default function MenuScreen({
             <Row icon="language" label="Language" value={language} onClick={() => setSheet('language')} />
             <Row
               icon="menu_book"
-              label="Memory"
+              label="Data Memory"
               value={memoryEnabled ? 'On' : 'Off'}
               onClick={() => setSheet('memory')}
             />

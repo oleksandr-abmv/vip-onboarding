@@ -15,14 +15,14 @@ import {
   type MemoryFact,
 } from '../data/memory';
 
-// ─── Manage Memory ───────────────────────────────────────────────────────────
+// ─── Manage Data Memory ───────────────────────────────────────────────────────────
 //
 // Figma: "Settings / Manage Memory" (node 5381-8376), its `more_horiz` menu
 // (node 5385-13577) and empty state (node 5381-11305).
 //
 // Facts are grouped under four headings inside one `radius 16` card; each group
 // reads as a paragraph rather than a list of sentences. The header carries a
-// `more_horiz` that opens Update data / Delete all memory.
+// `more_horiz` that opens Update Data Memory / Delete all memory.
 
 const SURFACE = '#1b1b1c';
 const TEXT_PRIMARY = '#f6f6f6';
@@ -42,7 +42,7 @@ export default function MemoryScreen({
   onAdd: (fact: MemoryFact) => void;
   onForget: (ids: string[]) => void;
   onClearAll: () => void;
-  /** "Update data" - re-reads the store and stamps it as just refreshed. */
+  /** "Update Data Memory" - re-reads the store and stamps it as just refreshed. */
   onRefresh: () => void;
   onClose: () => void;
   /** Toast, so the user gets confirmation of what the prompt field just did. */
@@ -89,7 +89,7 @@ export default function MemoryScreen({
       }}
     >
       <Header
-        title="Manage Memory"
+        title="Manage Data Memory"
         subtitle={updatedAt ? `Updated ${relativeTime(updatedAt)}` : 'Nothing saved yet'}
         // Both header controls are the bordered `buttonIcon` in the design, so
         // the leading slot takes one too rather than the bare back arrow.
@@ -121,7 +121,7 @@ export default function MemoryScreen({
                 padding: 16,
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 20,
+                gap: 16,
               }}
             >
               {groups.map((g) => (
@@ -194,7 +194,7 @@ export default function MemoryScreen({
           items={[
             {
               icon: 'refresh',
-              label: 'Update data',
+              label: 'Update Data Memory',
               onClick: () => {
                 onRefresh();
                 onNotice('Memory refreshed');

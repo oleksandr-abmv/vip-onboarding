@@ -47,7 +47,7 @@ export default function ContextualMenu({
           top,
           right,
           zIndex: 211,
-          minWidth: 207,
+          minWidth: 225,
           background: SURFACE,
           border: `1px solid ${BORDER}`,
           borderRadius: theme.radii.cardSm,
