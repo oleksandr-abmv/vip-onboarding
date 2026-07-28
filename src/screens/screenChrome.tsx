@@ -33,14 +33,21 @@ export function Header({
   title,
   subtitle,
   onBack,
+  left,
   right,
+  height = 64,
 }: {
   /** Plain string for most screens; a node when the title carries chrome of its
       own (the Chat tab's "Concierge" picker). */
   title: React.ReactNode;
   subtitle?: string;
   onBack?: () => void;
+  /** Leading control, replacing the plain back arrow (the Chat tab's new-chat
+      button). Ignored when `onBack` is set. */
+  left?: React.ReactNode;
   right?: React.ReactNode;
+  /** Figma navBar is 56px; the plain title header stays at 64. */
+  height?: number;
 }) {
   return (
     <div
@@ -50,7 +57,7 @@ export function Header({
         left: 0,
         right: 0,
         zIndex: 20,
-        height: `calc(env(safe-area-inset-top, 0px) + 64px)`,
+        height: `calc(env(safe-area-inset-top, 0px) + ${height}px)`,
         paddingTop: `env(safe-area-inset-top, 0px)`,
         display: 'flex',
         alignItems: 'center',
@@ -90,6 +97,11 @@ export function Header({
           </span>
         </button>
       )}
+      {!onBack && left && (
+        <span style={{ pointerEvents: 'auto', position: 'absolute', left: 16, top: `calc(env(safe-area-inset-top, 0px) + 8px)` }}>
+          {left}
+        </span>
+      )}
       <span
         style={{
           position: 'absolute',
@@ -111,7 +123,14 @@ export function Header({
       </span>
 
       {right && (
-        <span style={{ pointerEvents: 'auto', position: 'absolute', right: 16, top: `calc(env(safe-area-inset-top, 0px) + 16px)` }}>
+        <span
+          style={{
+            pointerEvents: 'auto',
+            position: 'absolute',
+            right: 16,
+            top: `calc(env(safe-area-inset-top, 0px) + ${height === 56 ? 8 : 16}px)`,
+          }}
+        >
           {right}
         </span>
       )}
@@ -119,15 +138,19 @@ export function Header({
   );
 }
 
-/** 32px rounded-square icon button - the header/sheet control shape. */
+/**
+ * Figma `buttonIcon` - a bordered rounded square, not a filled circle.
+ * 40px / `radius 12` (radiusButtonIconLarge) is the nav-bar size; the 32px /
+ * `radius 8` variant lives in components/Sheet.tsx as `sheetIconButtonStyle`.
+ */
 export const iconButtonStyle: React.CSSProperties = {
-  width: 32,
-  height: 32,
+  width: 40,
+  height: 40,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  background: '#2a2a2a',
-  border: 'none',
+  background: '#101111',
+  border: '1px solid #444547',
   borderRadius: 12,
   cursor: 'pointer',
   padding: 0,

@@ -204,13 +204,23 @@ Action button: `background #121212`, `color #f6f6f6`, `borderRadius 12`.
 Auto-dismiss ~3.6s. Save → "Saved to your list" / **View**; remove → "Removed from
 your list" / **Undo**.
 
-### Bottom bar
-`background #0d0d0d`, `borderTop 1px solid #282828`, 5 flat items with a **label
-under each icon** (no center circle). Active icon + label `#fff` (icon `FILL 1`),
-inactive `#8b8b8b`. Icon 24px, label 12/`16px`. Tabs: **Home** (`home`), **Alerts**
-(`notifications`), **Chat** (`chat_bubble`), **History** (`history`), **Menu**
-(`menu`). **Home and Menu** are wired; Alerts / Chat / History are still visual
-placeholders. (Figma `bottomBarLocal`.)
+### Bottom dock (`src/components/BottomDock.tsx`)
+Figma `bottomBarLocal` (node 4483-34633): **the prompt field and the tab bar are
+one surface**, not two. `#0d0d0d`, `radius 8px 8px 0 0`, `borderTop 1px solid
+#282828`, `paddingTop 8`, `gap 4`, bottom padding `calc(8px + safe-area)`.
+- **Prompt field**: `height 48`, **`radius 12`** (Figma radiusInput_Dropdown - a
+  rounded rectangle, *not* a pill), `#161616` on `1px solid #282828`, padding
+  `4px 4px 4px 12px`, `gap 8`. Placeholder 16/22 `#8b8b8b`.
+  Inside it, two **40px `radius 12`** buttons: `add` (no fill) then a mic that
+  fills `#252526` → `#f6f6f6` with `arrow-up` once there's text.
+- **Tab bar**: `padding 0 16`, `justify-content: space-between`, each item `width
+  40` / `padding 4px 12px` / `gap 4`, icon 24px + label 12/`16px`. Active icon and
+  label `#f6f6f6` (icon `FILL 1`), inactive `#8b8b8b`. Tabs: **Home** (`home`),
+  **Alerts** (`notifications`), **Chat** (`chat_bubble`), **History** (`history`),
+  **Menu** (`menu`). Home, Chat and Menu are wired; Alerts / History are still
+  visual placeholders.
+- Three shapes from one component: **prompt + tabs** (Chat), **prompt only**
+  (Manage Memory, Figma node 5381-8383), **tabs only** (Discover, Menu).
 
 ### Screen chrome (`src/screens/screenChrome.tsx`)
 `screenStyle`, `bodyStyle`, `Header`, and `iconButtonStyle` - the shell every
@@ -218,10 +228,12 @@ top-level tab and detail view shares (full-bleed column, scroll body running und
 the gradient-fade header). Lives in its own module so tabs can use it without
 importing FeedScreen.
 - **Header** takes `title` (string or node), optional `subtitle` (14/20 `#999`,
-  stacked under the title and centered), optional `onBack`, and optional `right`
-  for a trailing control. Title-only callers render exactly as before.
-- **`iconButtonStyle`**: the 32px rounded square (`radius 12`, `#2a2a2a`) used for
-  header and sheet controls.
+  stacked under the title and centered), `onBack`, `left` (a leading control that
+  replaces the plain back arrow), `right`, and `height` (56 for the Figma navBar,
+  64 for the plain title header). Title-only callers render exactly as before.
+- **`iconButtonStyle`** - the Figma `buttonIcon`: a **bordered rounded square**,
+  40px / `radius 12` / `#101111` on `1px solid #444547`. Never a filled circle.
+  The 32px / `radius 8` variant is `sheetIconButtonStyle` in `components/Sheet.tsx`.
 
 ### Menu tab (`src/screens/MenuScreen.tsx`)
 Top-level tab (Figma "Menu", node 497-13232), so **no back button**. Page is a
@@ -248,11 +260,21 @@ stack of labelled groups on `#101111`, `gap 16`, page margin 16.
 - **Toggle** (Haptic feedback, Enable Memory): 52x32 track, `radius 100`, 24px
   thumb `#252526`; off `#9a979b`, on `#f6f6f6` (same white as the CTA pill), 200ms
   slide. Presentational `<Toggle>`; the wrapping control owns `role="switch"`.
-- **Sheets**: Appearance, Language, and Data Memory open bottom sheets reusing the
-  onboarding sheet shell (dimmed backdrop, `#0d0d0d`, `radius 20px 20px 0 0`,
-  centered title + close). Delete account opens the centered `<Dialog>` instead.
+- **Sheets**: Appearance, Language, and Data Memory open `<Sheet>` (below). Delete
+  account opens the centered `<Dialog>` instead.
 - **Footer**: "VIP AI V1.0", centered, 12/`16px`, `#f4f5f7` at 60% opacity.
 - Sign out / Delete account / the guest CTA all return to **Welcome**.
+
+### Bottom sheet (`src/components/Sheet.tsx`)
+Figma BottomSheetHeader (node 5303-20609) on a top-rounded panel.
+- Panel `#0d0d0d`, **`radius 12px 12px 0 0`**, backdrop `rgba(0,0,0,0.75)`,
+  `sheetSlideUp` 300ms.
+- **Header**: `padding 16px 16px 8px`, a 32px slot on each side so the title stays
+  optically centred, title **16/20/500**, and a `sheetIconButtonStyle` close
+  (32px, `radius 8`, `#101111` on `1px solid #444547`). `onBack` fills the leading
+  slot with the same control.
+- **`full`** raises the panel to `safe-area + 8` instead of hugging its content -
+  the height the Memory sheet is drawn at in the design (744 of 806pt).
 
 ### Confirm dialog (`src/components/Dialog.tsx`)
 Figma "Dialog" (node 5381-8672). Centered card, **not** a bottom sheet - for
@@ -269,32 +291,48 @@ destructive confirmations (delete memory, delete account).
 ### Data Memory (`src/data/memory.ts`, `src/screens/MemoryScreen.tsx`)
 Figma "Memory" section (node 5381-8698). Facts the concierge keeps about the user.
 State lives in `FeedScreen` so the Menu tab and the Chat tab share one store.
-- **Memory sheet** (Menu > Data Memory): "Enable Memory" row (16/22 label + 14/20
-  subtitle + `<Toggle>`) and a full-width outline **Manage Memory** pill, disabled
-  while memory is off. The Menu row shows `On` / `Off` as its value.
+- **Memory sheet** (`src/components/MemorySheet.tsx`, Figma node 5303-20603): a
+  **`full`** `<Sheet>` titled "Memory". "Enable Memory" row (16/22 label + 14/20
+  subtitle + `<Toggle>`, `padding 12px 8px`) then a **`radius 16`** outline
+  **Manage Memory** button (48px), disabled while memory is off. Row and button
+  share a 28px optical margin (sheet padding 20 + the row's own 8). Reached from
+  Menu > Data Memory *and* from the chat's "Memory updated" chip, so it lives in
+  `components/`. The Menu row shows `On` / `Off` as its value.
 - **Manage Memory**: full-screen push (`z 200`, `screenSlideInRight`). Header is
-  `Header` with `subtitle` "Updated <relative>" and a `trash` icon button on the
-  right (disabled when empty). Facts render as 16/22 `#f4f5f7` paragraphs, `gap 12`,
-  padded `12px 20px`. Empty state: `book-open` glyph + "Nothing saved yet".
-- **Prompt field**: `<ChatBar>` with `showAttach={false}` and the placeholder
+  `Header` with `subtitle` "Updated <relative>" and a `sheetIconButtonStyle` trash
+  on the right (disabled when empty). Facts render as 16/22 `#f4f5f7` paragraphs,
+  `gap 12`, padded `12px 20px`. Empty state: `book-open` glyph + "Nothing saved yet".
+- **Prompt field**: `<BottomDock>` with `showAttach={false}` and the placeholder
   "Ask to add or update". Everything typed is a memory command - a leading
-  "forget/remove/delete" drops matching facts, anything else adds one.
+  "forget/remove/delete" drops matching facts, anything else adds one. Re-saying a
+  fact refreshes its timestamp rather than stacking a duplicate.
 - **Delete**: the trash opens `<Dialog>` ("Are you sure you want to delete your
   memory?" / "Delete my data").
 
 ### Chat tab (`src/screens/ChatScreen.tsx`)
-Figma "Chat / Memory" (node 5303-20889). The concierge thread, wired to the third
-bottom-bar tab. Thread + thumb state live in `FeedScreen` so leaving the tab does
-not discard the conversation.
-- **Header**: `Header` with a node title (VIP mark + "Concierge" + `chevron-down`)
-  and two 32px icon buttons on the right: new chat (`edit`) and `more-horizontal`.
+Figma "Chat Idle" (node 4483-34608) for the empty state and "Chat / Memory" (node
+5303-20889) for a thread. Thread + thumb state live in `FeedScreen` so leaving the
+tab does not discard the conversation.
+- **navBar** (`Header height={56}`): leading new-chat `buttonIcon` (`edit`), a node
+  title of VIP mark 24px + "Concierge" 16/20/500 + `chevron-down` 18px, and two
+  trailing `buttonIcon`s - `temporary-chat` and `more-horizontal`. All three are
+  the 40px bordered rounded square.
+- **Idle state**: heading **24/28/600** "What would you like arranged?" and body
+  16/22 centred in the free space, then four **Chat Suggestions** parked above the
+  dock - `height 46`, **`radius 100`** (a pill, unlike the prompt field), `#1b1b1c`,
+  `padding 12`, `gap 8`: 22px icon + 16/22 label + 22px `chevron-right`. Icons:
+  `search`, `apparel`, `ai`, `palette`.
 - **User bubble**: right-aligned, `#1b1b1c`, `radius 12px 12px 0 12px` (the square
   corner points at the sender), padding 12, max-width 85%.
 - **Assistant turn**: 28px `#02110c` avatar + "VIP.ai Concierge" 14/20, then the
-  optional **"Memory updated" chip** (40px tall, `radius 16`, `1px solid #313131`
-  on `#141414`, `check` icon + 14/20 label), the message 16/22, and a 36px action
-  row: `copy`, `sync`, `like`, `dislike`, `more-horizontal`. Active thumb fills
+  optional **"Memory updated" chip**, the message 16/22, and a 36px action row:
+  `copy`, `sync`, `like`, `dislike`, `more-horizontal`. Active thumb fills
   `rgba(246,246,246,0.12)`.
+- **Memory chip** (Figma Chip, node 5303-21143): 40px tall, `radius 16`, `1px solid
+  #444547` on `#101111`, carrying `book-open` + 14/20 label + `chevron-right`.
+  **Tapping it opens the Memory sheet**, so a chat is a second way into editing what
+  the concierge remembers. A **snackbar** confirms the same write and offers
+  **Manage** as a shortcut to that sheet.
 - **Thinking**: three 6px dots on `typingDot`, 700ms before the reply lands. If the
   user leaves the tab first the reply is delivered immediately rather than dropped.
 - With memory **off** a remember-style message gets no chip, and the reply points
@@ -395,20 +433,18 @@ A "Nkm from you" pill tag (bottom-right) and a rounded-square favorite (top-righ
 toggles + fires the snackbar). Meta: name 16/600, tagline `#999`, then location +
 phone rows (Material icon + text).
 
-### Chat bar (`src/components/ChatBar.tsx`)
-The shared prompt field. A `#161616` pill (`borderRadius 100`, `1px solid #282828`);
-on the right, a **`+`** (attach) icon then a round button that shows a **mic** when
-empty and fills to `#f6f6f6` with an `arrow_upward` once there's text. Props:
-`placeholder`, `onSend`, `showAttach` (Manage Memory drops the `+`), `disabled`.
-Used by the **Chat tab** ("Your instruction..") and **Manage Memory** ("Ask to add
-or update").
+### Prompt field
+Lives inside `<BottomDock>` (see **Bottom dock** above) - there is no standalone
+chat-bar component. `radius 12`, never a pill.
 
 ### Snackbar z-order
 The snackbar sits above the product-page overlay (`z 80`) at its default `z 90`, so
 favorite toasts appear **everywhere** a favorite is added - feed, saved view, and
 product page (product heart + store card favorites). The `zIndex` prop raises it
-again (to 250) over full-screen pushes like Manage Memory (`z 200`), which also
-shift it up to clear the prompt field.
+again over full-screen pushes like Manage Memory (`z 200` → 250) and over the
+Memory sheet the chat chip opens (`z 301` → 310). `bottom` shifts it to clear
+whichever dock is on screen: 71px for tabs-only, 74px for prompt-only, **129px on
+the Chat tab** where the dock carries both.
 
 ### Empty state placeholder
 Uniform VIP logotype (`/vip-logo.svg`) - never per-item icons. On dark: white logo

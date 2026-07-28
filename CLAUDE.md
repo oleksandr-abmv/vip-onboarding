@@ -81,7 +81,8 @@ every matching string.)
 - `name` is the filename without `.svg`. Browse `src/icons/core/` or the library [icons page](https://icons.coreui.design/) for names.
 - Set `decorative={false}` + `label="Something"` when the icon conveys meaning to screen readers.
 - If a glyph is genuinely missing from the library, add it there first (or drop a new SVG into `src/icons/core/` with `currentColor` strokes) rather than inlining raw SVG in a screen. Match the library's build: `24x24` viewBox, `fill="none"`, `stroke="currentColor"`, `stroke-width="1.5"`, round caps and joins. (`vibration`, `balance`, and `feedback` were added this way for the Settings rows.)
-- Figma specifies icons as **Material Symbols** names; map them to the CORE UI equivalent rather than pulling in Material (e.g. `menu_book` → `book-open`, `vibration` → `vibration`, `balance` → `balance`, `feedback` → `feedback`, `help` → `help-circle`, `delete` → `trash`, `keyboard_arrow_right` → `chevron-right`).
+- Figma specifies icons as **Material Symbols** names; map them to the CORE UI equivalent rather than pulling in Material (e.g. `menu_book` → `book-open`, `vibration` → `vibration`, `balance` → `balance`, `feedback` → `feedback`, `help` → `help-circle`, `delete` → `trash`, `keyboard_arrow_right` → `chevron-right`, `apparel` → `apparel`, `palette` → `palette`, `edit_square` → `edit`, `add_2` → `add`, `TemporaryChatOff` → `temporary-chat`, the AI sparkle → `ai`).
+- The **bottom dock's tab bar** is the one place that still uses the Material Symbols font directly (`home`, `notifications`, `chat_bubble`, `history`, `menu`), because the active state relies on the font's `FILL 1` axis.
 - Material Symbols Rounded is still used for the few existing cases (e.g. `material-symbols-rounded` class in a handful of old screens), but new code should prefer `<Icon />`.
 
 ---
@@ -199,6 +200,10 @@ tabs share. Anything two tabs both touch belongs here, not inside a tab:
 
 When memory is **off**, nothing may be written silently: the chat says so in its
 reply and skips the "Memory updated" chip, and Manage Memory is unreachable.
+
+There are **two ways into editing memory** and both must keep working: Menu > Data
+Memory, and tapping the "Memory updated" chip (or the snackbar's Manage action) in
+a chat. Both open the same `<MemorySheet>`.
 
 ---
 

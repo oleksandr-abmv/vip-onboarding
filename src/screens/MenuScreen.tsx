@@ -1,6 +1,9 @@
 import { useState, type ReactNode } from 'react';
 import { Icon } from '../components/Icon';
 import Dialog from '../components/Dialog';
+import Sheet from '../components/Sheet';
+import MemorySheet from '../components/MemorySheet';
+import Toggle from '../components/Toggle';
 import { screenStyle, bodyStyle, Header } from './screenChrome';
 
 // ─── Menu tab ────────────────────────────────────────────────────────────────
@@ -22,9 +25,6 @@ const BORDER = '#444547';
 const TEXT_PRIMARY = '#f6f6f6';
 const TEXT_SECONDARY = '#f4f5f7';
 const DANGER = '#dc8589';
-const TOGGLE_TRACK_OFF = '#9a979b';
-const TOGGLE_TRACK_ON = '#f6f6f6';
-const TOGGLE_THUMB = '#252526';
 
 const APPEARANCES = ['Light', 'Dark', 'System'];
 const LANGUAGES = ['English', 'French', 'German', 'Italian', 'Spanish'];
@@ -382,111 +382,8 @@ function ToggleRow({
   );
 }
 
-/** The 52x32 track + 24px thumb. Presentational: the wrapping control owns the
-    `role="switch"` and the click handler. */
-function Toggle({ on }: { on: boolean }) {
-  return (
-    <span
-      style={{
-        position: 'relative',
-        width: 52,
-        height: 32,
-        flexShrink: 0,
-        borderRadius: 100,
-        background: on ? TOGGLE_TRACK_ON : TOGGLE_TRACK_OFF,
-        transition: 'background 200ms cubic-bezier(0.25,0.1,0.25,1)',
-      }}
-      aria-hidden
-    >
-      <span
-        style={{
-          position: 'absolute',
-          top: 4,
-          left: on ? 24 : 4,
-          width: 24,
-          height: 24,
-          borderRadius: 100,
-          background: TOGGLE_THUMB,
-          transition: 'left 200ms cubic-bezier(0.25,0.1,0.25,1)',
-        }}
-      />
-    </span>
-  );
-}
 
-// ─── Bottom sheets ───────────────────────────────────────────────────────────
-//
-// Same shell as the onboarding pickers (KidsScreen -> AgePickerSheet): dimmed
-// backdrop, `#0d0d0d` sheet with a 20px top radius, centered title + close.
-
-function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-  return (
-    <>
-      <div
-        onClick={onClose}
-        style={{
-          position: 'absolute',
-          inset: 0,
-          zIndex: 300,
-          background: 'rgba(0,0,0,0.75)',
-          animation: 'backdropFadeIn 200ms ease both',
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 301,
-          background: '#0d0d0d',
-          borderRadius: '20px 20px 0 0',
-          display: 'flex',
-          flexDirection: 'column',
-          animation: 'sheetSlideUp 300ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
-          paddingBottom: `calc(20px + env(safe-area-inset-bottom, 0px))`,
-        }}
-      >
-        <div
-          style={{
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px 20px 4px',
-          }}
-        >
-          <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: 0, lineHeight: '24px' }}>{title}</p>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            style={{
-              position: 'absolute',
-              right: 20,
-              top: 18,
-              width: 32,
-              height: 32,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: '#2a2a2a',
-              borderRadius: 12,
-              border: 'none',
-              cursor: 'pointer',
-              padding: 0,
-              WebkitTapHighlightColor: 'transparent',
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
-              <path d="M4 4L14 14M14 4L4 14" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
-            </svg>
-          </button>
-        </div>
-        {children}
-      </div>
-    </>
-  );
-}
+// ─── Option picker sheet (Appearance, Language) ──────────────────────────────
 
 function OptionSheet({
   title,
@@ -532,64 +429,6 @@ function OptionSheet({
             </button>
           );
         })}
-      </div>
-    </Sheet>
-  );
-}
-
-// ── Data Memory sheet (Figma "Settings / Memory", node 5303-20603) ───────────
-//
-// One switch row plus the way into Manage Memory. With memory off there is
-// nothing to manage, so the button goes disabled rather than opening an empty
-// screen the user cannot act on.
-function MemorySheet({
-  enabled,
-  onToggle,
-  onManage,
-  onClose,
-}: {
-  enabled: boolean;
-  onToggle: () => void;
-  onManage: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <Sheet title="Memory" onClose={onClose}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '8px 20px 0' }}>
-        <button
-          onClick={onToggle}
-          role="switch"
-          aria-checked={enabled}
-          aria-label="Enable Memory"
-          style={{ ...rowStyle, alignItems: 'center', gap: 8, padding: '12px 0' }}
-        >
-          <span style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 120, textAlign: 'left' }}>
-            <span style={{ fontSize: 16, lineHeight: '22px', color: TEXT_PRIMARY }}>Enable Memory</span>
-            <span style={{ fontSize: 14, lineHeight: '20px', color: TEXT_SECONDARY, opacity: 0.7 }}>
-              The app will remember facts about you from chats and other shared info.
-            </span>
-          </span>
-          <Toggle on={enabled} />
-        </button>
-
-        <button
-          onClick={onManage}
-          disabled={!enabled}
-          style={{
-            width: '100%',
-            height: 48,
-            background: 'transparent',
-            color: enabled ? TEXT_PRIMARY : '#666',
-            border: `1px solid ${enabled ? '#313131' : '#252525'}`,
-            borderRadius: 100,
-            fontSize: 16,
-            fontWeight: 500,
-            cursor: enabled ? 'pointer' : 'default',
-            WebkitTapHighlightColor: 'transparent',
-          }}
-        >
-          Manage Memory
-        </button>
       </div>
     </Sheet>
   );

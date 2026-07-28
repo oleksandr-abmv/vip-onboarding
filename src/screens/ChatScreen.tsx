@@ -1,14 +1,16 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icon';
-import ChatBar from '../components/ChatBar';
+import BottomDock, { type DockTab } from '../components/BottomDock';
+import MemorySheet from '../components/MemorySheet';
 import { screenStyle, bodyStyle, Header, iconButtonStyle } from './screenChrome';
 import { extractMemory, makeFact, type MemoryFact } from '../data/memory';
 
 // ─── Chat tab ────────────────────────────────────────────────────────────────
 //
-// Figma: "Chat / Memory" (node 5303-20889). The concierge thread. Its part in the
-// Data Memory feature: when a message asks to be remembered, the fact is written
-// to memory and the reply carries a "Memory updated" chip.
+// Figma: "Chat Idle" (node 4483-34608) for the empty state and "Chat / Memory"
+// (node 5303-20889) for a thread. Its part in the Data Memory feature: when a
+// message asks to be remembered, the fact is written to memory and the reply
+// carries a tappable "Memory updated" chip that opens the Memory sheet.
 //
 // When Data Memory is switched off the fact is not stored and the reply says so,
 // so the toggle in Menu > Data Memory is never silently ignored.
@@ -26,9 +28,12 @@ export interface ChatMessage {
   memoryUpdated?: boolean;
 }
 
+// Figma "Chat Suggestions" rows (node 5268-8938).
 const SUGGESTIONS = [
-  'Remember that I like Van Cleef & Arpels as a brand',
-  'What do you remember about me?',
+  { icon: 'search', label: 'Find a piece & where to buy', prompt: 'Find me a piece and where to buy it' },
+  { icon: 'apparel', label: 'Style a look & virtual try-on', prompt: 'Style a look for me' },
+  { icon: 'ai', label: 'Ask the concierge', prompt: 'Remember that I like Van Cleef & Arpels as a brand' },
+  { icon: 'palette', label: 'Search by color', prompt: 'Show me pieces in deep green' },
 ];
 
 const RECALL = /\b(what do you (remember|know)|what'?s in (my )?memory|remind me what)\b/i;
@@ -38,16 +43,19 @@ const nextId = () => `msg-${(msgSeq += 1)}`;
 
 export default function ChatScreen({
   memoryEnabled,
+  onMemoryEnabledChange,
   facts,
   messages,
   onMessagesChange,
   ratings,
   onRatingsChange,
   onAddFact,
+  onManageMemory,
   onNotice,
-  bottomBar,
+  tabs,
 }: {
   memoryEnabled: boolean;
+  onMemoryEnabledChange: (enabled: boolean) => void;
   facts: MemoryFact[];
   /** Thread + thumb state live in the feed so leaving the tab does not wipe them. */
   messages: ChatMessage[];
@@ -55,10 +63,14 @@ export default function ChatScreen({
   ratings: Record<string, 'up' | 'down'>;
   onRatingsChange: React.Dispatch<React.SetStateAction<Record<string, 'up' | 'down'>>>;
   onAddFact: (fact: MemoryFact) => void;
-  onNotice: (message: string) => void;
-  bottomBar?: ReactNode;
+  onManageMemory: () => void;
+  /** Snackbar, including the one that confirms a memory write. */
+  onNotice: (message: string, action?: { label: string; onAction: () => void }) => void;
+  tabs: DockTab[];
 }) {
   const [thinking, setThinking] = useState(false);
+  // The Memory sheet, opened by tapping a "Memory updated" chip.
+  const [memorySheet, setMemorySheet] = useState(false);
 
   // Newest turn should be visible without the user scrolling for it.
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -114,7 +126,13 @@ export default function ChatScreen({
     if (!p) return;
     pending.current = null;
     setThinking(false);
-    onMessagesChange((prev) => [...prev, { id: nextId(), role: 'assistant', ...reply(p.text, p.fact) }]);
+    const answer = reply(p.text, p.fact);
+    onMessagesChange((prev) => [...prev, { id: nextId(), role: 'assistant', ...answer }]);
+    // The chip alone is easy to miss, so confirm the write with a snackbar that
+    // offers the same shortcut into the Memory sheet.
+    if (answer.memoryUpdated) {
+      onNotice('Memory updated', { label: 'Manage', onAction: () => setMemorySheet(true) });
+    }
   };
   // Cleanup runs once, so it needs the latest closure rather than the first one.
   const deliverRef = useRef(deliver);
@@ -139,47 +157,66 @@ export default function ChatScreen({
     replyTimer.current = window.setTimeout(() => deliverRef.current(), 700);
   };
 
+  const newChat = () => {
+    if (replyTimer.current) clearTimeout(replyTimer.current);
+    pending.current = null;
+    onMessagesChange([]);
+    onRatingsChange({});
+    setThinking(false);
+  };
+
   const empty = messages.length === 0 && !thinking;
 
   return (
     <div style={screenStyle}>
       <Header
+        height={56}
         title={
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <img src="/vip-logo.svg" alt="" aria-hidden style={{ width: 16, height: 16, opacity: 0.9 }} />
-            Concierge
-            <Icon name="chevron-down" size={16} color="#fff" />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+            <img src="/vip-logo.svg" alt="" aria-hidden style={{ width: 24, height: 24 }} />
+            <span style={{ fontSize: 16, fontWeight: 500, lineHeight: '20px' }}>Concierge</span>
+            <Icon name="chevron-down" size={18} color={TEXT_PRIMARY} />
           </span>
+        }
+        left={
+          <button onClick={newChat} aria-label="New chat" style={iconButtonStyle}>
+            <Icon name="edit" size={24} color={TEXT_PRIMARY} />
+          </button>
         }
         right={
           <span style={{ display: 'flex', gap: 8 }}>
             <button
-              onClick={() => {
-                if (replyTimer.current) clearTimeout(replyTimer.current);
-                pending.current = null;
-                onMessagesChange([]);
-                onRatingsChange({});
-                setThinking(false);
-              }}
-              aria-label="New chat"
+              onClick={() => onNotice('Temporary chat is off')}
+              aria-label="Temporary chat"
               style={iconButtonStyle}
             >
-              <Icon name="edit" size={18} color="#fff" />
+              <Icon name="temporary-chat" size={24} color={TEXT_PRIMARY} />
             </button>
             <button
               onClick={() => onNotice('Chat options open here')}
               aria-label="More options"
               style={iconButtonStyle}
             >
-              <Icon name="more-horizontal" size={18} color="#fff" />
+              <Icon name="more-horizontal" size={24} color={TEXT_PRIMARY} />
             </button>
           </span>
         }
       />
 
-      <div ref={bodyRef} style={{ ...bodyStyle, paddingBottom: 8 }}>
+      <div
+        ref={bodyRef}
+        style={{
+          ...bodyStyle,
+          paddingTop: `calc(env(safe-area-inset-top, 0px) + 56px)`,
+          paddingBottom: 8,
+          // The idle screen is a single column: copy centered in the free space,
+          // suggestions parked just above the dock.
+          display: empty ? 'flex' : undefined,
+          flexDirection: empty ? 'column' : undefined,
+        }}
+      >
         {empty ? (
-          <EmptyChat onPick={send} />
+          <ChatIdle onPick={send} />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: PAGE }}>
             {messages.map((m) =>
@@ -199,6 +236,7 @@ export default function ChatScreen({
                       return next;
                     })
                   }
+                  onOpenMemory={() => setMemorySheet(true)}
                   onNotice={onNotice}
                 />
               ),
@@ -208,9 +246,86 @@ export default function ChatScreen({
         )}
       </div>
 
-      <ChatBar placeholder="Your instruction.." onSend={send} />
-      {bottomBar}
+      <BottomDock tabs={tabs} placeholder="Your instruction.." onSend={send} />
+
+      {memorySheet && (
+        <MemorySheet
+          enabled={memoryEnabled}
+          onToggle={() => onMemoryEnabledChange(!memoryEnabled)}
+          onManage={() => {
+            setMemorySheet(false);
+            onManageMemory();
+          }}
+          onClose={() => setMemorySheet(false)}
+        />
+      )}
     </div>
+  );
+}
+
+// ─── Idle state (Figma "Chat Idle", node 4483-34608) ─────────────────────────
+
+function ChatIdle({ onPick }: { onPick: (text: string) => void }) {
+  return (
+    <>
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 12,
+          padding: `0 ${PAGE}px`,
+          textAlign: 'center',
+        }}
+      >
+        <p style={{ margin: 0, fontSize: 24, fontWeight: 600, lineHeight: '28px', color: TEXT_PRIMARY }}>
+          What would you like arranged?
+        </p>
+        <p style={{ margin: 0, fontSize: 16, lineHeight: '22px', color: TEXT_SECONDARY, opacity: 0.7 }}>
+          Find products, places, ask about luxury, news, events, and more.
+        </p>
+      </div>
+
+      <div
+        style={{
+          flexShrink: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+          padding: `0 ${PAGE}px 8px`,
+        }}
+      >
+        {SUGGESTIONS.map((s) => (
+          <button
+            key={s.label}
+            onClick={() => onPick(s.prompt)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              width: '100%',
+              height: 46,
+              padding: 12,
+              // Figma Chat Suggestions: a pill, unlike the prompt field.
+              borderRadius: 100,
+              background: SURFACE,
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'left',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            <Icon name={s.icon} size={22} color={TEXT_PRIMARY} />
+            <span style={{ flex: 1, minWidth: 0, fontSize: 16, lineHeight: '22px', color: TEXT_PRIMARY }}>
+              {s.label}
+            </span>
+            <Icon name="chevron-right" size={22} color="#8b8b8b" />
+          </button>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -241,11 +356,13 @@ function AssistantTurn({
   message,
   rating,
   onRate,
+  onOpenMemory,
   onNotice,
 }: {
   message: ChatMessage;
   rating?: 'up' | 'down';
   onRate: (r: 'up' | 'down') => void;
+  onOpenMemory: () => void;
   onNotice: (message: string) => void;
 }) {
   return (
@@ -269,27 +386,7 @@ function AssistantTurn({
         <span style={{ fontSize: 14, lineHeight: '20px', color: TEXT_PRIMARY }}>VIP.ai Concierge</span>
       </div>
 
-      {message.memoryUpdated && (
-        <span
-          style={{
-            alignSelf: 'flex-start',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 4,
-            height: 40,
-            padding: '8px 12px',
-            borderRadius: 16,
-            border: '1px solid #313131',
-            background: '#141414',
-            fontSize: 14,
-            lineHeight: '20px',
-            color: TEXT_PRIMARY,
-          }}
-        >
-          <Icon name="check" size={16} color={TEXT_PRIMARY} />
-          Memory updated
-        </span>
-      )}
+      {message.memoryUpdated && <MemoryChip onClick={onOpenMemory} />}
 
       <p style={{ margin: 0, fontSize: 16, lineHeight: '22px', color: TEXT_PRIMARY, whiteSpace: 'pre-wrap' }}>
         {message.text}
@@ -315,6 +412,40 @@ function AssistantTurn({
         <ActionButton icon="more-horizontal" label="More" onClick={() => onNotice('More actions open here')} />
       </div>
     </div>
+  );
+}
+
+/**
+ * "Memory updated" chip (Figma Chip, node 5303-21143): a 40px bordered pill.
+ * Carries the Data Memory glyph and a chevron, because tapping it opens the
+ * Memory sheet - the second way into editing what the concierge remembers.
+ */
+function MemoryChip({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label="Memory updated, open memory settings"
+      style={{
+        alignSelf: 'flex-start',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        height: 40,
+        padding: '8px 12px',
+        borderRadius: 16,
+        border: '1px solid #444547',
+        background: '#101111',
+        fontSize: 14,
+        lineHeight: '20px',
+        color: TEXT_PRIMARY,
+        cursor: 'pointer',
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >
+      <Icon name="book-open" size={18} color={TEXT_PRIMARY} />
+      Memory updated
+      <Icon name="chevron-right" size={18} color="#8b8b8b" />
+    </button>
   );
 }
 
@@ -368,54 +499,6 @@ function Thinking() {
           }}
         />
       ))}
-    </div>
-  );
-}
-
-// ─── Empty state ─────────────────────────────────────────────────────────────
-
-function EmptyChat({ onPick }: { onPick: (text: string) => void }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 8,
-        padding: '72px 24px 24px',
-        textAlign: 'center',
-      }}
-    >
-      <img src="/vip-logo.svg" alt="" aria-hidden style={{ width: 44, height: 44, opacity: 0.9 }} />
-      <p style={{ margin: '8px 0 0', fontSize: 22, fontWeight: 600, lineHeight: '28px', color: TEXT_PRIMARY }}>
-        Ask anything
-      </p>
-      <p style={{ margin: 0, fontSize: 14, lineHeight: '20px', color: '#999' }}>
-        Tell the concierge what to remember and it carries across every chat.
-      </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', marginTop: 16 }}>
-        {SUGGESTIONS.map((s) => (
-          <button
-            key={s}
-            onClick={() => onPick(s)}
-            style={{
-              width: '100%',
-              textAlign: 'left',
-              background: SURFACE,
-              border: '1px solid #282828',
-              borderRadius: 12,
-              padding: '12px 14px',
-              fontSize: 14,
-              lineHeight: '20px',
-              color: TEXT_SECONDARY,
-              cursor: 'pointer',
-              WebkitTapHighlightColor: 'transparent',
-            }}
-          >
-            {s}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

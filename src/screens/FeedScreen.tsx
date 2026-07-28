@@ -6,6 +6,7 @@ import ProductPage, { type SavedStore } from './ProductPage';
 import MenuScreen from './MenuScreen';
 import ChatScreen, { type ChatMessage } from './ChatScreen';
 import MemoryScreen from './MemoryScreen';
+import BottomDock, { type DockTab } from '../components/BottomDock';
 import { SEED_MEMORY_FACTS, type MemoryFact } from '../data/memory';
 import { screenStyle, bodyStyle, Header } from './screenChrome';
 
@@ -246,12 +247,37 @@ export default function FeedScreen({
     setDetail(null);
     setShowMemory(false);
   };
-  const notice = (message: string) => showSnack(message, 'Got it', () => setSnack(null));
+  /** Toast. `action` overrides the default "Got it" dismiss. */
+  const notice = (message: string, action?: { label: string; onAction: () => void }) =>
+    action
+      ? showSnack(message, action.label, () => {
+          setSnack(null);
+          action.onAction();
+        })
+      : showSnack(message, 'Got it', () => setSnack(null));
 
-  // Memory writes, shared by the Chat tab and Manage Memory.
-  const addFact = (fact: MemoryFact) => setMemoryFacts((prev) => [...prev, fact]);
+  // Memory writes, shared by the Chat tab and Manage Memory. Saying the same
+  // thing twice should refresh the fact, not stack a duplicate onto the list.
+  const addFact = (fact: MemoryFact) =>
+    setMemoryFacts((prev) => {
+      const key = fact.text.trim().toLowerCase();
+      const existing = prev.findIndex((f) => f.text.trim().toLowerCase() === key);
+      if (existing === -1) return [...prev, fact];
+      const next = [...prev];
+      next[existing] = { ...next[existing], createdAt: fact.createdAt };
+      return next;
+    });
   const forgetFacts = (ids: string[]) =>
     setMemoryFacts((prev) => prev.filter((f) => !ids.includes(f.id)));
+
+  /** The five tabs of the Figma bottom dock, with the active one marked. */
+  const dockTabs = (active: 'home' | 'chat' | 'menu'): DockTab[] => [
+    { icon: 'home', label: 'Home', active: active === 'home', onClick: goHome },
+    { icon: 'notifications', label: 'Alerts' },
+    { icon: 'chat_bubble', label: 'Chat', active: active === 'chat', onClick: () => setTab('chat') },
+    { icon: 'history', label: 'History' },
+    { icon: 'menu', label: 'Menu', active: active === 'menu', onClick: () => setTab('menu') },
+  ];
 
   // ── Chat tab ──────────────────────────────────────────────────────────────
   if (tab === 'chat') {
@@ -259,21 +285,19 @@ export default function FeedScreen({
       <>
         <ChatScreen
           memoryEnabled={memoryEnabled}
+          onMemoryEnabledChange={setMemoryEnabled}
           facts={memoryFacts}
           messages={chatMessages}
           onMessagesChange={setChatMessages}
           ratings={chatRatings}
           onRatingsChange={setChatRatings}
           onAddFact={addFact}
+          onManageMemory={() => {
+            setTab('menu');
+            setShowMemory(true);
+          }}
           onNotice={notice}
-          bottomBar={
-            <BottomBar
-              active="chat"
-              onHome={goHome}
-              onChat={() => setTab('chat')}
-              onMenu={() => setTab('menu')}
-            />
-          }
+          tabs={dockTabs('chat')}
         />
         {snack && (
           <Snackbar
@@ -281,6 +305,11 @@ export default function FeedScreen({
             message={snack.message}
             actionLabel={snack.actionLabel}
             onAction={snack.onAction}
+            // The chat dock carries a prompt field as well as the tabs, so it is
+            // ~58px taller than the tabs-only dock the default is sized for.
+            bottom={`calc(129px + env(safe-area-inset-bottom, 0px))`}
+            // Above the Memory sheet the chip can open (z 301).
+            zIndex={310}
           />
         )}
       </>
@@ -300,14 +329,7 @@ export default function FeedScreen({
           memoryEnabled={memoryEnabled}
           onMemoryEnabledChange={setMemoryEnabled}
           onManageMemory={() => setShowMemory(true)}
-          bottomBar={
-            <BottomBar
-              active="menu"
-              onHome={goHome}
-              onChat={() => setTab('chat')}
-              onMenu={() => setTab('menu')}
-            />
-          }
+          bottomBar={<BottomDock tabs={dockTabs('menu')} />}
         />
         {showMemory && (
           <MemoryScreen
@@ -443,13 +465,7 @@ export default function FeedScreen({
             bottom={openProduct ? `calc(80px + env(safe-area-inset-bottom, 0px))` : undefined}
           />
         )}
-        <BottomBar
-          active={detail.kind === 'saved' ? 'saved' : 'home'}
-          onHome={() => setDetail(null)}
-          onChat={() => setTab('chat')}
-          onMenu={() => setTab('menu')}
-          onSaved={() => setDetail({ kind: 'saved' })}
-        />
+        <BottomDock tabs={dockTabs('home')} />
         {openProduct && (
           <ProductPage
             product={openProduct}
@@ -694,13 +710,7 @@ export default function FeedScreen({
           bottom={openProduct ? `calc(80px + env(safe-area-inset-bottom, 0px))` : undefined}
         />
       )}
-      <BottomBar
-        active="home"
-        onHome={() => setDetail(null)}
-        onChat={() => setTab('chat')}
-        onMenu={() => setTab('menu')}
-        onSaved={() => setDetail({ kind: 'saved' })}
-      />
+      <BottomDock tabs={dockTabs('home')} />
       {openProduct && (
         <ProductPage
           product={openProduct}
@@ -1680,82 +1690,6 @@ function ProductCard({
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-// ── Bottom navigation bar (Figma bottomBarLocal, dark) ───────────────────────
-// Five flat tabs with a label under each icon: Home, Alerts, Chat, History, Menu.
-// Home, Chat and Menu are wired; Alerts and History are still visual placeholders.
-function BottomBar({
-  active,
-  onHome,
-  onChat,
-  onMenu,
-  bare = false,
-}: {
-  active: 'home' | 'saved' | 'menu' | 'chat';
-  onHome: () => void;
-  onChat?: () => void;
-  onMenu?: () => void;
-  /** Kept for call-site compatibility; the Saved tab was removed in the new design. */
-  onSaved?: () => void;
-  /** Drop the surface + top border when nested inside the combined chat dock. */
-  bare?: boolean;
-}) {
-  const tabs: { icon: string; label: string; active?: boolean; onClick?: () => void }[] = [
-    { icon: 'home', label: 'Home', active: active !== 'menu' && active !== 'chat', onClick: onHome },
-    { icon: 'notifications', label: 'Alerts' },
-    { icon: 'chat_bubble', label: 'Chat', active: active === 'chat', onClick: onChat },
-    { icon: 'history', label: 'History' },
-    { icon: 'menu', label: 'Menu', active: active === 'menu', onClick: onMenu },
-  ];
-  return (
-    <div
-      style={{
-        flexShrink: 0,
-        background: bare ? 'transparent' : '#0d0d0d',
-        borderTop: bare ? 'none' : '1px solid #282828',
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-        padding: `8px ${PAGE}px calc(10px + env(safe-area-inset-bottom, 0px))`,
-      }}
-    >
-      {tabs.map((t) => (
-        <button
-          key={t.label}
-          aria-label={t.label}
-          aria-current={t.active ? 'page' : undefined}
-          onClick={t.onClick}
-          style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 4,
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '4px 0',
-            WebkitTapHighlightColor: 'transparent',
-          }}
-        >
-          <span
-            className="material-symbols-rounded"
-            style={{
-              fontSize: 24,
-              fontVariationSettings: t.active ? "'wght' 400, 'FILL' 1" : "'wght' 300",
-              color: t.active ? '#fff' : '#8b8b8b',
-            }}
-            aria-hidden
-          >
-            {t.icon}
-          </span>
-          <span style={{ fontSize: 12, lineHeight: '16px', color: t.active ? '#fff' : '#8b8b8b' }}>{t.label}</span>
-        </button>
-      ))}
     </div>
   );
 }

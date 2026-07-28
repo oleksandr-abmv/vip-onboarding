@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Icon } from '../components/Icon';
-import ChatBar from '../components/ChatBar';
+import BottomDock from '../components/BottomDock';
 import Dialog from '../components/Dialog';
-import { screenStyle, bodyStyle, Header, iconButtonStyle } from './screenChrome';
+import { screenStyle, bodyStyle, Header } from './screenChrome';
+import { sheetIconButtonStyle } from '../components/Sheet';
 import {
   makeFact,
   matchesForget,
@@ -72,12 +73,12 @@ export default function MemoryScreen({
             aria-label="Delete memory"
             disabled={facts.length === 0}
             style={{
-              ...iconButtonStyle,
+              ...sheetIconButtonStyle,
               opacity: facts.length === 0 ? 0.4 : 1,
               cursor: facts.length === 0 ? 'default' : 'pointer',
             }}
           >
-            <Icon name="trash" size={18} color="#fff" />
+            <Icon name="trash" size={20} color="#fff" />
           </button>
         }
       />
@@ -117,9 +118,8 @@ export default function MemoryScreen({
         )}
       </div>
 
-      <div style={{ flexShrink: 0, paddingBottom: `calc(8px + env(safe-area-inset-bottom, 0px))` }}>
-        <ChatBar placeholder="Ask to add or update" showAttach={false} onSend={handleSubmit} />
-      </div>
+      {/* Figma node 5381-8383: the prompt field with no tab bar under it. */}
+      <BottomDock placeholder="Ask to add or update" showAttach={false} onSend={handleSubmit} />
 
       {confirmDelete && (
         <Dialog
