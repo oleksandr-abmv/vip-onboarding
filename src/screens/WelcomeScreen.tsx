@@ -1,5 +1,7 @@
 interface WelcomeScreenProps {
-  onNext: () => void;
+  /** `guest` is true when the user tapped "Continue as a guest" - the Menu tab
+      shows the create-an-account prompt for guests. */
+  onNext: (guest: boolean) => void;
 }
 
 // 3 rows of 4 unique images - no duplicates across rows
@@ -185,7 +187,7 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
         >
           {/* Primary - Create an account or login */}
           <button
-            onClick={onNext}
+            onClick={() => onNext(false)}
             style={{
               width: '100%',
               height: 48,
@@ -205,7 +207,7 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
 
           {/* Secondary - Continue as a guest */}
           <button
-            onClick={onNext}
+            onClick={() => onNext(true)}
             style={{
               width: '100%',
               height: 48,

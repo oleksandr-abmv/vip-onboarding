@@ -83,6 +83,8 @@ function App() {
   const [resumeScreen, setResumeScreen] = useState<Screen | null>(null);
   const [resumeIndex, setResumeIndex] = useState(0);
   const [overlayVisible, setOverlayVisible] = useState(false);
+  // Which Welcome button was used. Guests get the create-an-account prompt in Menu.
+  const [isGuest, setIsGuest] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   // Track which interest category we're currently processing (subcategory + products)
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
@@ -154,7 +156,15 @@ function App() {
   // Navigation handlers
   // Flow: welcome → gender → lifestyle → [kids if family] → lifestyleType → interests → ...
   // Onboarding (with progress bar + Finish later) starts at 'lifestyle'.
-  const handleWelcomeNext = useCallback(() => goTo('gender', 'forward'), [goTo]);
+  const handleWelcomeNext = useCallback(
+    (guest: boolean) => {
+      setIsGuest(guest);
+      goTo('gender', 'forward');
+    },
+    [goTo],
+  );
+  // Sign out / delete account / guest sign-up all drop back to Welcome.
+  const handleSignOut = useCallback(() => goTo('welcome', 'back'), [goTo]);
   const handleGenderNext = useCallback(() => goTo('lifestyle', 'forward'), [goTo]);
   const handleGenderBack = useCallback(() => goTo('welcome', 'back'), [goTo]);
   const handleLifestyleNext = useCallback(
@@ -370,6 +380,8 @@ function App() {
             onboardingPct={onboardingPct}
             onboardingComplete={onboardingComplete}
             onResumeOnboarding={resumeOnboarding}
+            isGuest={isGuest}
+            onSignOut={handleSignOut}
           />
         );
     }

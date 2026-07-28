@@ -24,6 +24,15 @@ All navigation lives in `src/App.tsx` via `goTo(screen, direction)`. Screen stat
 
 ## The "apply everywhere" rules
 
+**Always update related designs, even ones the prompt didn't name.** When a change
+touches a component, pattern, or flow that appears in more than one place, propagate
+it to every related surface so the app stays consistent - and keep
+[`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) in sync. Do this by default; only skip a
+related surface when the user explicitly says not to touch it. (Examples: a card
+restyle should hit that card everywhere it renders; a new saved sub-tab should reuse
+the same card + empty-state patterns as the others; a copy/tone tweak applies to
+every matching string.)
+
 **When the user asks to change something, it must propagate across every conditional branch.** These are the axes:
 
 ### 1. Gender variants (`gender`: `male` / `female` / `rather-not`)
@@ -172,6 +181,8 @@ These are the signals downstream screens depend on - keep them in sync:
 - `subcategoriesByCategory: Record<string, string[]>`
 - `customByCategory: Record<string, string>` (free-form text captured via the Custom tile on each Subcategory screen)
 - `likedProducts: string[]`
+- `isGuest: boolean` - set by which Welcome button was used (`onNext(guest)`). The
+  **Menu tab** swaps its profile card for the "create an account" prompt when true.
 
 ---
 

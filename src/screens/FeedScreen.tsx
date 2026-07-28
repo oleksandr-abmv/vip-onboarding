@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import PRODUCTS, { type Product } from '../data/products';
 import { categoryConfigs } from '../data/categoryConfig';
 import ProductPage, { type SavedStore } from './ProductPage';
+import MenuScreen from './MenuScreen';
+import { screenStyle, bodyStyle, Header } from './screenChrome';
 
 const PAGE = 16; // horizontal page margin, matches Figma page/margins token
 
@@ -17,6 +19,10 @@ interface FeedScreenProps {
   onboardingComplete: boolean;
   /** Jump back into the onboarding flow where the user left off. */
   onResumeOnboarding: () => void;
+  /** Continued as a guest - the Menu tab shows the "create an account" prompt. */
+  isGuest?: boolean;
+  /** Leave the app back to Welcome (sign out, delete account, guest sign-up). */
+  onSignOut?: () => void;
 }
 
 type FeedSection = { id: string; name: string; items: Product[] };
@@ -91,16 +97,22 @@ export default function FeedScreen({
   onboardingPct,
   onboardingComplete,
   onResumeOnboarding,
+  isGuest = false,
+  onSignOut,
 }: FeedScreenProps) {
+  // Which bottom-bar tab is showing. Home carries the feed + its detail views.
+  const [tab, setTab] = useState<'home' | 'menu'>('home');
   const [detail, setDetail] = useState<Detail | null>(null);
   const [snack, setSnack] = useState<Snack | null>(null);
   const [openProduct, setOpenProduct] = useState<Product | null>(null);
   // Products the user hit "Do not recommend" on - filtered out of the Discover feed.
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
-  // Saved view sub-tab: saved products vs saved stores.
-  const [savedTab, setSavedTab] = useState<'products' | 'stores'>('products');
+  // Saved view sub-tab: saved products / collections / stores.
+  const [savedTab, setSavedTab] = useState<'products' | 'collections' | 'stores'>('products');
   // Stores saved from a product page (shown in the Saved > Stores tab).
   const [savedStores, setSavedStores] = useState<SavedStore[]>([]);
+  // Collections (looks) saved via the heart on a collection card.
+  const [savedCollections, setSavedCollections] = useState<FeedSection[]>([]);
   // Which card's "..." menu is open (single source of truth so only one shows).
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
@@ -178,6 +190,25 @@ export default function FeedScreen({
     });
   };
   const moreLikeThis = () => showSnack('We will show more like this', 'Got it', () => setSnack(null));
+  const toggleCollection = (collection: FeedSection) => {
+    const willSave = !savedCollections.some((c) => c.id === collection.id);
+    setSavedCollections((prev) =>
+      willSave ? [...prev, collection] : prev.filter((c) => c.id !== collection.id),
+    );
+    if (willSave) {
+      showSnack('Saved to your list', 'View', () => {
+        setSnack(null);
+        setSavedTab('collections');
+        setDetail({ kind: 'saved' });
+      });
+    } else {
+      showSnack('Removed from your list', 'Undo', () => {
+        setSavedCollections((prev) => (prev.some((c) => c.id === collection.id) ? prev : [...prev, collection]));
+        setSnack(null);
+      });
+    }
+  };
+  const isCollectionSaved = (id: string) => savedCollections.some((c) => c.id === id);
   const toggleStore = (store: SavedStore) => {
     const willSave = !savedStores.some((s) => s.name === store.name);
     setSavedStores((prev) =>
@@ -197,6 +228,35 @@ export default function FeedScreen({
     }
   };
 
+  const goHome = () => {
+    setTab('home');
+    setDetail(null);
+  };
+
+  // ── Menu tab ──────────────────────────────────────────────────────────────
+  if (tab === 'menu') {
+    return (
+      <>
+        <MenuScreen
+          isGuest={isGuest}
+          onCreateAccount={() => onSignOut?.()}
+          onSignOut={() => onSignOut?.()}
+          onDeleteAccount={() => onSignOut?.()}
+          onNotice={(message) => showSnack(message, 'Got it', () => setSnack(null))}
+          bottomBar={<BottomBar active="menu" onHome={goHome} onMenu={() => setTab('menu')} />}
+        />
+        {snack && (
+          <Snackbar
+            key={snack.id}
+            message={snack.message}
+            actionLabel={snack.actionLabel}
+            onAction={snack.onAction}
+          />
+        )}
+      </>
+    );
+  }
+
   // ── "See all" detail view (per-category / saved grid) ─────────────────────
   if (detail) {
     const isSavedView = detail.kind === 'saved';
@@ -207,7 +267,7 @@ export default function FeedScreen({
           ? detail.items
           : genderFilter(PRODUCTS.filter((p) => p.category === detail.id), gender);
     const detailTitle =
-      detail.kind === 'saved' ? 'Saved Products' : detail.kind === 'list' ? detail.title : `All ${detail.name}`;
+      detail.kind === 'saved' ? 'Saved' : detail.kind === 'list' ? detail.title : `All ${detail.name}`;
     // Category "See all" is a single-column list; saved + list views use a 2-col grid.
     const gridStyle: React.CSSProperties =
       detail.kind === 'category'
@@ -218,21 +278,67 @@ export default function FeedScreen({
         {/* Saved is a top-level tab, so no back button; other detail views keep one. */}
         <Header title={detailTitle} onBack={isSavedView ? undefined : () => setDetail(null)} />
         <div ref={bodyRef} style={{ ...bodyStyle }}>
-          {/* Saved view splits into Products / Stores via a full-width switcher. */}
-          {isSavedView && <SavedSegments tab={savedTab} onChange={setSavedTab} />}
-          {isSavedView && savedTab === 'stores' ? (
-            savedStores.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: `12px ${PAGE}px ${PAGE}px` }}>
-                {savedStores.map((store) => (
-                  <SavedStoreCard key={store.name} store={store} onRemove={() => toggleStore(store)} />
-                ))}
-              </div>
-            ) : (
-              <CenteredEmptyState
-                title="No saved stores yet"
-                subtitle="Save a boutique from any product page and it will show up here."
-              />
-            )
+          {/* Saved view splits into Products / Collections / Stores; all lists are
+              a single full-width column. */}
+          {isSavedView ? (
+            <>
+              <SavedSegments tab={savedTab} onChange={setSavedTab} />
+              {savedTab === 'stores' ? (
+                savedStores.length > 0 ? (
+                  <div style={savedColStyle}>
+                    {savedStores.map((store) => (
+                      <SavedStoreCard key={store.name} store={store} onRemove={() => toggleStore(store)} />
+                    ))}
+                  </div>
+                ) : (
+                  <CenteredEmptyState
+                    title="No saved stores yet"
+                    subtitle="Save a boutique from any product page and it will show up here."
+                  />
+                )
+              ) : savedTab === 'collections' ? (
+                savedCollections.length > 0 ? (
+                  <div style={savedColStyle}>
+                    {savedCollections.map((c) => (
+                      <CollectionCard
+                        key={c.id}
+                        name={c.name}
+                        count={c.items.length}
+                        items={c.items}
+                        unit="pieces"
+                        width="100%"
+                        onOpen={() => setDetail({ kind: 'list', title: c.name, items: c.items })}
+                        saved
+                        onToggleSave={() => toggleCollection(c)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <CenteredEmptyState
+                    title="No saved collections yet"
+                    subtitle="Tap the heart on any look and it will show up here."
+                  />
+                )
+              ) : savedItems.length > 0 ? (
+                <div style={savedColStyle}>
+                  {savedItems.map((product) => (
+                    <ProductCard
+                      key={product.name}
+                      product={product}
+                      saved={isSaved(product.name)}
+                      onToggleSave={() => toggleSave(product.name)}
+                      onOpen={() => setOpenProduct(product)}
+                      width="100%"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <CenteredEmptyState
+                  title="No saved pieces yet"
+                  subtitle="Tap the heart on any piece to save it here and build your personal edit."
+                />
+              )}
+            </>
           ) : detailItems.length > 0 ? (
             <div style={gridStyle}>
               {detailItems.map((product) => (
@@ -246,11 +352,6 @@ export default function FeedScreen({
                 />
               ))}
             </div>
-          ) : isSavedView ? (
-            <CenteredEmptyState
-              title="No saved pieces yet"
-              subtitle="Tap the heart on any piece to save it here and build your personal edit."
-            />
           ) : (
             <EmptyNote text="Nothing here yet." />
           )}
@@ -267,6 +368,7 @@ export default function FeedScreen({
         <BottomBar
           active={detail.kind === 'saved' ? 'saved' : 'home'}
           onHome={() => setDetail(null)}
+          onMenu={() => setTab('menu')}
           onSaved={() => setDetail({ kind: 'saved' })}
         />
         {openProduct && (
@@ -444,6 +546,8 @@ export default function FeedScreen({
                     items={o.items}
                     unit="pieces"
                     onOpen={() => setDetail({ kind: 'list', title: o.name, items: o.items })}
+                    saved={isCollectionSaved(o.id)}
+                    onToggleSave={() => toggleCollection(o)}
                     onMoreLikeThis={moreLikeThis}
                     onHide={() => showSnack('Noted, fewer like this', 'Got it', () => setSnack(null))}
                   />
@@ -514,6 +618,7 @@ export default function FeedScreen({
       <BottomBar
         active="home"
         onHome={() => setDetail(null)}
+        onMenu={() => setTab('menu')}
         onSaved={() => setDetail({ kind: 'saved' })}
       />
       {openProduct && (
@@ -532,91 +637,16 @@ export default function FeedScreen({
 }
 
 // ── Shared layout styles ─────────────────────────────────────────────────────
-const screenStyle: React.CSSProperties = {
-  position: 'absolute',
-  inset: 0,
+// screenStyle / bodyStyle / Header now live in ./screenChrome so other top-level
+// tabs (Menu) can share them.
+
+// Single full-width column for every Saved tab (products / collections / stores).
+const savedColStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
-  background: 'transparent',
-  overflow: 'hidden',
+  gap: 12,
+  padding: `12px ${PAGE}px ${PAGE}px`,
 };
-
-const bodyStyle: React.CSSProperties = {
-  flex: 1,
-  overflowY: 'auto',
-  overflowX: 'hidden',
-  WebkitOverflowScrolling: 'touch',
-  // Content scrolls under the gradient-fade header (which is absolutely positioned).
-  paddingTop: `calc(env(safe-area-inset-top, 0px) + 56px)`,
-  paddingBottom: 16,
-};
-
-// ── Header (gradient-fade overlay: content scrolls under it, ChatGPT-style) ───
-function Header({ title, onBack }: { title: string; onBack?: () => void }) {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 20,
-        height: `calc(env(safe-area-inset-top, 0px) + 64px)`,
-        paddingTop: `env(safe-area-inset-top, 0px)`,
-        display: 'flex',
-        alignItems: 'center',
-        // Container ignores taps so scrolling passes through; only the back button
-        // (below) re-enables pointer events.
-        pointerEvents: 'none',
-        // Solid at the top for legibility, fading to transparent so content
-        // dissolves as it scrolls beneath the bar.
-        background:
-          'linear-gradient(to bottom, #0A0A0A 0%, #0A0A0A 52%, rgba(10,10,10,0) 100%)',
-      }}
-    >
-      {onBack && (
-        <button
-          onClick={onBack}
-          aria-label="Back"
-          style={{
-            pointerEvents: 'auto',
-            marginLeft: 8,
-            width: 44,
-            height: 44,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 0,
-          }}
-        >
-          <span
-            className="material-symbols-rounded"
-            style={{ fontSize: 24, fontVariationSettings: "'wght' 300", color: '#fff' }}
-            aria-hidden
-          >
-            arrow_back
-          </span>
-        </button>
-      )}
-      <span
-        style={{
-          position: 'absolute',
-          left: '50%',
-          top: `calc(env(safe-area-inset-top, 0px) + 20px)`,
-          transform: 'translateX(-50%)',
-          fontSize: 16,
-          fontWeight: 600,
-          color: '#fff',
-        }}
-      >
-        {title}
-      </span>
-    </div>
-  );
-}
 
 // ── Section header (title + optional "View all" or custom right slot) ────────
 function SectionHeader({
@@ -786,6 +816,8 @@ function CollectionCard({
   count,
   items,
   onOpen,
+  saved = false,
+  onToggleSave,
   onMoreLikeThis,
   onHide,
   width = 230,
@@ -795,15 +827,18 @@ function CollectionCard({
   count: number;
   items: Product[];
   onOpen: () => void;
+  /** When provided, the card shows a favorite heart (save the whole look). */
+  saved?: boolean;
+  onToggleSave?: () => void;
   /** When provided, the card shows a "..." menu (like a product card). */
   onMoreLikeThis?: () => void;
   onHide?: () => void;
-  width?: number;
+  width?: number | string;
   unit?: string;
 }) {
   // First four items fill a 2x2 image grid (no "+N" overflow, just four tiles).
   const cells = [0, 1, 2, 3].map((i) => items[i]);
-  const showControls = !!(onMoreLikeThis && onHide);
+  const showMenu = !!(onMoreLikeThis && onHide);
   return (
     <div
       onClick={onOpen}
@@ -820,7 +855,44 @@ function CollectionCard({
         WebkitTapHighlightColor: 'transparent',
       }}
     >
-      {showControls && <OverflowMenu onMoreLikeThis={onMoreLikeThis!} onHide={onHide!} />}
+      {onToggleSave && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleSave(); }}
+          aria-label={saved ? 'Remove from saved' : 'Save to favorites'}
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: showMenu ? 48 : 8,
+            width: 32,
+            height: 32,
+            borderRadius: 100,
+            background: 'rgba(20,20,20,0.72)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            padding: 0,
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            WebkitTapHighlightColor: 'transparent',
+            zIndex: 3,
+          }}
+        >
+          <span
+            className="material-symbols-rounded"
+            style={{
+              fontSize: 18,
+              fontVariationSettings: saved ? "'wght' 500, 'FILL' 1" : "'wght' 400",
+              color: saved ? '#ef4d63' : '#e7e7e7',
+            }}
+            aria-hidden
+          >
+            favorite
+          </span>
+        </button>
+      )}
+      {showMenu && <OverflowMenu onMoreLikeThis={onMoreLikeThis!} onHide={onHide!} />}
       <div
         style={{
           display: 'grid',
@@ -1082,16 +1154,18 @@ function SavedStoreCard({ store, onRemove }: { store: SavedStore; onRemove: () =
   );
 }
 
-// ── Saved sub-tab switcher (full-width 2-segment control) ────────────────────
+// ── Saved sub-tab switcher (full-width segment control) ──────────────────────
+type SavedTab = 'products' | 'collections' | 'stores';
 function SavedSegments({
   tab,
   onChange,
 }: {
-  tab: 'products' | 'stores';
-  onChange: (t: 'products' | 'stores') => void;
+  tab: SavedTab;
+  onChange: (t: SavedTab) => void;
 }) {
-  const segs: { id: 'products' | 'stores'; label: string }[] = [
+  const segs: { id: SavedTab; label: string }[] = [
     { id: 'products', label: 'Products' },
+    { id: 'collections', label: 'Collections' },
     { id: 'stores', label: 'Stores' },
   ];
   return (
@@ -1531,30 +1605,29 @@ function ProductCard({
 }
 
 // ── Bottom navigation bar (Figma bottomBarLocal, dark) ───────────────────────
+// Five flat tabs with a label under each icon: Home, Alerts, Chat, History, Menu.
+// Home is the only wired destination for now; the rest are visual placeholders
+// (matching History/Menu, which have no screen yet).
 function BottomBar({
   active,
   onHome,
-  onSaved,
+  onMenu,
   bare = false,
 }: {
-  active: 'home' | 'saved';
+  active: 'home' | 'saved' | 'menu';
   onHome: () => void;
-  onSaved: () => void;
+  onMenu?: () => void;
+  /** Kept for call-site compatibility; the Saved tab was removed in the new design. */
+  onSaved?: () => void;
   /** Drop the surface + top border when nested inside the combined chat dock. */
   bare?: boolean;
 }) {
-  const tabs: {
-    icon: string;
-    label: string;
-    active?: boolean;
-    center?: boolean;
-    onClick?: () => void;
-  }[] = [
-    { icon: 'home', label: 'Home', active: active === 'home', onClick: onHome },
-    { icon: 'favorite', label: 'Saved', active: active === 'saved', onClick: onSaved },
-    { icon: 'chat_bubble', label: 'Concierge', center: true },
+  const tabs: { icon: string; label: string; active?: boolean; onClick?: () => void }[] = [
+    { icon: 'home', label: 'Home', active: active !== 'menu', onClick: onHome },
+    { icon: 'notifications', label: 'Alerts' },
+    { icon: 'chat_bubble', label: 'Chat' },
     { icon: 'history', label: 'History' },
-    { icon: 'more_vert', label: 'More' },
+    { icon: 'menu', label: 'Menu', active: active === 'menu', onClick: onMenu },
   ];
   return (
     <div
@@ -1563,70 +1636,45 @@ function BottomBar({
         background: bare ? 'transparent' : '#0d0d0d',
         borderTop: bare ? 'none' : '1px solid #282828',
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'space-between',
-        padding: `4px ${PAGE}px calc(10px + env(safe-area-inset-bottom, 0px))`,
+        padding: `8px ${PAGE}px calc(10px + env(safe-area-inset-bottom, 0px))`,
       }}
     >
-      {tabs.map((t) =>
-        t.center ? (
-          <button
-            key={t.label}
-            aria-label={t.label}
+      {tabs.map((t) => (
+        <button
+          key={t.label}
+          aria-label={t.label}
+          aria-current={t.active ? 'page' : undefined}
+          onClick={t.onClick}
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 4,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '4px 0',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+        >
+          <span
+            className="material-symbols-rounded"
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: '50%',
-              background: '#f6f6f6',
-              border: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              padding: 0,
-              WebkitTapHighlightColor: 'transparent',
+              fontSize: 24,
+              fontVariationSettings: t.active ? "'wght' 400, 'FILL' 1" : "'wght' 300",
+              color: t.active ? '#fff' : '#8b8b8b',
             }}
+            aria-hidden
           >
-            <span
-              className="material-symbols-rounded"
-              style={{ fontSize: 22, fontVariationSettings: "'wght' 400", color: '#121212' }}
-              aria-hidden
-            >
-              {t.icon}
-            </span>
-          </button>
-        ) : (
-          <button
-            key={t.label}
-            aria-label={t.label}
-            onClick={t.onClick}
-            style={{
-              width: 44,
-              height: 44,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 0,
-              WebkitTapHighlightColor: 'transparent',
-            }}
-          >
-            <span
-              className="material-symbols-rounded"
-              style={{
-                fontSize: 24,
-                fontVariationSettings: t.active ? "'wght' 400, 'FILL' 1" : "'wght' 300",
-                color: t.active ? '#fff' : '#6f6f6f',
-              }}
-              aria-hidden
-            >
-              {t.icon}
-            </span>
-          </button>
-        ),
-      )}
+            {t.icon}
+          </span>
+          <span style={{ fontSize: 12, lineHeight: '16px', color: t.active ? '#fff' : '#8b8b8b' }}>{t.label}</span>
+        </button>
+      ))}
     </div>
   );
 }

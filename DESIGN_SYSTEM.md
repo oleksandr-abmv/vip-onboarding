@@ -150,7 +150,8 @@ onboarding banner (while incomplete), then three groups:
 
 `CollectionCard` (used by **Collections**) matches the **regular product card**
 (230px wide, 4:3 image, same height): its image is a **2x2 grid of the first four
-items** (1px even gutters, no "+N" overflow) + name + "N pieces", plus a "..." menu
+items** (1px even gutters, no "+N" overflow) + name + "N pieces", plus a **favorite
+heart** (saves the whole look to Saved > Collections) and a "..." menu
 (self-contained `OverflowMenu`, portaled like the product-card menu). The
 Categories/carousel scrollers keep their horizontal padding on the **inner track**
 so the right inset survives at scroll end.
@@ -161,18 +162,22 @@ as redundant; it stays on the Product Page). Products are stably shuffled
 (the VIP-logo placeholder) are hidden from the feed, as is anything marked "Do not
 recommend". "View all" / a collection opens a titled full-screen list.
 
-### Saved Products view
+### Saved view
 A **top-level tab** (heart in the bottom bar), so **no back button**. Header
-"Saved Products", then a **full-width 2-segment switcher** (`Products` / `Stores`,
-pill track `#141414`, active segment filled `#f6f6f6`/`#121212`). **Products**
-shows a plain **2-column grid** of saved cards - no filter chips, no category
-badges. **Stores** is its own tab: boutiques saved via the heart on a product
-page's store card persist here as full-width `SavedStoreCard`s (storefront photo +
-name + tagline + address, filled heart to remove). Each empty tab has a **centered
-empty state** (no button): one shared **skeleton illustration** (`SkeletonCards` -
-three static fanned ghost cards mimicking the real content, no animation), title,
-and subtitle. Category "See all" pages keep a back button
-+ single-column large cards. The shared `CenteredEmptyState` renders these.
+"Saved", then a **full-width 3-segment switcher** (`Products` / `Collections` /
+`Stores`, pill track `#141414`, active segment filled `#f6f6f6`/`#121212`). **Every
+tab is a single full-width column** (`savedColStyle`):
+- **Products** - saved `ProductCard`s (`width: 100%`).
+- **Collections** - looks saved via the heart on a collection card, as full-width
+  `CollectionCard`s (heart filled, tap to open the look's list).
+- **Stores** - boutiques saved via the heart on a product page's store card, as
+  full-width `SavedStoreCard`s (storefront photo + name + tagline + address, filled
+  heart to remove).
+
+Each empty tab has a **centered empty state** (no button): one shared **skeleton
+illustration** (`SkeletonCards` - three static fanned ghost cards mimicking the real
+content, no animation), title, and subtitle. Category "See all" pages keep a back
+button + single-column large cards. The shared `CenteredEmptyState` renders these.
 
 ### Product card
 `background #0c0c0c`, `border 1px solid #282828`, `borderRadius 16`, `overflow hidden`.
@@ -200,35 +205,129 @@ Auto-dismiss ~3.6s. Save → "Saved to your list" / **View**; remove → "Remove
 your list" / **Undo**.
 
 ### Bottom bar
-`background #0d0d0d`, `borderTop 1px solid #282828`, 5 items. Active icon `#fff`,
-inactive `#6f6f6f`. Center action (concierge) = filled `#f6f6f6` **circle** (`50%`).
-Tabs: Home, Saved (**heart** icon - matches the app's heart save action), Concierge
-(center), History, More.
+`background #0d0d0d`, `borderTop 1px solid #282828`, 5 flat items with a **label
+under each icon** (no center circle). Active icon + label `#fff` (icon `FILL 1`),
+inactive `#8b8b8b`. Icon 24px, label 12/`16px`. Tabs: **Home** (`home`), **Alerts**
+(`notifications`), **Chat** (`chat_bubble`), **History** (`history`), **Menu**
+(`menu`). **Home and Menu** are wired; Alerts / Chat / History are still visual
+placeholders. (Figma `bottomBarLocal`.)
+
+### Screen chrome (`src/screens/screenChrome.tsx`)
+`screenStyle`, `bodyStyle`, and `Header` - the shell every top-level tab and detail
+view shares (full-bleed column, scroll body running under the gradient-fade
+header). Lives in its own module so tabs can use it without importing FeedScreen.
+
+### Menu tab (`src/screens/MenuScreen.tsx`)
+Top-level tab (Figma "Menu", node 497-13232), so **no back button**. Page is a
+stack of labelled groups on `#101111`, `gap 16`, page margin 16.
+- **Header card** (`#1b1b1c`, `radius 16`): signed in → a 52px circular avatar of
+  initials (`#101111` fill, `1px solid #444547`, white 16/600) + name 16/600 and
+  email 16/400 `#f4f5f7`. Passing `userName={null}` drops the avatar and shows the
+  email alone (the Figma's second variant). Guest → the centered "Some features
+  are limited in guest mode..." copy + a full-width **"Create an account or log in"**
+  pill (48px, `#f6f6f6`/`#121212`).
+- **Group**: a 16/400 `#f6f6f6` label, then an `#1b1b1c` `radius 16` card padded
+  `8px 12px` holding rows separated by `gap 8` (no dividers). Groups:
+  **Preferences** (Appearance, Language, Haptic feedback), **Support & Legal**
+  (Legal, Share your feedback, Need help? Contact us), **Account** (Sign out,
+  Delete account).
+- **Row**: 24px `<Icon />` + 16/400 label + optional 12/400 `#f4f5f7` value +
+  `chevron-right`, `padding 12px 0`. Destructive rows tint icon, label, and chevron
+  `#dc8589`.
+- **Toggle** (Haptic feedback): 52x32 track, `radius 100`, 24px thumb `#252526`;
+  off `#9a979b`, on `#66c9ad`, 200ms slide.
+- **Sheets**: Appearance and Language open a bottom-sheet option list; Delete
+  account opens a destructive confirm sheet. Both reuse the onboarding sheet shell
+  (dimmed backdrop, `#0d0d0d`, `radius 20px 20px 0 0`, centered title + close).
+- **Footer**: "VIP AI V1.0", centered, 12/`16px`, `#f4f5f7` at 60% opacity.
+- Sign out / Delete account / the guest CTA all return to **Welcome**.
 
 ### Product Page (`src/screens/ProductPage.tsx`)
 Full-screen overlay opened by tapping any product card.
-- **Nav**: a **gradient-fade overlay** (same pattern as the Discover header) -
-  absolutely positioned, `rgba(10,10,10,.92) -> transparent`, `pointer-events:
-  none` so the hero scrolls underneath. Three circular icon buttons - back (left),
-  share + heart (right, heart fills `#ef4d63` when saved), "Details" centered.
-  Buttons use a **translucent dark fill** (`rgba(20,20,20,.55)` + blur,
-  `1px solid rgba(255,255,255,.14)`, `borderRadius 100`) so they stay legible as
-  the scrim fades over the light hero.
-- **Hero**: 300px with `padding-top` clearing the nav, `background #ececec`,
-  image `objectFit contain`.
-- **Title** 24/600 (`brand + name`), **price** 16/500 `#bdbdbd` (hidden if empty).
-- **Primary action**: **"Explore on Official Site"** (filled pill
-  `#f6f6f6`/`#121212`) sits **inline right under the description bullets**, not in a
-  pinned bar.
-- **Floating chat**: an **"Ask about this product"** `ChatBar` floats over the
-  bottom with a **fade-up gradient** (`to top, #0A0A0A -> transparent`), like the
-  nav bar, so content scrolls underneath it. The scroll body carries bottom padding
-  to clear it; the favorite snackbar raises to `bottom: calc(80px + safe)`.
+- **Nav**: the **only pinned element on the page** - back (left), "Details"
+  centered, share + heart (right, heart fills `#ef4d63` when saved). Absolutely
+  positioned with `pointer-events: none` so everything scrolls underneath; the
+  buttons re-enable taps. The **fade** is a `backdrop-filter: blur(14px)` layer
+  plus an `rgba(10,10,10,.86) -> transparent` gradient, both under a
+  `mask-image` that tapers the blur off as well - so content dissolving under the
+  nav has no hard edge where the effect stops. Buttons use a **translucent dark
+  fill** (`rgba(20,20,20,.55)` + blur, `1px solid rgba(255,255,255,.14)`,
+  `borderRadius 100`) so they stay legible over both the light hero and the dark
+  body.
+- **Hero**: 300px, `background #ececec`, image `objectFit contain`. The **scroll
+  body** is inset by the nav height (`safeTop(70)`) so the hero **starts just below
+  the nav** on the dark page background, as in Figma - the hero itself carries no
+  top padding, so it scrolls straight up under the nav rather than leaving a slice
+  of the light backdrop stranded behind the fade (which read as a pinned image).
+- **Title** 24/600 (`brand + name`), **general price** 20/500 `#ededed`, formatted
+  from the price-history current value (`$8,200.00`) so it always shows and matches
+  the chart's "today".
+- **Historical price**: the `HistoricalPrice` card sits directly under the price
+  (see its own entry below). Starts **collapsed**; tapping its header row expands
+  it. Keyed by product so it resets per item.
+- **Actions** (stacked, right under the historical price, `gap 12`, `height 54`):
+  **"Explore on Official Site"** (filled pill `#f6f6f6`/`#121212`) then **"Ask
+  VIP.ai"** (dark pill `#242424`, `1px solid #313131`, `#f2f2f2`, VIP mark + label).
+  The old floating "Ask about this product" `ChatBar` was **removed**.
 - **Description**: paragraph + derived bullet list (category / type / gender).
 - **Spec table**: Brand / For / Category rows, label `#999` medium left, value
   `#f2f2f2` right, hairline dividers.
 - **Section divider**: 6px `#141414` band.
 - **Available in stores**: horizontal Store Cards.
+
+### Historical price (`src/components/HistoricalPrice.tsx`)
+Collapsible price-history card under the price on the Product Page. Built 1:1 from
+Figma **"Historical price"** (node `5294-26355`) and the Product Page states
+(`5294-28266`). Data comes from `src/data/priceHistory.ts` (deterministic
+per-product mock; a series of price-change events drawn as a **step** line).
+
+This card carries its **own token set** straight from the Figma dark theme, which
+differs from the app-wide palette above - keep the two apart:
+
+| Role | Value | Figma variable |
+| --- | --- | --- |
+| Card / section background | `#101111` | Background/backgroundPrimary |
+| Border + all dividers | `#444547` | Border/borderPrimary |
+| Primary text | `#f6f6f6` | Text/textPrimary |
+| Secondary text | `#f4f5f7` | Text/textSecondary |
+| Gridline | `#2a2a2c` | - |
+| Neutral chip / tag fill | `#2f2f31` on `#f8f8f8` | Brand+Tag/…Secondary |
+| Up line / marker / tag | `#82ed9a` / `#66c9ad` / `#006347` on `#f2faf8` | Graphs + Alerts/Success |
+| Down line / marker / tag | `#dc8589` / `#dc8589` / `#4e1518` on `#fcf5f5` | Alerts/Error |
+
+Note the design leans on **size and weight**, not colour, for hierarchy: secondary
+text is near-white here, not the app's `#999`.
+- **Card**: `radius 16`, `1px solid #444547`, sections padded `16`, `gap 12`.
+- **Collapsed** (64px tall): "Historical price" (16/500) + a **pill tag** - green
+  `+X% ∙ 1Y`, red `-X% ∙ 1Y`, neutral `+0% ∙ 1Y` when the period is flat, or
+  `No data` - and a 32px chevron. Whole row toggles. The tag **tracks the selected
+  period chip** (suffix `3M` / `1Y` / `5Y` / `Max`, colour flips with the move) and
+  keeps that reading when the card is collapsed again.
+- **Expanded**: period chips (**3 month / 1 year / 5 years / Max**, equal width,
+  `height 28`, pill; active `#2f2f31`, inactive outlined), the chart, then the
+  lowest/highest stats box (`radius 10`, hairline split). There is **no insight
+  line** and no muted/disabled chip state.
+- **Chart** (`296 x 247` in Figma, measured pixel width in code): 44px y-label
+  gutter with **left-aligned** `$` captions, 3 gridlines 77px apart, plot inset
+  47px from the left running y `2 -> 221`, x labels start/mid/**Today** on the last
+  16px row. Gradient **area** (`0.24 -> 0.02` of the line colour) + 2px step
+  **line**; 8px markers (tone fill, white ring) sit on **change events only**, not
+  on today. **Scrub**: press-drag shows a dotted drop line, a marker, and a
+  price+date tooltip (`touch-action: pan-y` so vertical page scroll still works).
+- **Price change log**: its own section under a full-bleed divider. **Scoped to the
+  selected period**, like the tag, chart and stats - the whole card must describe
+  one window, so a card reading "+0% ∙ 3M" never lists changes from two years
+  ago (the section hides entirely when the window holds none). Newest first,
+  **3 rows** at a time behind an outlined pill **"View more"** (no count - each tap
+  reveals the next three and the button hides once the list is exhausted); changing
+  the period collapses it back to the first page. Row order is `date` / delta pill /
+  `price` (14/600). The "First tracked" listing carries a neutral tag and only shows
+  when tracking began inside the window; the header count is hidden when that is the
+  only row.
+- **Empty state**: 158px block - 40px circular `#2f2f31` badge with the `history`
+  glyph, "No price data yet" (18/500), then "We started tracking this price on
+  {date}. Changes will appear here." (16/400).
+- Type scale: h4 18/22, h5 + body 16, secondary subtext 14/20, caption 12/16.
 
 ### Store card
 264px wide, `borderRadius 16`. Image area 150px shows a **real storefront photo**
@@ -239,13 +338,13 @@ toggles + fires the snackbar). Meta: name 16/600, tagline `#999`, then location 
 phone rows (Material icon + text).
 
 ### Chat bar (`src/components/ChatBar.tsx`)
-A pill input reused with a context placeholder: **"Search for products"** on
-Discover, **"Ask about this product"** on the Product Page. A `#161616` pill
-(`borderRadius 100`, `1px solid #282828`); on the right, a **`+`** (attach) icon
+A pill input on **Discover** with the placeholder **"Search for products"** (the
+Product Page no longer uses it - it has an "Ask VIP.ai" button instead). A `#161616`
+pill (`borderRadius 100`, `1px solid #282828`); on the right, a **`+`** (attach) icon
 then a round button that shows a **mic** when empty and fills to `#f6f6f6` with an
 `arrow_upward` once there's text. On Discover it's part of the **combined dock**
-(input directly above the tab bar on one surface); on the Product Page it's pinned
-on its own. Prototype: send is a no-op that clears the field.
+(input directly above the tab bar on one surface). Prototype: send is a no-op that
+clears the field.
 
 ### Snackbar z-order
 The snackbar (`z 90`) sits above the product-page overlay (`z 80`) so favorite

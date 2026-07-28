@@ -2,9 +2,12 @@ import { useMemo, useState } from 'react';
 import { safeTop } from '../theme';
 import { type Product } from '../data/products';
 import { categoryConfigs, getSubcategories } from '../data/categoryConfig';
-import ChatBar from '../components/ChatBar';
+import HistoricalPrice from '../components/HistoricalPrice';
+import { getPriceHistory } from '../data/priceHistory';
 
 const PAGE = 16;
+/** Nav height below the safe area: 10 top pad + 40 button + 20 bottom pad. */
+const NAV_H = 70;
 
 interface ProductPageProps {
   product: Product;
@@ -92,6 +95,14 @@ export default function ProductPage({ product, saved, onToggleSave, onClose, gen
 
   const stores = useMemo(() => storesFor(product), [product]);
 
+  // Price history drives both the "general price" line and the chart. Computed
+  // once here and shared so the displayed price always matches the chart's today.
+  const history = useMemo(() => getPriceHistory(product), [product]);
+  const priceLabel = useMemo(
+    () => '$' + history.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    [history],
+  );
+
   return (
     <div
       style={{
@@ -103,8 +114,10 @@ export default function ProductPage({ product, saved, onToggleSave, onClose, gen
         background: '#0A0A0A',
       }}
     >
-      {/* Nav bar: gradient-fade overlay (matches the Discover header) so the hero
-          scrolls underneath it instead of sitting below a hard bar. */}
+      {/* Nav: the only pinned element on the page. Everything else, hero image
+          included, scrolls normally underneath it. A masked blur + colour
+          gradient fades whatever passes below, so the icons stay legible over
+          both the light hero and the dark body. */}
       <div
         style={{
           position: 'absolute',
@@ -112,17 +125,32 @@ export default function ProductPage({ product, saved, onToggleSave, onClose, gen
           left: 0,
           right: 0,
           zIndex: 5,
-          padding: `${safeTop(10)} ${PAGE}px 24px`,
+          padding: `${safeTop(10)} ${PAGE}px 20px`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 8,
           // Scrolling passes through; the buttons re-enable pointer events.
           pointerEvents: 'none',
-          background:
-            'linear-gradient(to bottom, rgba(10,10,10,0.92) 0%, rgba(10,10,10,0.55) 45%, rgba(10,10,10,0) 100%)',
         }}
       >
+        {/* Fade layer. The mask makes the blur itself taper off, so there is no
+            hard edge where the effect stops. */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
+            background:
+              'linear-gradient(to bottom, rgba(10,10,10,0.86) 0%, rgba(10,10,10,0.55) 50%, rgba(10,10,10,0) 100%)',
+            maskImage: 'linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%)',
+            pointerEvents: 'none',
+          }}
+        />
+
         <NavIconButton label="Back" onClick={onClose}>
           <span className="material-symbols-rounded" style={{ fontSize: 22, fontVariationSettings: "'wght' 300", color: '#f2f2f2' }} aria-hidden>
             arrow_left_alt
@@ -165,23 +193,25 @@ export default function ProductPage({ product, saved, onToggleSave, onClose, gen
         </div>
       </div>
 
-      {/* Scroll body (extra bottom padding clears the floating chat input) */}
+      {/* Scroll body. Inset by the nav's height so the hero starts just below the
+          nav instead of running up behind it; the dark page background fills that
+          band. Everything still scrolls up under the nav from there. */}
       <div
         style={{
           flex: 1,
           overflowY: 'auto',
           overflowX: 'hidden',
           WebkitOverflowScrolling: 'touch',
-          paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + 60px)`,
+          paddingTop: safeTop(NAV_H),
+          paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + 28px)`,
         }}
       >
-        {/* Hero image. Extra top padding keeps the product clear of the floating
-            nav overlay (the hero backdrop still runs up under the gradient). */}
+        {/* Hero image. Not pinned: it scrolls straight up under the nav, so no
+            slice of the light backdrop is left stranded behind the fade. */}
         <div
           style={{
             width: '100%',
             height: 300,
-            paddingTop: `calc(env(safe-area-inset-top, 0px) + 56px)`,
             boxSizing: 'border-box',
             background: '#ececec',
             display: 'flex',
@@ -206,16 +236,60 @@ export default function ProductPage({ product, saved, onToggleSave, onClose, gen
           )}
         </div>
 
-        {/* Title + price (CTAs are pinned to the bottom bar) */}
+        {/* Title + general price */}
         <div style={{ padding: `24px ${PAGE}px 0`, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <h1 style={{ fontSize: 24, fontWeight: 600, color: '#fff', lineHeight: '30px', margin: 0 }}>
             {product.brand} {product.name}
           </h1>
-          {product.price && (
-            <p style={{ fontSize: 16, fontWeight: 500, color: '#bdbdbd', lineHeight: '22px', margin: 0 }}>
-              {product.price}
-            </p>
-          )}
+          <p style={{ fontSize: 20, fontWeight: 500, color: '#ededed', lineHeight: '26px', margin: 0 }}>
+            {priceLabel}
+          </p>
+        </div>
+
+        {/* Historical price (interactive chart, sits under the price). Starts
+            collapsed; tapping its header row expands it.
+            Keyed by product so it resets per item. */}
+        <div style={{ padding: `16px ${PAGE}px 0` }}>
+          <HistoricalPrice key={`${product.brand}-${product.name}`} product={product} history={history} />
+        </div>
+
+        {/* Primary actions: official retail + Ask VIP.ai concierge */}
+        <div style={{ padding: `16px ${PAGE}px 0`, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <button
+            style={{
+              width: '100%',
+              height: 54,
+              background: '#f6f6f6',
+              color: '#121212',
+              border: 'none',
+              borderRadius: 100,
+              fontSize: 16,
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            Explore on Official Site
+          </button>
+          <button
+            style={{
+              width: '100%',
+              height: 54,
+              background: '#242424',
+              color: '#f2f2f2',
+              border: '1px solid #313131',
+              borderRadius: 100,
+              fontSize: 16,
+              fontWeight: 500,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+            }}
+          >
+            <img src="/vip-logo.svg" alt="" aria-hidden style={{ width: 18, height: 18, opacity: 0.9 }} />
+            Ask VIP.ai
+          </button>
         </div>
 
         {/* Description */}
@@ -241,24 +315,6 @@ export default function ProductPage({ product, saved, onToggleSave, onClose, gen
               ))}
             </ul>
           )}
-          {/* Primary retail action lives inline under the description (the pinned
-              bottom is now the "ask about this product" chat). */}
-          <button
-            style={{
-              width: '100%',
-              height: 48,
-              marginTop: 4,
-              background: '#f6f6f6',
-              color: '#121212',
-              border: 'none',
-              borderRadius: 100,
-              fontSize: 16,
-              fontWeight: 500,
-              cursor: 'pointer',
-            }}
-          >
-            Explore on Official Site
-          </button>
         </div>
 
         {/* Spec table */}
@@ -311,28 +367,6 @@ export default function ProductPage({ product, saved, onToggleSave, onClose, gen
           </div>
         </div>
 
-      </div>
-
-      {/* Floating "ask about this product" chat input - fades up from the bottom
-          (like the nav bar) so content scrolls underneath it. */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 5,
-          paddingTop: 24,
-          paddingBottom: `env(safe-area-inset-bottom, 0px)`,
-          // Container ignores taps; the input itself re-enables them.
-          pointerEvents: 'none',
-          background:
-            'linear-gradient(to top, #0A0A0A 0%, #0A0A0A 55%, rgba(10,10,10,0) 100%)',
-        }}
-      >
-        <div style={{ pointerEvents: 'auto' }}>
-          <ChatBar placeholder="Ask about this product" />
-        </div>
       </div>
     </div>
   );
