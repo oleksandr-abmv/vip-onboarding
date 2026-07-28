@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import MIcon from '../components/MIcon';
 import BottomDock, { type DockTab } from '../components/BottomDock';
 import MemorySheet from '../components/MemorySheet';
+import TemporaryChatIcon from '../components/TemporaryChatIcon';
 import { screenStyle, bodyStyle, Header, iconButtonStyle } from './screenChrome';
 import { extractMemory, makeFact, type MemoryFact } from '../data/memory';
 import { theme } from '../theme';
@@ -191,7 +192,7 @@ export default function ChatScreen({
               aria-label="Temporary chat"
               style={iconButtonStyle}
             >
-              <MIcon name="crop_free" size={24} color={TEXT_PRIMARY} />
+              <TemporaryChatIcon size={24} color={TEXT_PRIMARY} />
             </button>
             <button
               onClick={() => onNotice('Chat options open here')}

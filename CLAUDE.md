@@ -80,6 +80,7 @@ every matching string.)
 - Defaults match the file's "Icons/Outlined/Large" style: 24px, `wght 300` (Light), `FILL 0`, `GRAD 0`. `weight` and `fill` are props - the active bottom-dock tab uses `weight={400} fill={1}`.
 - Set `decorative={false}` + `label="Something"` when the icon conveys meaning to screen readers.
 - The font is loaded in `index.html` with the full `opsz,wght,FILL,GRAD` axes, so any Material Symbols name works without adding assets.
+- **The one exception:** a few glyphs in the file are custom vectors rather than Material Symbols. Do not substitute the nearest Material name (a `crop_free` stand-in for the temporary-chat bubble read as four corner brackets and was wrong). Export the path from Figma and wrap it in a component next to `MIcon`, as `src/components/TemporaryChatIcon.tsx` does. Note in the file that it is the design's own path, not a redraw.
 - **Legacy:** `src/components/Icon.tsx` + `src/icons/core/` (the CORE UI SVG library) are no longer used by any screen. Do not add icons there.
 
 ---

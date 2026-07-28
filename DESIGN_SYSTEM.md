@@ -333,7 +333,7 @@ Figma "Chat Idle" (node 4483-34608) for the empty state and "Chat / Memory" (nod
 tab does not discard the conversation.
 - **navBar** (`Header height={56}`): leading new-chat `buttonIcon` (`edit`), a node
   title of VIP mark 24px + "Concierge" 16/20/500 + `chevron-down` 18px, and two
-  trailing `buttonIcon`s - `temporary-chat` and `more-horizontal`. All three are
+  trailing `buttonIcon`s - `<TemporaryChatIcon>` and `more_horiz`. All three are
   the 40px bordered circle.
 - **Idle state**: heading **24/28/600** "What would you like arranged?" and body
   16/22 centred in the free space, then four **Chat Suggestions** parked above the
