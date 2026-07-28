@@ -2,11 +2,11 @@ import Sheet from './Sheet';
 import Toggle from './Toggle';
 import { theme } from '../theme';
 
-// ─── Data Memory sheet ───────────────────────────────────────────────────────
+// ─── Memory sheet ───────────────────────────────────────────────────────
 //
 // Figma: "Settings / Memory [On]" (node 5303-20603) and "[Off]" (node
 // 5385-13776). Full-height sheet: one switch row plus the way into Manage
-// Memory. Reached from Menu > Data Memory and from the "Memory updated" chip in
+// Memory. Reached from Menu > Memory and from the "Memory updated" chip in
 // a chat, so it lives in components/ rather than inside either screen.
 //
 // Switching memory off **pauses** collection; it does not lock the data away, so

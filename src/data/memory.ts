@@ -1,7 +1,7 @@
-// ─── Data Memory ─────────────────────────────────────────────────────────────
+// ─── Memory ─────────────────────────────────────────────────────────────
 //
 // Figma: "Memory" section (node 5381-8698). The concierge keeps a short list of
-// facts the user has told it, editable from Menu > Data Memory > Manage Memory
+// facts the user has told it, editable from Menu > Memory > Manage Memory
 // and written to from the Chat tab.
 //
 // Prototype: everything lives in React state (FeedScreen owns it). There is no

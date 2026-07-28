@@ -106,7 +106,7 @@ export default function FeedScreen({
 }: FeedScreenProps) {
   // Which bottom-bar tab is showing. Home carries the feed + its detail views.
   const [tab, setTab] = useState<'home' | 'menu' | 'chat'>('home');
-  // ── Data Memory ───────────────────────────────────────────────────────────
+  // ── Memory ───────────────────────────────────────────────────────────
   // Owned here rather than inside a tab, because the Menu tab edits it and the
   // Chat tab writes to it, and both have to see the same list.
   const [memoryEnabled, setMemoryEnabled] = useState(true);
@@ -270,7 +270,7 @@ export default function FeedScreen({
   const forgetFacts = (ids: string[]) =>
     setMemoryFacts((prev) => prev.filter((f) => !ids.includes(f.id)));
 
-  // Manage Memory is a push over whichever tab opened it (Menu > Data Memory, or
+  // Manage Memory is a push over whichever tab opened it (Menu > Memory, or
   // the chat's "Memory updated" chip). Rendering it in both branches means Back
   // returns to where the user was rather than dumping them on the Menu tab.
   const memoryScreen = showMemory && (

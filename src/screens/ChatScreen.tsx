@@ -9,12 +9,12 @@ import { theme } from '../theme';
 // ─── Chat tab ────────────────────────────────────────────────────────────────
 //
 // Figma: "Chat Idle" (node 4483-34608) for the empty state and "Chat / Memory"
-// (node 5303-20889) for a thread. Its part in the Data Memory feature: when a
+// (node 5303-20889) for a thread. Its part in the Memory feature: when a
 // message asks to be remembered, the fact is written to memory and the reply
 // carries a tappable "Memory updated" chip that opens the Memory sheet.
 //
-// When Data Memory is switched off the fact is not stored and the reply says so,
-// so the toggle in Menu > Data Memory is never silently ignored.
+// When Memory is switched off the fact is not stored and the reply says so,
+// so the toggle in Menu > Memory is never silently ignored.
 
 const SURFACE = '#1b1b1c';
 const TEXT_PRIMARY = '#f6f6f6';
@@ -90,7 +90,7 @@ export default function ChatScreen({
       const current = factsRef.current;
       if (!memoryEnabled) {
         return {
-          text: 'Data Memory is switched off, so I am not keeping anything between chats. You can turn it back on in Menu > Data Memory.',
+          text: 'Memory is switched off, so I am not keeping anything between chats. You can turn it back on in Menu > Memory.',
         };
       }
       if (current.length === 0) {
@@ -108,7 +108,7 @@ export default function ChatScreen({
             memoryUpdated: true,
           }
         : {
-            text: 'I can work with that for this chat, but Data Memory is switched off so it will not be saved. Turn it on in Menu > Data Memory and I will remember it next time.',
+            text: 'I can work with that for this chat, but Memory is switched off so it will not be saved. Turn it on in Menu > Memory and I will remember it next time.',
           };
     }
 
@@ -418,7 +418,7 @@ function AssistantTurn({
 
 /**
  * "Memory updated" chip (Figma Chip, node 5303-21143): a 40px bordered pill.
- * Carries the Data Memory glyph and a chevron, because tapping it opens the
+ * Carries the Memory glyph and a chevron, because tapping it opens the
  * Memory sheet - the second way into editing what the concierge remembers.
  */
 function MemoryChip({ onClick }: { onClick: () => void }) {
