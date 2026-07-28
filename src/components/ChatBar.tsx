@@ -1,26 +1,31 @@
 import { useState } from 'react';
 
 /**
- * "Ask VIP.ai" chat input. On Discover it sits directly above the tab bar as one
- * combined dock; on the Product Page it's pinned on its own (context placeholder).
- * A leading "+" (attach) and a trailing mic; the mic turns into a send arrow once
- * there's text. Prototype: send is a no-op that clears the field.
+ * The prompt field. Used by the Chat tab ("Your instruction..") and by Manage
+ * Memory ("Ask to add or update", which hides the attach button). A leading "+"
+ * (attach) and a trailing mic; the mic turns into a send arrow once there's text.
  */
 export default function ChatBar({
   placeholder = 'Ask VIP.ai anything',
   onSend,
+  showAttach = true,
+  disabled = false,
 }: {
   placeholder?: string;
   onSend?: (text: string) => void;
+  /** Manage Memory drops the attach button - there is nothing to attach there. */
+  showAttach?: boolean;
+  /** Greys the field out, e.g. while memory is switched off. */
+  disabled?: boolean;
 }) {
   const [text, setText] = useState('');
   const send = () => {
     const value = text.trim();
-    if (!value) return;
+    if (!value || disabled) return;
     onSend?.(value);
     setText('');
   };
-  const hasText = text.trim().length > 0;
+  const hasText = text.trim().length > 0 && !disabled;
   return (
     <div style={{ flexShrink: 0, background: 'transparent', padding: '8px 16px 10px' }}>
       <div
@@ -41,6 +46,7 @@ export default function ChatBar({
           onKeyDown={(e) => { if (e.key === 'Enter') send(); }}
           placeholder={placeholder}
           aria-label={placeholder}
+          disabled={disabled}
           style={{
             flex: 1,
             minWidth: 0,
@@ -48,34 +54,37 @@ export default function ChatBar({
             background: 'none',
             border: 'none',
             outline: 'none',
-            color: '#f2f2f2',
+            color: disabled ? '#6b6b6b' : '#f2f2f2',
             fontSize: 15,
             fontWeight: 400,
           }}
         />
-        <button
-          aria-label="Add attachment"
-          style={{
-            width: 34,
-            height: 34,
-            borderRadius: 100,
-            background: 'none',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            padding: 0,
-            flexShrink: 0,
-            WebkitTapHighlightColor: 'transparent',
-          }}
-        >
-          <span className="material-symbols-rounded" style={{ fontSize: 24, color: '#9a9a9a' }} aria-hidden>
-            add
-          </span>
-        </button>
+        {showAttach && (
+          <button
+            aria-label="Add attachment"
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 100,
+              background: 'none',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              padding: 0,
+              flexShrink: 0,
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            <span className="material-symbols-rounded" style={{ fontSize: 24, color: '#9a9a9a' }} aria-hidden>
+              add
+            </span>
+          </button>
+        )}
         <button
           onClick={send}
+          disabled={disabled}
           aria-label={hasText ? 'Send' : 'Voice input'}
           style={{
             width: 38,

@@ -25,7 +25,23 @@ export const bodyStyle: React.CSSProperties = {
 };
 
 // ── Header (gradient-fade overlay: content scrolls under it, ChatGPT-style) ───
-export function Header({ title, onBack }: { title: string; onBack?: () => void }) {
+//
+// `subtitle` stacks a secondary line under the title (Figma "Manage Memory" ->
+// "Updated 1 min ago"); `right` drops a control into the trailing corner. Both
+// are optional, so callers that only pass a title render exactly as before.
+export function Header({
+  title,
+  subtitle,
+  onBack,
+  right,
+}: {
+  /** Plain string for most screens; a node when the title carries chrome of its
+      own (the Chat tab's "Concierge" picker). */
+  title: React.ReactNode;
+  subtitle?: string;
+  onBack?: () => void;
+  right?: React.ReactNode;
+}) {
   return (
     <div
       style={{
@@ -78,15 +94,43 @@ export function Header({ title, onBack }: { title: string; onBack?: () => void }
         style={{
           position: 'absolute',
           left: '50%',
-          top: `calc(env(safe-area-inset-top, 0px) + 20px)`,
+          top: `calc(env(safe-area-inset-top, 0px) + ${subtitle ? 12 : 20}px)`,
           transform: 'translateX(-50%)',
-          fontSize: 16,
-          fontWeight: 600,
-          color: '#fff',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 2,
+          maxWidth: 'calc(100% - 120px)',
+          textAlign: 'center',
         }}
       >
-        {title}
+        <span style={{ fontSize: 16, fontWeight: 600, color: '#fff', lineHeight: '20px' }}>{title}</span>
+        {subtitle && (
+          <span style={{ fontSize: 14, fontWeight: 400, color: '#999', lineHeight: '20px' }}>{subtitle}</span>
+        )}
       </span>
+
+      {right && (
+        <span style={{ pointerEvents: 'auto', position: 'absolute', right: 16, top: `calc(env(safe-area-inset-top, 0px) + 16px)` }}>
+          {right}
+        </span>
+      )}
     </div>
   );
 }
+
+/** 32px rounded-square icon button - the header/sheet control shape. */
+export const iconButtonStyle: React.CSSProperties = {
+  width: 32,
+  height: 32,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: '#2a2a2a',
+  border: 'none',
+  borderRadius: 12,
+  cursor: 'pointer',
+  padding: 0,
+  flexShrink: 0,
+  WebkitTapHighlightColor: 'transparent',
+};

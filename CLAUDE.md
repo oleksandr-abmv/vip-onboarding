@@ -80,7 +80,8 @@ every matching string.)
 
 - `name` is the filename without `.svg`. Browse `src/icons/core/` or the library [icons page](https://icons.coreui.design/) for names.
 - Set `decorative={false}` + `label="Something"` when the icon conveys meaning to screen readers.
-- If a glyph is genuinely missing from the library, add it there first (or drop a new SVG into `src/icons/core/` with `currentColor` strokes) rather than inlining raw SVG in a screen.
+- If a glyph is genuinely missing from the library, add it there first (or drop a new SVG into `src/icons/core/` with `currentColor` strokes) rather than inlining raw SVG in a screen. Match the library's build: `24x24` viewBox, `fill="none"`, `stroke="currentColor"`, `stroke-width="1.5"`, round caps and joins. (`vibration`, `balance`, and `feedback` were added this way for the Settings rows.)
+- Figma specifies icons as **Material Symbols** names; map them to the CORE UI equivalent rather than pulling in Material (e.g. `menu_book` → `book-open`, `vibration` → `vibration`, `balance` → `balance`, `feedback` → `feedback`, `help` → `help-circle`, `delete` → `trash`, `keyboard_arrow_right` → `chevron-right`).
 - Material Symbols Rounded is still used for the few existing cases (e.g. `material-symbols-rounded` class in a handful of old screens), but new code should prefer `<Icon />`.
 
 ---
@@ -183,6 +184,21 @@ These are the signals downstream screens depend on - keep them in sync:
 - `likedProducts: string[]`
 - `isGuest: boolean` - set by which Welcome button was used (`onNext(guest)`). The
   **Menu tab** swaps its profile card for the "create an account" prompt when true.
+
+## Post-onboarding state in FeedScreen.tsx
+
+Once the user reaches the feed, `FeedScreen` owns the tab state and everything the
+tabs share. Anything two tabs both touch belongs here, not inside a tab:
+
+- `tab: 'home' | 'menu' | 'chat'` - `home` also carries the detail views.
+- `memoryEnabled: boolean`, `memoryFacts: MemoryFact[]` - **Data Memory**. The Menu
+  tab edits them (Data Memory sheet, Manage Memory) and the Chat tab writes to them,
+  so both must read the same store. See `src/data/memory.ts`.
+- `chatMessages`, `chatRatings` - the concierge thread. Held here so switching tabs
+  does not discard the conversation.
+
+When memory is **off**, nothing may be written silently: the chat says so in its
+reply and skips the "Memory updated" chip, and Manage Memory is unreachable.
 
 ---
 

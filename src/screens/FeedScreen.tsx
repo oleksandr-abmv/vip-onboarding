@@ -4,6 +4,9 @@ import PRODUCTS, { type Product } from '../data/products';
 import { categoryConfigs } from '../data/categoryConfig';
 import ProductPage, { type SavedStore } from './ProductPage';
 import MenuScreen from './MenuScreen';
+import ChatScreen, { type ChatMessage } from './ChatScreen';
+import MemoryScreen from './MemoryScreen';
+import { SEED_MEMORY_FACTS, type MemoryFact } from '../data/memory';
 import { screenStyle, bodyStyle, Header } from './screenChrome';
 
 const PAGE = 16; // horizontal page margin, matches Figma page/margins token
@@ -101,7 +104,17 @@ export default function FeedScreen({
   onSignOut,
 }: FeedScreenProps) {
   // Which bottom-bar tab is showing. Home carries the feed + its detail views.
-  const [tab, setTab] = useState<'home' | 'menu'>('home');
+  const [tab, setTab] = useState<'home' | 'menu' | 'chat'>('home');
+  // ── Data Memory ───────────────────────────────────────────────────────────
+  // Owned here rather than inside a tab, because the Menu tab edits it and the
+  // Chat tab writes to it, and both have to see the same list.
+  const [memoryEnabled, setMemoryEnabled] = useState(true);
+  const [memoryFacts, setMemoryFacts] = useState<MemoryFact[]>(SEED_MEMORY_FACTS);
+  // Manage Memory is a full-screen push over the Menu tab.
+  const [showMemory, setShowMemory] = useState(false);
+  // Chat thread, kept here so switching tabs does not discard the conversation.
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatRatings, setChatRatings] = useState<Record<string, 'up' | 'down'>>({});
   const [detail, setDetail] = useState<Detail | null>(null);
   const [snack, setSnack] = useState<Snack | null>(null);
   const [openProduct, setOpenProduct] = useState<Product | null>(null);
@@ -231,7 +244,48 @@ export default function FeedScreen({
   const goHome = () => {
     setTab('home');
     setDetail(null);
+    setShowMemory(false);
   };
+  const notice = (message: string) => showSnack(message, 'Got it', () => setSnack(null));
+
+  // Memory writes, shared by the Chat tab and Manage Memory.
+  const addFact = (fact: MemoryFact) => setMemoryFacts((prev) => [...prev, fact]);
+  const forgetFacts = (ids: string[]) =>
+    setMemoryFacts((prev) => prev.filter((f) => !ids.includes(f.id)));
+
+  // ── Chat tab ──────────────────────────────────────────────────────────────
+  if (tab === 'chat') {
+    return (
+      <>
+        <ChatScreen
+          memoryEnabled={memoryEnabled}
+          facts={memoryFacts}
+          messages={chatMessages}
+          onMessagesChange={setChatMessages}
+          ratings={chatRatings}
+          onRatingsChange={setChatRatings}
+          onAddFact={addFact}
+          onNotice={notice}
+          bottomBar={
+            <BottomBar
+              active="chat"
+              onHome={goHome}
+              onChat={() => setTab('chat')}
+              onMenu={() => setTab('menu')}
+            />
+          }
+        />
+        {snack && (
+          <Snackbar
+            key={snack.id}
+            message={snack.message}
+            actionLabel={snack.actionLabel}
+            onAction={snack.onAction}
+          />
+        )}
+      </>
+    );
+  }
 
   // ── Menu tab ──────────────────────────────────────────────────────────────
   if (tab === 'menu') {
@@ -242,15 +296,39 @@ export default function FeedScreen({
           onCreateAccount={() => onSignOut?.()}
           onSignOut={() => onSignOut?.()}
           onDeleteAccount={() => onSignOut?.()}
-          onNotice={(message) => showSnack(message, 'Got it', () => setSnack(null))}
-          bottomBar={<BottomBar active="menu" onHome={goHome} onMenu={() => setTab('menu')} />}
+          onNotice={notice}
+          memoryEnabled={memoryEnabled}
+          onMemoryEnabledChange={setMemoryEnabled}
+          onManageMemory={() => setShowMemory(true)}
+          bottomBar={
+            <BottomBar
+              active="menu"
+              onHome={goHome}
+              onChat={() => setTab('chat')}
+              onMenu={() => setTab('menu')}
+            />
+          }
         />
+        {showMemory && (
+          <MemoryScreen
+            facts={memoryFacts}
+            onAdd={addFact}
+            onForget={forgetFacts}
+            onClearAll={() => setMemoryFacts([])}
+            onClose={() => setShowMemory(false)}
+            onNotice={notice}
+          />
+        )}
         {snack && (
           <Snackbar
             key={snack.id}
             message={snack.message}
             actionLabel={snack.actionLabel}
             onAction={snack.onAction}
+            // Manage Memory is a z-200 push, and its prompt field sits where the
+            // tab bar normally is - so clear both.
+            zIndex={showMemory ? 250 : undefined}
+            bottom={showMemory ? `calc(74px + env(safe-area-inset-bottom, 0px))` : undefined}
           />
         )}
       </>
@@ -368,6 +446,7 @@ export default function FeedScreen({
         <BottomBar
           active={detail.kind === 'saved' ? 'saved' : 'home'}
           onHome={() => setDetail(null)}
+          onChat={() => setTab('chat')}
           onMenu={() => setTab('menu')}
           onSaved={() => setDetail({ kind: 'saved' })}
         />
@@ -618,6 +697,7 @@ export default function FeedScreen({
       <BottomBar
         active="home"
         onHome={() => setDetail(null)}
+        onChat={() => setTab('chat')}
         onMenu={() => setTab('menu')}
         onSaved={() => setDetail({ kind: 'saved' })}
       />
@@ -1606,16 +1686,17 @@ function ProductCard({
 
 // ── Bottom navigation bar (Figma bottomBarLocal, dark) ───────────────────────
 // Five flat tabs with a label under each icon: Home, Alerts, Chat, History, Menu.
-// Home is the only wired destination for now; the rest are visual placeholders
-// (matching History/Menu, which have no screen yet).
+// Home, Chat and Menu are wired; Alerts and History are still visual placeholders.
 function BottomBar({
   active,
   onHome,
+  onChat,
   onMenu,
   bare = false,
 }: {
-  active: 'home' | 'saved' | 'menu';
+  active: 'home' | 'saved' | 'menu' | 'chat';
   onHome: () => void;
+  onChat?: () => void;
   onMenu?: () => void;
   /** Kept for call-site compatibility; the Saved tab was removed in the new design. */
   onSaved?: () => void;
@@ -1623,9 +1704,9 @@ function BottomBar({
   bare?: boolean;
 }) {
   const tabs: { icon: string; label: string; active?: boolean; onClick?: () => void }[] = [
-    { icon: 'home', label: 'Home', active: active !== 'menu', onClick: onHome },
+    { icon: 'home', label: 'Home', active: active !== 'menu' && active !== 'chat', onClick: onHome },
     { icon: 'notifications', label: 'Alerts' },
-    { icon: 'chat_bubble', label: 'Chat' },
+    { icon: 'chat_bubble', label: 'Chat', active: active === 'chat', onClick: onChat },
     { icon: 'history', label: 'History' },
     { icon: 'menu', label: 'Menu', active: active === 'menu', onClick: onMenu },
   ];
@@ -1685,12 +1766,15 @@ function Snackbar({
   actionLabel,
   onAction,
   bottom = `calc(71px + env(safe-area-inset-bottom, 0px))`,
+  zIndex = 90,
 }: {
   message: string;
   actionLabel: string;
   onAction: () => void;
   /** Distance from the bottom - raised when the product-page action bar is open. */
   bottom?: string;
+  /** Raised again over full-screen pushes like Manage Memory (z 200). */
+  zIndex?: number;
 }) {
   return (
     <div
@@ -1703,7 +1787,7 @@ function Snackbar({
         // page's action bar), plus the device safe-area inset.
         bottom,
         // Above the product-page overlay (z 80) so favorite toasts show there too.
-        zIndex: 90,
+        zIndex,
         display: 'flex',
         alignItems: 'center',
         gap: 8,

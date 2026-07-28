@@ -1,15 +1,16 @@
 import { useState, type ReactNode } from 'react';
 import { Icon } from '../components/Icon';
+import Dialog from '../components/Dialog';
 import { screenStyle, bodyStyle, Header } from './screenChrome';
 
 // ─── Menu tab ────────────────────────────────────────────────────────────────
 //
-// Figma: "Menu" (node 497-13232) - the signed-in, signed-in-without-a-name, and
-// guest variants. Layout is a stack of labelled groups, each an `#1b1b1c` card
-// of list rows, closed by the version footer.
+// Figma: "Menu" (node 497-13232) and "Settings" (node 5380-6999) - the signed-in,
+// signed-in-without-a-name, and guest variants. Layout is a stack of labelled
+// groups, each an `#1b1b1c` card of list rows, closed by the version footer.
 //
-// Rows that carry a value (Appearance, Language) open a bottom-sheet picker;
-// Haptic feedback is an inline toggle; the rest are chevron rows.
+// Rows that carry a value (Appearance, Language, Data Memory) open a bottom
+// sheet; Haptic feedback is an inline toggle; the rest are chevron rows.
 
 const PAGE = 16;
 
@@ -40,6 +41,11 @@ interface MenuScreenProps {
   onDeleteAccount: () => void;
   /** Toast for rows with no destination yet. */
   onNotice: (message: string) => void;
+  /** Data Memory, owned by the feed so the Chat tab writes to the same store. */
+  memoryEnabled: boolean;
+  onMemoryEnabledChange: (enabled: boolean) => void;
+  /** Push the full-screen Manage Memory view. */
+  onManageMemory: () => void;
   /** Bottom bar, passed in so the tab bar stays owned by the feed. */
   bottomBar?: ReactNode;
 }
@@ -52,13 +58,16 @@ export default function MenuScreen({
   onSignOut,
   onDeleteAccount,
   onNotice,
+  memoryEnabled,
+  onMemoryEnabledChange,
+  onManageMemory,
   bottomBar,
 }: MenuScreenProps) {
   const [appearance, setAppearance] = useState('Dark');
   const [language, setLanguage] = useState('English');
   const [haptics, setHaptics] = useState(false);
-  // Which bottom sheet is up: an option picker, or the delete confirmation.
-  const [sheet, setSheet] = useState<'appearance' | 'language' | 'delete' | null>(null);
+  // Which sheet is up: an option picker, the Memory sheet, or the delete dialog.
+  const [sheet, setSheet] = useState<'appearance' | 'language' | 'memory' | 'delete' | null>(null);
 
   return (
     <div style={screenStyle}>
@@ -72,7 +81,7 @@ export default function MenuScreen({
             <UserCard name={userName} email={userEmail} />
           )}
 
-          <Group label="Preferences">
+          <Group label="Personalization">
             <Row
               icon="sun"
               label="Appearance"
@@ -80,8 +89,14 @@ export default function MenuScreen({
               onClick={() => setSheet('appearance')}
             />
             <Row icon="globe" label="Language" value={language} onClick={() => setSheet('language')} />
+            <Row
+              icon="book-open"
+              label="Data Memory"
+              value={memoryEnabled ? 'On' : 'Off'}
+              onClick={() => setSheet('memory')}
+            />
             <ToggleRow
-              icon="mobile"
+              icon="vibration"
               label="Haptic feedback"
               on={haptics}
               onChange={() => setHaptics((h) => !h)}
@@ -89,9 +104,9 @@ export default function MenuScreen({
           </Group>
 
           <Group label="Support & Legal">
-            <Row icon="bank" label="Legal" onClick={() => onNotice('Legal documents open here')} />
+            <Row icon="balance" label="Legal" onClick={() => onNotice('Legal documents open here')} />
             <Row
-              icon="chat-dots"
+              icon="feedback"
               label="Share your feedback"
               onClick={() => onNotice('Feedback form opens here')}
             />
@@ -148,11 +163,22 @@ export default function MenuScreen({
           onClose={() => setSheet(null)}
         />
       )}
+      {sheet === 'memory' && (
+        <MemorySheet
+          enabled={memoryEnabled}
+          onToggle={() => onMemoryEnabledChange(!memoryEnabled)}
+          onManage={() => {
+            setSheet(null);
+            onManageMemory();
+          }}
+          onClose={() => setSheet(null)}
+        />
+      )}
       {sheet === 'delete' && (
-        <ConfirmSheet
-          title="Delete account?"
-          body="This removes your profile, saved pieces, and everything the concierge has learned about you. It cannot be undone."
-          confirmLabel="Delete account"
+        <Dialog
+          title="Are you sure you want to delete your account?"
+          body="This action is irreversible. Your profile, saved pieces, and everything the concierge has learned about you are removed permanently."
+          confirmLabel="Delete my account"
           onConfirm={() => {
             setSheet(null);
             onDeleteAccount();
@@ -351,32 +377,40 @@ function ToggleRow({
     <button onClick={onChange} role="switch" aria-checked={on} aria-label={label} style={rowStyle}>
       <Icon name={icon} size={24} color={TEXT_PRIMARY} />
       <span style={{ flex: 1, minWidth: 0, fontSize: 16, color: TEXT_PRIMARY, lineHeight: '22px' }}>{label}</span>
+      <Toggle on={on} />
+    </button>
+  );
+}
+
+/** The 52x32 track + 24px thumb. Presentational: the wrapping control owns the
+    `role="switch"` and the click handler. */
+function Toggle({ on }: { on: boolean }) {
+  return (
+    <span
+      style={{
+        position: 'relative',
+        width: 52,
+        height: 32,
+        flexShrink: 0,
+        borderRadius: 100,
+        background: on ? TOGGLE_TRACK_ON : TOGGLE_TRACK_OFF,
+        transition: 'background 200ms cubic-bezier(0.25,0.1,0.25,1)',
+      }}
+      aria-hidden
+    >
       <span
         style={{
-          position: 'relative',
-          width: 52,
-          height: 32,
-          flexShrink: 0,
+          position: 'absolute',
+          top: 4,
+          left: on ? 24 : 4,
+          width: 24,
+          height: 24,
           borderRadius: 100,
-          background: on ? TOGGLE_TRACK_ON : TOGGLE_TRACK_OFF,
-          transition: 'background 200ms cubic-bezier(0.25,0.1,0.25,1)',
+          background: TOGGLE_THUMB,
+          transition: 'left 200ms cubic-bezier(0.25,0.1,0.25,1)',
         }}
-        aria-hidden
-      >
-        <span
-          style={{
-            position: 'absolute',
-            top: 4,
-            left: on ? 24 : 4,
-            width: 24,
-            height: 24,
-            borderRadius: 100,
-            background: TOGGLE_THUMB,
-            transition: 'left 200ms cubic-bezier(0.25,0.1,0.25,1)',
-          }}
-        />
-      </span>
-    </button>
+      />
+    </span>
   );
 }
 
@@ -503,56 +537,58 @@ function OptionSheet({
   );
 }
 
-function ConfirmSheet({
-  title,
-  body,
-  confirmLabel,
-  onConfirm,
+// ── Data Memory sheet (Figma "Settings / Memory", node 5303-20603) ───────────
+//
+// One switch row plus the way into Manage Memory. With memory off there is
+// nothing to manage, so the button goes disabled rather than opening an empty
+// screen the user cannot act on.
+function MemorySheet({
+  enabled,
+  onToggle,
+  onManage,
   onClose,
 }: {
-  title: string;
-  body: string;
-  confirmLabel: string;
-  onConfirm: () => void;
+  enabled: boolean;
+  onToggle: () => void;
+  onManage: () => void;
   onClose: () => void;
 }) {
   return (
-    <Sheet title={title} onClose={onClose}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '12px 20px 0' }}>
-        <p style={{ margin: 0, fontSize: 15, lineHeight: '22px', color: '#999', textAlign: 'center' }}>{body}</p>
+    <Sheet title="Memory" onClose={onClose}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '8px 20px 0' }}>
         <button
-          onClick={onConfirm}
-          style={{
-            width: '100%',
-            height: 48,
-            background: DANGER,
-            color: '#2b0d0f',
-            border: 'none',
-            borderRadius: 100,
-            fontSize: 16,
-            fontWeight: 600,
-            cursor: 'pointer',
-            WebkitTapHighlightColor: 'transparent',
-          }}
+          onClick={onToggle}
+          role="switch"
+          aria-checked={enabled}
+          aria-label="Enable Memory"
+          style={{ ...rowStyle, alignItems: 'center', gap: 8, padding: '12px 0' }}
         >
-          {confirmLabel}
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 120, textAlign: 'left' }}>
+            <span style={{ fontSize: 16, lineHeight: '22px', color: TEXT_PRIMARY }}>Enable Memory</span>
+            <span style={{ fontSize: 14, lineHeight: '20px', color: TEXT_SECONDARY, opacity: 0.7 }}>
+              The app will remember facts about you from chats and other shared info.
+            </span>
+          </span>
+          <Toggle on={enabled} />
         </button>
+
         <button
-          onClick={onClose}
+          onClick={onManage}
+          disabled={!enabled}
           style={{
             width: '100%',
             height: 48,
             background: 'transparent',
-            color: '#f2f2f2',
-            border: '1px solid #313131',
+            color: enabled ? TEXT_PRIMARY : '#666',
+            border: `1px solid ${enabled ? '#313131' : '#252525'}`,
             borderRadius: 100,
             fontSize: 16,
             fontWeight: 500,
-            cursor: 'pointer',
+            cursor: enabled ? 'pointer' : 'default',
             WebkitTapHighlightColor: 'transparent',
           }}
         >
-          Cancel
+          Manage Memory
         </button>
       </div>
     </Sheet>

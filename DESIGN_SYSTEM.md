@@ -213,9 +213,15 @@ inactive `#8b8b8b`. Icon 24px, label 12/`16px`. Tabs: **Home** (`home`), **Alert
 placeholders. (Figma `bottomBarLocal`.)
 
 ### Screen chrome (`src/screens/screenChrome.tsx`)
-`screenStyle`, `bodyStyle`, and `Header` - the shell every top-level tab and detail
-view shares (full-bleed column, scroll body running under the gradient-fade
-header). Lives in its own module so tabs can use it without importing FeedScreen.
+`screenStyle`, `bodyStyle`, `Header`, and `iconButtonStyle` - the shell every
+top-level tab and detail view shares (full-bleed column, scroll body running under
+the gradient-fade header). Lives in its own module so tabs can use it without
+importing FeedScreen.
+- **Header** takes `title` (string or node), optional `subtitle` (14/20 `#999`,
+  stacked under the title and centered), optional `onBack`, and optional `right`
+  for a trailing control. Title-only callers render exactly as before.
+- **`iconButtonStyle`**: the 32px rounded square (`radius 12`, `#2a2a2a`) used for
+  header and sheet controls.
 
 ### Menu tab (`src/screens/MenuScreen.tsx`)
 Top-level tab (Figma "Menu", node 497-13232), so **no back button**. Page is a
@@ -228,19 +234,71 @@ stack of labelled groups on `#101111`, `gap 16`, page margin 16.
   pill (48px, `#f6f6f6`/`#121212`).
 - **Group**: a 16/400 `#f6f6f6` label, then an `#1b1b1c` `radius 16` card padded
   `8px 12px` holding rows separated by `gap 8` (no dividers). Groups:
-  **Preferences** (Appearance, Language, Haptic feedback), **Support & Legal**
-  (Legal, Share your feedback, Need help? Contact us), **Account** (Sign out,
-  Delete account).
+  **Personalization** (Appearance, Language, Data Memory, Haptic feedback),
+  **Support & Legal** (Legal, Share your feedback, Need help? Contact us),
+  **Account** (Sign out, Delete account).
 - **Row**: 24px `<Icon />` + 16/400 label + optional 12/400 `#f4f5f7` value +
   `chevron-right`, `padding 12px 0`. Destructive rows tint icon, label, and chevron
   `#dc8589`.
-- **Toggle** (Haptic feedback): 52x32 track, `radius 100`, 24px thumb `#252526`;
-  off `#9a979b`, on `#f6f6f6` (same white as the CTA pill), 200ms slide.
-- **Sheets**: Appearance and Language open a bottom-sheet option list; Delete
-  account opens a destructive confirm sheet. Both reuse the onboarding sheet shell
-  (dimmed backdrop, `#0d0d0d`, `radius 20px 20px 0 0`, centered title + close).
+- **Row icons** (Figma "Settings", node 5380-6999 - each maps a Material Symbol to
+  its CORE UI equivalent): Appearance `sun`, Language `globe`, Data Memory
+  `book-open`, Haptic feedback `vibration`, Legal `balance`, Share your feedback
+  `feedback`, Need help `help-circle`, Sign out `logout`, Delete account `trash`.
+  `vibration`, `balance`, and `feedback` were added to `src/icons/core/`.
+- **Toggle** (Haptic feedback, Enable Memory): 52x32 track, `radius 100`, 24px
+  thumb `#252526`; off `#9a979b`, on `#f6f6f6` (same white as the CTA pill), 200ms
+  slide. Presentational `<Toggle>`; the wrapping control owns `role="switch"`.
+- **Sheets**: Appearance, Language, and Data Memory open bottom sheets reusing the
+  onboarding sheet shell (dimmed backdrop, `#0d0d0d`, `radius 20px 20px 0 0`,
+  centered title + close). Delete account opens the centered `<Dialog>` instead.
 - **Footer**: "VIP AI V1.0", centered, 12/`16px`, `#f4f5f7` at 60% opacity.
 - Sign out / Delete account / the guest CTA all return to **Welcome**.
+
+### Confirm dialog (`src/components/Dialog.tsx`)
+Figma "Dialog" (node 5381-8672). Centered card, **not** a bottom sheet - for
+destructive confirmations (delete memory, delete account).
+- `#1b1b1c` card, `radius 16`, inset 16 left/right, vertically centered, padding
+  `24px 16px 16px`, `gap 16`; backdrop `rgba(0,0,0,0.75)`.
+- 40px round `#252526` badge holding a 24px `<Icon />` (defaults to `warn`).
+- Title 20/24/500 `#f6f6f6`, body 16/22 `#f4f5f7`, both centered.
+- Stacked 48px pills: danger `#dc8589` on `#2b0d0f` text, then outline Cancel
+  (`1px solid #313131`). Close X (40px) top-right.
+- Motion: `dialogPop` 240ms - the keyframe carries the `translateY(-50%)` through,
+  since that is what centers the card.
+
+### Data Memory (`src/data/memory.ts`, `src/screens/MemoryScreen.tsx`)
+Figma "Memory" section (node 5381-8698). Facts the concierge keeps about the user.
+State lives in `FeedScreen` so the Menu tab and the Chat tab share one store.
+- **Memory sheet** (Menu > Data Memory): "Enable Memory" row (16/22 label + 14/20
+  subtitle + `<Toggle>`) and a full-width outline **Manage Memory** pill, disabled
+  while memory is off. The Menu row shows `On` / `Off` as its value.
+- **Manage Memory**: full-screen push (`z 200`, `screenSlideInRight`). Header is
+  `Header` with `subtitle` "Updated <relative>" and a `trash` icon button on the
+  right (disabled when empty). Facts render as 16/22 `#f4f5f7` paragraphs, `gap 12`,
+  padded `12px 20px`. Empty state: `book-open` glyph + "Nothing saved yet".
+- **Prompt field**: `<ChatBar>` with `showAttach={false}` and the placeholder
+  "Ask to add or update". Everything typed is a memory command - a leading
+  "forget/remove/delete" drops matching facts, anything else adds one.
+- **Delete**: the trash opens `<Dialog>` ("Are you sure you want to delete your
+  memory?" / "Delete my data").
+
+### Chat tab (`src/screens/ChatScreen.tsx`)
+Figma "Chat / Memory" (node 5303-20889). The concierge thread, wired to the third
+bottom-bar tab. Thread + thumb state live in `FeedScreen` so leaving the tab does
+not discard the conversation.
+- **Header**: `Header` with a node title (VIP mark + "Concierge" + `chevron-down`)
+  and two 32px icon buttons on the right: new chat (`edit`) and `more-horizontal`.
+- **User bubble**: right-aligned, `#1b1b1c`, `radius 12px 12px 0 12px` (the square
+  corner points at the sender), padding 12, max-width 85%.
+- **Assistant turn**: 28px `#02110c` avatar + "VIP.ai Concierge" 14/20, then the
+  optional **"Memory updated" chip** (40px tall, `radius 16`, `1px solid #313131`
+  on `#141414`, `check` icon + 14/20 label), the message 16/22, and a 36px action
+  row: `copy`, `sync`, `like`, `dislike`, `more-horizontal`. Active thumb fills
+  `rgba(246,246,246,0.12)`.
+- **Thinking**: three 6px dots on `typingDot`, 700ms before the reply lands. If the
+  user leaves the tab first the reply is delivered immediately rather than dropped.
+- With memory **off** a remember-style message gets no chip, and the reply points
+  at Menu > Data Memory instead of pretending it saved.
 
 ### Product Page (`src/screens/ProductPage.tsx`)
 Full-screen overlay opened by tapping any product card.
@@ -338,18 +396,19 @@ toggles + fires the snackbar). Meta: name 16/600, tagline `#999`, then location 
 phone rows (Material icon + text).
 
 ### Chat bar (`src/components/ChatBar.tsx`)
-A pill input on **Discover** with the placeholder **"Search for products"** (the
-Product Page no longer uses it - it has an "Ask VIP.ai" button instead). A `#161616`
-pill (`borderRadius 100`, `1px solid #282828`); on the right, a **`+`** (attach) icon
-then a round button that shows a **mic** when empty and fills to `#f6f6f6` with an
-`arrow_upward` once there's text. On Discover it's part of the **combined dock**
-(input directly above the tab bar on one surface). Prototype: send is a no-op that
-clears the field.
+The shared prompt field. A `#161616` pill (`borderRadius 100`, `1px solid #282828`);
+on the right, a **`+`** (attach) icon then a round button that shows a **mic** when
+empty and fills to `#f6f6f6` with an `arrow_upward` once there's text. Props:
+`placeholder`, `onSend`, `showAttach` (Manage Memory drops the `+`), `disabled`.
+Used by the **Chat tab** ("Your instruction..") and **Manage Memory** ("Ask to add
+or update").
 
 ### Snackbar z-order
-The snackbar (`z 90`) sits above the product-page overlay (`z 80`) so favorite
-toasts appear **everywhere** a favorite is added - feed, saved view, and product
-page (product heart + store card favorites).
+The snackbar sits above the product-page overlay (`z 80`) at its default `z 90`, so
+favorite toasts appear **everywhere** a favorite is added - feed, saved view, and
+product page (product heart + store card favorites). The `zIndex` prop raises it
+again (to 250) over full-screen pushes like Manage Memory (`z 200`), which also
+shift it up to clear the prompt field.
 
 ### Empty state placeholder
 Uniform VIP logotype (`/vip-logo.svg`) - never per-item icons. On dark: white logo
@@ -365,13 +424,16 @@ Uniform VIP logotype (`/vip-logo.svg`) - never per-item icons. On dark: white lo
 | Default duration | 400ms |
 | Entrance | `fadeInUp` (translateY + fade), staggered ~60-80ms |
 | Sheet in | `sheetSlideUp` 300-320ms |
+| Dialog in | `dialogPop` 240ms (carries `translateY(-50%)`) |
+| Chat thinking | `typingDot` 1100ms, 160ms stagger |
 
 ---
 
 ## 7. Where things live
 
 - Tokens: `src/theme.ts` (colors, `radii`, spacing, animation, safe-area helpers)
-- Feed / cards / snackbar / bottom bar: `src/screens/FeedScreen.tsx`
+- Feed / cards / snackbar / bottom bar / tab + memory state: `src/screens/FeedScreen.tsx`
+- Data Memory store + intent parsing: `src/data/memory.ts`
 - Swipe deck, thumb & icon buttons: `src/screens/RefineYourTaste.tsx`
 - Flow, nav, progress, onboarding %: `src/App.tsx`
 - Flow logic, copy tone, placeholder rule, gender/lifestyle branches: `CLAUDE.md`
