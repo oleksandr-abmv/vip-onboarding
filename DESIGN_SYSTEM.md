@@ -235,7 +235,7 @@ stack of labelled groups on `#101111`, `gap 16`, page margin 16.
   `chevron-right`, `padding 12px 0`. Destructive rows tint icon, label, and chevron
   `#dc8589`.
 - **Toggle** (Haptic feedback): 52x32 track, `radius 100`, 24px thumb `#252526`;
-  off `#9a979b`, on `#66c9ad`, 200ms slide.
+  off `#9a979b`, on `#f6f6f6` (same white as the CTA pill), 200ms slide.
 - **Sheets**: Appearance and Language open a bottom-sheet option list; Delete
   account opens a destructive confirm sheet. Both reuse the onboarding sheet shell
   (dimmed backdrop, `#0d0d0d`, `radius 20px 20px 0 0`, centered title + close).

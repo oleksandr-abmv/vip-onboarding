@@ -22,7 +22,7 @@ const TEXT_PRIMARY = '#f6f6f6';
 const TEXT_SECONDARY = '#f4f5f7';
 const DANGER = '#dc8589';
 const TOGGLE_TRACK_OFF = '#9a979b';
-const TOGGLE_TRACK_ON = '#66c9ad';
+const TOGGLE_TRACK_ON = '#f6f6f6';
 const TOGGLE_THUMB = '#252526';
 
 const APPEARANCES = ['Light', 'Dark', 'System'];
