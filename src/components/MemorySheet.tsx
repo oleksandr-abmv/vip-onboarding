@@ -1,17 +1,20 @@
 import Sheet from './Sheet';
 import Toggle from './Toggle';
+import { theme } from '../theme';
 
-// ─── Data Memory sheet (Figma "Settings / Memory", node 5303-20603) ──────────
+// ─── Data Memory sheet ───────────────────────────────────────────────────────
 //
-// Full-height sheet: one switch row plus the way into Manage Memory. Reached
-// from Menu > Data Memory and from the "Memory updated" chip in a chat, so it
-// lives in components/ rather than inside either screen.
+// Figma: "Settings / Memory [On]" (node 5303-20603) and "[Off]" (node
+// 5385-13776). Full-height sheet: one switch row plus the way into Manage
+// Memory. Reached from Menu > Data Memory and from the "Memory updated" chip in
+// a chat, so it lives in components/ rather than inside either screen.
 //
-// With memory off there is nothing to manage, so the button goes disabled
-// rather than opening a screen the user cannot act on.
+// Switching memory off **pauses** collection; it does not lock the data away, so
+// Manage Memory stays reachable and a note under the button says as much.
 
 const TEXT_PRIMARY = '#f6f6f6';
 const TEXT_SECONDARY = '#f4f5f7';
+const TEXT_TERTIARY = '#a9a9ab';
 
 export default function MemorySheet({
   enabled,
@@ -58,7 +61,7 @@ export default function MemorySheet({
           >
             <span style={{ fontSize: 16, lineHeight: '22px', color: TEXT_PRIMARY }}>Enable Memory</span>
             <span style={{ fontSize: 14, lineHeight: '20px', color: TEXT_SECONDARY, opacity: 0.7 }}>
-              The app will remember facts about you from chats and other shared info.
+              VIP.ai remembers your tastes and sizes to tailor every recommendation.
             </span>
           </span>
           <Toggle on={enabled} />
@@ -66,24 +69,37 @@ export default function MemorySheet({
 
         <button
           onClick={onManage}
-          disabled={!enabled}
           style={{
             width: 'calc(100% - 16px)',
             alignSelf: 'center',
             height: 48,
             background: 'transparent',
-            color: enabled ? TEXT_PRIMARY : '#666',
+            color: TEXT_PRIMARY,
             // Figma radius/roles/radiusButtonLarge.
-            border: `1px solid ${enabled ? '#444547' : '#252525'}`,
-            borderRadius: 16,
+            border: '1px solid #444547',
+            borderRadius: theme.radii.button,
             fontSize: 16,
             fontWeight: 500,
-            cursor: enabled ? 'pointer' : 'default',
+            cursor: 'pointer',
             WebkitTapHighlightColor: 'transparent',
           }}
         >
           Manage Memory
         </button>
+
+        {!enabled && (
+          <p
+            style={{
+              margin: '4px 8px 0',
+              fontSize: 14,
+              lineHeight: '20px',
+              color: TEXT_TERTIARY,
+              textAlign: 'center',
+            }}
+          >
+            Memory is paused. You still can access and manage your data.
+          </p>
+        )}
       </div>
     </Sheet>
   );

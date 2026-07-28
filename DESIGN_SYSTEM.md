@@ -67,20 +67,23 @@ copy tone, and the VIP-logo placeholder rule). Styling questions → this file.
 
 ## 2. Radius scale  ← the important one
 
+Tokens live in `src/theme.ts` (`theme.radii`). Use them rather than raw numbers.
+
 | Token | Value | Applies to |
 |---|---|---|
-| `button` | **12px** | Buttons AND icon buttons with a background |
-| `card` | **16px** | Product / content cards, banner |
-| `cardSm` | **12px** | Compact cards, inner tiles |
-| `pill` | **100px** | Primary CTA pills, segmented toggles, chips |
-| `sheet` | **20px 20px 0 0** | Bottom-sheet top corners |
+| `button` | **100px** | Buttons AND icon buttons - pill when wide, circle when square |
+| `chip` | **100px** | Chips, segmented toggles, suggestion rows |
+| `pill` | **100px** | Alias kept for existing call sites |
+| `input` | **12px** | Prompt field / dropdown - the one control that is **not** rounded |
+| `card` | **16px** | Product / content cards, banner, grouped lists |
+| `cardSm` | **12px** | Compact cards, inner tiles, popovers |
+| `sheet` | **12px 12px 0 0** | Bottom-sheet + dialog top corners |
 | `phone` | 32px | PhoneFrame shell |
 
-**Never** use `borderRadius: 0` on an interactive button. Circles (`50%`) are only
-for floating / nav controls and the primary nav action (see golden rule #1) - not
-for in-content icon buttons, which are rounded squares. Decorative non-interactive
-circles (radio dots, avatar chips, spinners, progress dots, confetti) may stay
-circular - they are not buttons.
+**Never** use `borderRadius: 0` on an interactive button, and never a rounded
+square: buttons, icon buttons and chips are **fully rounded** (golden rule #1).
+The prompt field is the deliberate exception - the design gives it `radius 12` so
+it reads as a field, not a button.
 
 ---
 
@@ -122,12 +125,15 @@ margin (otherwise the first card scrolls flush to x=0).
 `fontSize 15-16 / 500`. Disabled → `#252525` bg / `#666` text.
 
 ### Secondary / ghost button
-`background rgba(246,246,246,0.1)`, `color #f6f6f6`, pill or `borderRadius 12`.
+`background rgba(246,246,246,0.1)` or transparent with `1px solid #444547`,
+`color #f6f6f6`, `theme.radii.button` (pill).
 
-### Icon button (with background)  ← rounded square
-`borderRadius 12`, square footprint (32 / 40 / 48px), centered icon.
-Examples: card favorite, sheet close, deck info, thumb up/down, bottom-bar center.
-Favorite: bg `rgba(20,20,20,0.72)`, saved icon `#ef4d63` filled, unsaved `#e7e7e7`.
+### Icon button (with background)  ← circle
+`theme.radii.button`, square footprint (32 / 36 / 40 / 48px), centered icon.
+Examples: card favorite, sheet close, nav bar controls, chat actions, deck info,
+thumb up/down. Favorite: bg `rgba(20,20,20,0.72)`, saved icon `#ef4d63` filled,
+unsaved `#e7e7e7`. The bordered variant (`iconButtonStyle` / `sheetIconButtonStyle`)
+is `#101111` on `1px solid #444547`.
 
 ### Discover feed
 Top-level tab. The header is a **gradient-fade bar** (ChatGPT-style): a centered
@@ -211,8 +217,8 @@ one surface**, not two. `#0d0d0d`, `radius 8px 8px 0 0`, `borderTop 1px solid
 - **Prompt field**: `height 48`, **`radius 12`** (Figma radiusInput_Dropdown - a
   rounded rectangle, *not* a pill), `#161616` on `1px solid #282828`, padding
   `4px 4px 4px 12px`, `gap 8`. Placeholder 16/22 `#8b8b8b`.
-  Inside it, two **40px `radius 12`** buttons: `add` (no fill) then a mic that
-  fills `#252526` → `#f6f6f6` with `arrow-up` once there's text.
+  Inside it, two **40px circular** buttons: `add_2` (no fill) then a mic that
+  fills `#252526` → `#f6f6f6` with `arrow_upward` once there's text.
 - **Tab bar**: `padding 0 16`, `justify-content: space-between`, each item `width
   40` / `padding 4px 12px` / `gap 4`, icon 24px + label 12/`16px`. Active icon and
   label `#f6f6f6` (icon `FILL 1`), inactive `#8b8b8b`. Tabs: **Home** (`home`),
@@ -231,9 +237,9 @@ importing FeedScreen.
   stacked under the title and centered), `onBack`, `left` (a leading control that
   replaces the plain back arrow), `right`, and `height` (56 for the Figma navBar,
   64 for the plain title header). Title-only callers render exactly as before.
-- **`iconButtonStyle`** - the Figma `buttonIcon`: a **bordered rounded square**,
-  40px / `radius 12` / `#101111` on `1px solid #444547`. Never a filled circle.
-  The 32px / `radius 8` variant is `sheetIconButtonStyle` in `components/Sheet.tsx`.
+- **`iconButtonStyle`** - the Figma `buttonIcon`: a **bordered circle**, 40px /
+  `theme.radii.button` / `#101111` on `1px solid #444547`. The 32px variant is
+  `sheetIconButtonStyle` in `components/Sheet.tsx`.
 
 ### Menu tab (`src/screens/MenuScreen.tsx`)
 Top-level tab (Figma "Menu", node 497-13232), so **no back button**. Page is a
@@ -271,7 +277,7 @@ Figma BottomSheetHeader (node 5303-20609) on a top-rounded panel.
   `sheetSlideUp` 300ms.
 - **Header**: `padding 16px 16px 8px`, a 32px slot on each side so the title stays
   optically centred, title **16/20/500**, and a `sheetIconButtonStyle` close
-  (32px, `radius 8`, `#101111` on `1px solid #444547`). `onBack` fills the leading
+  (32px **circle**, `#101111` on `1px solid #444547`). `onBack` fills the leading
   slot with the same control.
 - **`full`** raises the panel to `safe-area + 8` instead of hugging its content -
   the height the Memory sheet is drawn at in the design (744 of 806pt).
@@ -291,23 +297,36 @@ destructive confirmations (delete memory, delete account).
 ### Data Memory (`src/data/memory.ts`, `src/screens/MemoryScreen.tsx`)
 Figma "Memory" section (node 5381-8698). Facts the concierge keeps about the user.
 State lives in `FeedScreen` so the Menu tab and the Chat tab share one store.
-- **Memory sheet** (`src/components/MemorySheet.tsx`, Figma node 5303-20603): a
-  **`full`** `<Sheet>` titled "Memory". "Enable Memory" row (16/22 label + 14/20
-  subtitle + `<Toggle>`, `padding 12px 8px`) then a **`radius 16`** outline
-  **Manage Memory** button (48px), disabled while memory is off. Row and button
-  share a 28px optical margin (sheet padding 20 + the row's own 8). Reached from
-  Menu > Data Memory *and* from the chat's "Memory updated" chip, so it lives in
-  `components/`. The Menu row shows `On` / `Off` as its value.
-- **Manage Memory**: full-screen push (`z 200`, `screenSlideInRight`). Header is
-  `Header` with `subtitle` "Updated <relative>" and a `sheetIconButtonStyle` trash
-  on the right (disabled when empty). Facts render as 16/22 `#f4f5f7` paragraphs,
-  `gap 12`, padded `12px 20px`. Empty state: `book-open` glyph + "Nothing saved yet".
+- **Memory sheet** (`src/components/MemorySheet.tsx`, Figma nodes 5303-20603 "[On]"
+  and 5385-13776 "[Off]"): a **`full`** `<Sheet>` titled "Memory". "Enable Memory"
+  row (16/22 label + 14/20 subtitle + `<Toggle>`, `padding 12px 8px`) then a
+  **pill** outline **Manage Memory** button (48px). Row and button share a 28px
+  optical margin (sheet padding 20 + the row's own 8). Reached from Menu > Data
+  Memory *and* from the chat's "Memory updated" chip, so it lives in `components/`.
+  The Menu row shows `On` / `Off` as its value.
+- **Off is "paused", not "locked"**: Manage Memory stays enabled and a 14/20
+  centred note reads "Memory is paused. You still can access and manage your data."
+- **Manage Memory** (Figma node 5381-8376): full-screen push (`z 200`,
+  `screenSlideInRight`) over **whichever tab opened it**, so Back returns there.
+  Header carries a circular back and a circular `more_horiz`, plus the subtitle
+  "Updated <relative>".
+- **Grouped card**: facts are grouped under four headings - **Style & sizes**,
+  **Maisons & brands**, **Preferences**, **Places** - inside one `radius 16`
+  `#1b1b1c` card, `padding 16`, `gap 20`. Each group is a 16/20/500 heading plus a
+  **14/20** paragraph joining that group's facts. Empty groups are dropped.
+- **`more_horiz` menu** (`<ContextualMenu>`, Figma node 5385-13724): "Update data"
+  (`refresh`) and "Delete all memory" (`delete`), both on textPrimary - the warning
+  is left to the dialog.
 - **Prompt field**: `<BottomDock>` with `showAttach={false}` and the placeholder
-  "Ask to add or update". Everything typed is a memory command - a leading
-  "forget/remove/delete" drops matching facts, anything else adds one. Re-saying a
-  fact refreshes its timestamp rather than stacking a duplicate.
-- **Delete**: the trash opens `<Dialog>` ("Are you sure you want to delete your
-  memory?" / "Delete my data").
+  "Add things to remember or change". Everything typed is a memory command - a
+  leading "forget/remove/delete" drops matching facts, anything else adds one and
+  is routed to a group by `groupFor()`. Re-saying a fact refreshes its timestamp
+  rather than stacking a duplicate.
+- **Empty state** (Figma node 5381-11305): a 40px circular `#252526` badge with
+  `menu_book`, "Nothing saved yet" (18/22/500), then "As you share your tastes,
+  they'll appear here so I can tailor every suggestion." (16/22).
+- **Delete**: "Delete all memory" opens `<Dialog>` ("Are you sure you want to
+  delete your memory?" / "Delete my data").
 
 ### Chat tab (`src/screens/ChatScreen.tsx`)
 Figma "Chat Idle" (node 4483-34608) for the empty state and "Chat / Memory" (node
@@ -316,20 +335,20 @@ tab does not discard the conversation.
 - **navBar** (`Header height={56}`): leading new-chat `buttonIcon` (`edit`), a node
   title of VIP mark 24px + "Concierge" 16/20/500 + `chevron-down` 18px, and two
   trailing `buttonIcon`s - `temporary-chat` and `more-horizontal`. All three are
-  the 40px bordered rounded square.
+  the 40px bordered circle.
 - **Idle state**: heading **24/28/600** "What would you like arranged?" and body
   16/22 centred in the free space, then four **Chat Suggestions** parked above the
   dock - `height 46`, **`radius 100`** (a pill, unlike the prompt field), `#1b1b1c`,
   `padding 12`, `gap 8`: 22px icon + 16/22 label + 22px `chevron-right`. Icons:
-  `search`, `apparel`, `ai`, `palette`.
+  `search`, `apparel`, `auto_awesome`, `palette`.
 - **User bubble**: right-aligned, `#1b1b1c`, `radius 12px 12px 0 12px` (the square
   corner points at the sender), padding 12, max-width 85%.
 - **Assistant turn**: 28px `#02110c` avatar + "VIP.ai Concierge" 14/20, then the
   optional **"Memory updated" chip**, the message 16/22, and a 36px action row:
   `copy`, `sync`, `like`, `dislike`, `more-horizontal`. Active thumb fills
   `rgba(246,246,246,0.12)`.
-- **Memory chip** (Figma Chip, node 5303-21143): 40px tall, `radius 16`, `1px solid
-  #444547` on `#101111`, carrying `book-open` + 14/20 label + `chevron-right`.
+- **Memory chip** (Figma Chip, node 5303-21143): 40px tall, **pill**, `1px solid
+  #444547` on `#101111`, carrying `menu_book` + 14/20 label + `keyboard_arrow_right`.
   **Tapping it opens the Memory sheet**, so a chat is a second way into editing what
   the concierge remembers. A **snackbar** confirms the same write and offers
   **Manage** as a shortcut to that sheet.

@@ -26,14 +26,16 @@ export const theme = {
     profileGradientEnd: '#1A1A1A',
   },
   // Canonical radius scale. See DESIGN_SYSTEM.md.
-  // Rule: every button / icon button with a background is a rounded square,
-  // never sharp (0) and never a circle (50%).
+  // Rule: buttons, icon buttons and chips are fully rounded - pills at any
+  // width, circles when square. Containers keep a corner.
   radii: {
-    button: '12px',   // buttons AND icon buttons with a background
-    card: '16px',     // product / content cards, banner
-    cardSm: '12px',   // compact cards, inner tiles
-    pill: '100px',    // primary CTA pills, segmented toggles, chips
-    sheet: '20px',    // bottom-sheet top corners (20px 20px 0 0)
+    button: '100px',  // buttons AND icon buttons - fully rounded
+    chip: '100px',    // chips, segmented toggles, suggestion rows
+    pill: '100px',    // kept as an alias for existing call sites
+    input: '12px',    // prompt field / dropdown - the one control that is NOT a pill
+    card: '16px',     // product / content cards, banner, grouped lists
+    cardSm: '12px',   // compact cards, inner tiles, popovers
+    sheet: '12px',    // bottom-sheet + dialog top corners
     phone: '32px',    // PhoneFrame shell
   },
   spacing: {

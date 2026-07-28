@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Icon } from '../components/Icon';
+import MIcon from '../components/MIcon';
 import BottomDock, { type DockTab } from '../components/BottomDock';
 import MemorySheet from '../components/MemorySheet';
 import { screenStyle, bodyStyle, Header, iconButtonStyle } from './screenChrome';
 import { extractMemory, makeFact, type MemoryFact } from '../data/memory';
+import { theme } from '../theme';
 
 // ─── Chat tab ────────────────────────────────────────────────────────────────
 //
@@ -32,7 +33,7 @@ export interface ChatMessage {
 const SUGGESTIONS = [
   { icon: 'search', label: 'Find a piece & where to buy', prompt: 'Find me a piece and where to buy it' },
   { icon: 'apparel', label: 'Style a look & virtual try-on', prompt: 'Style a look for me' },
-  { icon: 'ai', label: 'Ask the concierge', prompt: 'Remember that I like Van Cleef & Arpels as a brand' },
+  { icon: 'auto_awesome', label: 'Ask the concierge', prompt: 'Remember that I like Van Cleef & Arpels as a brand' },
   { icon: 'palette', label: 'Search by color', prompt: 'Show me pieces in deep green' },
 ];
 
@@ -175,12 +176,12 @@ export default function ChatScreen({
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
             <img src="/vip-logo.svg" alt="" aria-hidden style={{ width: 24, height: 24 }} />
             <span style={{ fontSize: 16, fontWeight: 500, lineHeight: '20px' }}>Concierge</span>
-            <Icon name="chevron-down" size={18} color={TEXT_PRIMARY} />
+            <MIcon name="keyboard_arrow_down" size={18} color={TEXT_PRIMARY} />
           </span>
         }
         left={
           <button onClick={newChat} aria-label="New chat" style={iconButtonStyle}>
-            <Icon name="edit" size={24} color={TEXT_PRIMARY} />
+            <MIcon name="edit_square" size={24} color={TEXT_PRIMARY} />
           </button>
         }
         right={
@@ -190,14 +191,14 @@ export default function ChatScreen({
               aria-label="Temporary chat"
               style={iconButtonStyle}
             >
-              <Icon name="temporary-chat" size={24} color={TEXT_PRIMARY} />
+              <MIcon name="crop_free" size={24} color={TEXT_PRIMARY} />
             </button>
             <button
               onClick={() => onNotice('Chat options open here')}
               aria-label="More options"
               style={iconButtonStyle}
             >
-              <Icon name="more-horizontal" size={24} color={TEXT_PRIMARY} />
+              <MIcon name="more_horiz" size={24} color={TEXT_PRIMARY} />
             </button>
           </span>
         }
@@ -309,7 +310,7 @@ function ChatIdle({ onPick }: { onPick: (text: string) => void }) {
               height: 46,
               padding: 12,
               // Figma Chat Suggestions: a pill, unlike the prompt field.
-              borderRadius: 100,
+              borderRadius: theme.radii.chip,
               background: SURFACE,
               border: 'none',
               cursor: 'pointer',
@@ -317,11 +318,11 @@ function ChatIdle({ onPick }: { onPick: (text: string) => void }) {
               WebkitTapHighlightColor: 'transparent',
             }}
           >
-            <Icon name={s.icon} size={22} color={TEXT_PRIMARY} />
+            <MIcon name={s.icon} size={22} color={TEXT_PRIMARY} />
             <span style={{ flex: 1, minWidth: 0, fontSize: 16, lineHeight: '22px', color: TEXT_PRIMARY }}>
               {s.label}
             </span>
-            <Icon name="chevron-right" size={22} color="#8b8b8b" />
+            <MIcon name="keyboard_arrow_right" size={22} color="#8b8b8b" />
           </button>
         ))}
       </div>
@@ -394,22 +395,22 @@ function AssistantTurn({
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: -8 }}>
         <ActionButton
-          icon="copy"
+          icon="content_copy"
           label="Copy"
           onClick={() => {
             navigator.clipboard?.writeText(message.text);
             onNotice('Copied to clipboard');
           }}
         />
-        <ActionButton icon="sync" label="Regenerate" onClick={() => onNotice('Regenerating the answer')} />
-        <ActionButton icon="like" label="Good answer" active={rating === 'up'} onClick={() => onRate('up')} />
+        <ActionButton icon="autorenew" label="Regenerate" onClick={() => onNotice('Regenerating the answer')} />
+        <ActionButton icon="thumb_up" label="Good answer" active={rating === 'up'} onClick={() => onRate('up')} />
         <ActionButton
-          icon="dislike"
+          icon="thumb_down"
           label="Bad answer"
           active={rating === 'down'}
           onClick={() => onRate('down')}
         />
-        <ActionButton icon="more-horizontal" label="More" onClick={() => onNotice('More actions open here')} />
+        <ActionButton icon="more_horiz" label="More" onClick={() => onNotice('More actions open here')} />
       </div>
     </div>
   );
@@ -432,7 +433,7 @@ function MemoryChip({ onClick }: { onClick: () => void }) {
         gap: 4,
         height: 40,
         padding: '8px 12px',
-        borderRadius: 16,
+        borderRadius: theme.radii.chip,
         border: '1px solid #444547',
         background: '#101111',
         fontSize: 14,
@@ -442,9 +443,9 @@ function MemoryChip({ onClick }: { onClick: () => void }) {
         WebkitTapHighlightColor: 'transparent',
       }}
     >
-      <Icon name="book-open" size={18} color={TEXT_PRIMARY} />
+      <MIcon name="menu_book" size={18} color={TEXT_PRIMARY} />
       Memory updated
-      <Icon name="chevron-right" size={18} color="#8b8b8b" />
+      <MIcon name="keyboard_arrow_right" size={18} color="#8b8b8b" />
     </button>
   );
 }
@@ -473,13 +474,13 @@ function ActionButton({
         justifyContent: 'center',
         background: active ? 'rgba(246,246,246,0.12)' : 'none',
         border: 'none',
-        borderRadius: 12,
+        borderRadius: theme.radii.button,
         cursor: 'pointer',
         padding: 0,
         WebkitTapHighlightColor: 'transparent',
       }}
     >
-      <Icon name={icon} size={20} color={active ? '#fff' : '#c9c9c9'} />
+      <MIcon name={icon} size={20} color={active ? '#fff' : '#c9c9c9'} />
     </button>
   );
 }

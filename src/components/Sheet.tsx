@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Icon } from './Icon';
+import MIcon from './MIcon';
+import { theme } from '../theme';
 
 // ─── Bottom sheet ────────────────────────────────────────────────────────────
 //
@@ -15,7 +16,7 @@ const SHEET_BG = '#0d0d0d';
 const BORDER = '#444547';
 const TEXT_PRIMARY = '#f6f6f6';
 
-/** Figma buttonIcon: bordered rounded square, transparent-on-surface fill. */
+/** Figma buttonIcon, small: a bordered circle on the sheet surface. */
 export const sheetIconButtonStyle: React.CSSProperties = {
   width: 32,
   height: 32,
@@ -25,7 +26,7 @@ export const sheetIconButtonStyle: React.CSSProperties = {
   justifyContent: 'center',
   background: '#101111',
   border: `1px solid ${BORDER}`,
-  borderRadius: 8,
+  borderRadius: theme.radii.button,
   cursor: 'pointer',
   padding: 0,
   WebkitTapHighlightColor: 'transparent',
@@ -70,7 +71,7 @@ export default function Sheet({
           ...(full ? { top: `calc(env(safe-area-inset-top, 0px) + 8px)` } : {}),
           zIndex: 301,
           background: SHEET_BG,
-          borderRadius: '12px 12px 0 0',
+          borderRadius: `${theme.radii.sheet} ${theme.radii.sheet} 0 0`,
           display: 'flex',
           flexDirection: 'column',
           animation: 'sheetSlideUp 300ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
@@ -89,7 +90,7 @@ export default function Sheet({
           <span style={{ width: 32, flexShrink: 0 }}>
             {onBack && (
               <button onClick={onBack} aria-label="Back" style={sheetIconButtonStyle}>
-                <Icon name="arrow-back" size={20} color={TEXT_PRIMARY} />
+                <MIcon name="arrow_left_alt" size={20} color={TEXT_PRIMARY} />
               </button>
             )}
           </span>
@@ -108,7 +109,7 @@ export default function Sheet({
             {title}
           </p>
           <button onClick={onClose} aria-label="Close" style={sheetIconButtonStyle}>
-            <Icon name="close" size={20} color={TEXT_PRIMARY} />
+            <MIcon name="close" size={20} color={TEXT_PRIMARY} />
           </button>
         </div>
         {children}

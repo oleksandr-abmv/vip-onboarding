@@ -7,27 +7,58 @@
 // Prototype: everything lives in React state (FeedScreen owns it). There is no
 // persistence layer yet, so a reload starts from SEED_MEMORY_FACTS.
 
+/**
+ * Manage Memory groups facts under four headings (Figma node 5381-11518), so
+ * every fact carries the group it belongs to. Order here is the render order.
+ */
+export const MEMORY_GROUPS = [
+  { id: 'style', label: 'Style & sizes' },
+  { id: 'brands', label: 'Maisons & brands' },
+  { id: 'preferences', label: 'Preferences' },
+  { id: 'places', label: 'Places' },
+] as const;
+
+export type MemoryGroup = (typeof MEMORY_GROUPS)[number]['id'];
+
 export interface MemoryFact {
   id: string;
   /** First-person sentence, e.g. "I like Van Cleef & Arpels as a brand." */
   text: string;
+  group: MemoryGroup;
   /** ms epoch - the newest one drives the "Updated X ago" subtitle. */
   createdAt: number;
 }
 
+// Which heading a new fact lands under. Checked in order, so the more specific
+// patterns (sizes, brands, places) get first refusal and everything else falls
+// through to Preferences.
+const GROUP_RULES: { group: MemoryGroup; re: RegExp }[] = [
+  { group: 'style', re: /\b(size|sizes|fit|fits|tailor\w*|wear|wears|cut|cuts|shirt|suit|shoe|shoes|waist|collar|inseam|measurement\w*)\b/i },
+  { group: 'brands', re: /\b(brand|brands|maison|maisons|house|houses|label|labels|designer|by [A-Z])\b/ },
+  { group: 'places', re: /\b(city|cities|store|stores|boutique|boutiques|travel\w*|visit\w*|hotel|hotels|restaurant|restaurants|paris|london|milan|tokyo|new york|geneva|dubai)\b/i },
+];
+
+export function groupFor(text: string): MemoryGroup {
+  for (const { group, re } of GROUP_RULES) if (re.test(text)) return group;
+  return 'preferences';
+}
+
 let seq = 0;
-export function makeFact(text: string, createdAt = Date.now()): MemoryFact {
+export function makeFact(text: string, createdAt = Date.now(), group?: MemoryGroup): MemoryFact {
   seq += 1;
-  return { id: `mem-${createdAt}-${seq}`, text, createdAt };
+  return { id: `mem-${createdAt}-${seq}`, text, group: group ?? groupFor(text), createdAt };
 }
 
 // A few facts so Manage Memory has something to show on first open. Dated a few
 // days back so "Updated ..." does not read as "just now" before the user types.
 const DAY = 24 * 60 * 60 * 1000;
 export const SEED_MEMORY_FACTS: MemoryFact[] = [
-  makeFact('I like Van Cleef & Arpels as a brand.', Date.now() - 6 * DAY),
-  makeFact('I wear a 42 in Italian tailoring.', Date.now() - 4 * DAY),
-  makeFact('I prefer white gold over yellow gold.', Date.now() - 2 * DAY),
+  makeFact('I wear a 42 in Italian tailoring and a 43 in shoes.', Date.now() - 6 * DAY, 'style'),
+  makeFact('I like Van Cleef & Arpels as a brand.', Date.now() - 5 * DAY, 'brands'),
+  makeFact('Patek Philippe and Cartier are the two houses I collect.', Date.now() - 5 * DAY, 'brands'),
+  makeFact('I prefer white gold over yellow gold.', Date.now() - 4 * DAY, 'preferences'),
+  makeFact('Nothing with visible logos.', Date.now() - 3 * DAY, 'preferences'),
+  makeFact('I am in Geneva most of the year and in London every spring.', Date.now() - 2 * DAY, 'places'),
 ];
 
 // ── Remember-intent detection ────────────────────────────────────────────────

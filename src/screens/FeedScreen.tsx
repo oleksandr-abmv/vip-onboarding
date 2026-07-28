@@ -270,6 +270,21 @@ export default function FeedScreen({
   const forgetFacts = (ids: string[]) =>
     setMemoryFacts((prev) => prev.filter((f) => !ids.includes(f.id)));
 
+  // Manage Memory is a push over whichever tab opened it (Menu > Data Memory, or
+  // the chat's "Memory updated" chip). Rendering it in both branches means Back
+  // returns to where the user was rather than dumping them on the Menu tab.
+  const memoryScreen = showMemory && (
+    <MemoryScreen
+      facts={memoryFacts}
+      onAdd={addFact}
+      onForget={forgetFacts}
+      onClearAll={() => setMemoryFacts([])}
+      onRefresh={() => setMemoryFacts((prev) => prev.map((f) => ({ ...f, createdAt: Date.now() })))}
+      onClose={() => setShowMemory(false)}
+      onNotice={notice}
+    />
+  );
+
   /** The five tabs of the Figma bottom dock, with the active one marked. */
   const dockTabs = (active: 'home' | 'chat' | 'menu'): DockTab[] => [
     { icon: 'home', label: 'Home', active: active === 'home', onClick: goHome },
@@ -292,13 +307,11 @@ export default function FeedScreen({
           ratings={chatRatings}
           onRatingsChange={setChatRatings}
           onAddFact={addFact}
-          onManageMemory={() => {
-            setTab('menu');
-            setShowMemory(true);
-          }}
+          onManageMemory={() => setShowMemory(true)}
           onNotice={notice}
           tabs={dockTabs('chat')}
         />
+        {memoryScreen}
         {snack && (
           <Snackbar
             key={snack.id}
@@ -307,7 +320,12 @@ export default function FeedScreen({
             onAction={snack.onAction}
             // The chat dock carries a prompt field as well as the tabs, so it is
             // ~58px taller than the tabs-only dock the default is sized for.
-            bottom={`calc(129px + env(safe-area-inset-bottom, 0px))`}
+            // Manage Memory's dock is the shorter prompt-only one.
+            bottom={
+              showMemory
+                ? `calc(74px + env(safe-area-inset-bottom, 0px))`
+                : `calc(129px + env(safe-area-inset-bottom, 0px))`
+            }
             // Above the Memory sheet the chip can open (z 301).
             zIndex={310}
           />
@@ -331,16 +349,7 @@ export default function FeedScreen({
           onManageMemory={() => setShowMemory(true)}
           bottomBar={<BottomDock tabs={dockTabs('menu')} />}
         />
-        {showMemory && (
-          <MemoryScreen
-            facts={memoryFacts}
-            onAdd={addFact}
-            onForget={forgetFacts}
-            onClearAll={() => setMemoryFacts([])}
-            onClose={() => setShowMemory(false)}
-            onNotice={notice}
-          />
-        )}
+        {memoryScreen}
         {snack && (
           <Snackbar
             key={snack.id}

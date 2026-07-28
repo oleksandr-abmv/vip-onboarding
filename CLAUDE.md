@@ -66,24 +66,21 @@ every matching string.)
 
 ## Icon convention
 
-**Always use the `<Icon />` component from `src/components/Icon.tsx`. Do not hand-draw SVG glyphs or use Material Symbols Rounded for new icons.**
+**The icon library is Material Symbols Rounded (Material Design 3) - the same library the Figma file uses. Always use `<MIcon />` from `src/components/MIcon.tsx`. Do not hand-draw SVG glyphs.**
 
-- Icons come from the **CORE UI Design icons** library: <https://github.com/oleksandr-abmv/core-ui-design-icons>
-- SVG files live in `src/icons/core/` (242 icons, stroke-based, 24×24 viewBox, `currentColor` stroke so they recolor via the `color` prop)
 - Usage:
 
   ```tsx
-  import { Icon } from '../components/Icon';
+  import MIcon from '../components/MIcon';
 
-  <Icon name="timer" size={16} color="#e7e7e7" />
+  <MIcon name="menu_book" size={24} color="#f6f6f6" />
   ```
 
-- `name` is the filename without `.svg`. Browse `src/icons/core/` or the library [icons page](https://icons.coreui.design/) for names.
+- `name` is the **Material Symbols name exactly as it appears in the Figma layer** (`menu_book`, `keyboard_arrow_right`, `more_horiz`, `edit_square`, `add_2`, `auto_awesome`, ...). No translation step: what the design says is what you type.
+- Defaults match the file's "Icons/Outlined/Large" style: 24px, `wght 300` (Light), `FILL 0`, `GRAD 0`. `weight` and `fill` are props - the active bottom-dock tab uses `weight={400} fill={1}`.
 - Set `decorative={false}` + `label="Something"` when the icon conveys meaning to screen readers.
-- If a glyph is genuinely missing from the library, add it there first (or drop a new SVG into `src/icons/core/` with `currentColor` strokes) rather than inlining raw SVG in a screen. Match the library's build: `24x24` viewBox, `fill="none"`, `stroke="currentColor"`, `stroke-width="1.5"`, round caps and joins. (`vibration`, `balance`, and `feedback` were added this way for the Settings rows.)
-- Figma specifies icons as **Material Symbols** names; map them to the CORE UI equivalent rather than pulling in Material (e.g. `menu_book` → `book-open`, `vibration` → `vibration`, `balance` → `balance`, `feedback` → `feedback`, `help` → `help-circle`, `delete` → `trash`, `keyboard_arrow_right` → `chevron-right`, `apparel` → `apparel`, `palette` → `palette`, `edit_square` → `edit`, `add_2` → `add`, `TemporaryChatOff` → `temporary-chat`, the AI sparkle → `ai`).
-- The **bottom dock's tab bar** is the one place that still uses the Material Symbols font directly (`home`, `notifications`, `chat_bubble`, `history`, `menu`), because the active state relies on the font's `FILL 1` axis.
-- Material Symbols Rounded is still used for the few existing cases (e.g. `material-symbols-rounded` class in a handful of old screens), but new code should prefer `<Icon />`.
+- The font is loaded in `index.html` with the full `opsz,wght,FILL,GRAD` axes, so any Material Symbols name works without adding assets.
+- **Legacy:** `src/components/Icon.tsx` + `src/icons/core/` (the CORE UI SVG library) are no longer used by any screen. Do not add icons there.
 
 ---
 
@@ -156,15 +153,18 @@ Any category or subcategory **without an image asset yet** uses the **VIP logoty
 ## Styling conventions
 
 **Full design system: [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md).** Follow its tokens and
-component specs for any UI work. Key invariant: every button / icon button with a
-background is a rounded square (12px), never sharp or circular; primary CTA pills are
-100px; cards are 16px. Quick reference below.
+component specs for any UI work. **Use `theme.radii` / `theme.colors` from
+`src/theme.ts` rather than raw values.** Key invariant: **buttons, icon buttons and
+chips are fully rounded** (`theme.radii.button` = 100px - a pill when wide, a circle
+when square), never sharp and never a rounded square. Cards are 16px. The prompt
+field is the one deliberate exception at `theme.radii.input` (12px), so it reads as
+a field rather than a button. Quick reference below.
 
 - Background: `#0A0A0A` (near-black) or `transparent` on inner screens
 - Primary text: `#FFFFFF`
 - Secondary text: `#999`
 - Borders: `1px solid #282828` inactive, `1.5px solid #fff` selected
-- Corner radius: `12px` for cards, `100px` (pill) for CTAs
+- Corner radius: `16px` for cards, `100px` (pill/circle) for every button and chip
 - CTA pill: `#f6f6f6` bg / `#121212` text (enabled), `#252525` bg / `#666` text (disabled)
 - Animation easing: `cubic-bezier(0.25, 0.1, 0.25, 1)` 400ms default
 - Safe area: use `safeTop()` from `src/theme.ts`; `calc(X + env(safe-area-inset-bottom, 0px))` for bottom

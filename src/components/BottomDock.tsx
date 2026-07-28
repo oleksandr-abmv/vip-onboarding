@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Icon } from './Icon';
+import { theme } from '../theme';
+import MIcon from './MIcon';
 
 // ─── Bottom dock (Figma `bottomBarLocal`, node 4483-34633) ───────────────────
 //
@@ -18,7 +19,7 @@ const BORDER = '#282828';
 const TEXT_TERTIARY = '#8b8b8b';
 
 /** Figma radius/roles/radiusButtonIconLarge - every 40px control in the dock. */
-const ICON_BUTTON = 12;
+const ICON_BUTTON = theme.radii.button;
 
 export interface DockTab {
   /** Material Symbols name (the tab bar still uses the icon font). */
@@ -76,7 +77,7 @@ export default function BottomDock({
               alignItems: 'center',
               gap: 8,
               height: 48,
-              borderRadius: 12,
+              borderRadius: theme.radii.input,
               background: PROMPT_BG,
               border: `1px solid ${BORDER}`,
               padding: '4px 4px 4px 12px',
@@ -120,7 +121,7 @@ export default function BottomDock({
                   WebkitTapHighlightColor: 'transparent',
                 }}
               >
-                <Icon name="add" size={24} color="#f6f6f6" />
+                <MIcon name="add_2" size={24} color="#f6f6f6" />
               </button>
             )}
             <button
@@ -143,8 +144,8 @@ export default function BottomDock({
                 WebkitTapHighlightColor: 'transparent',
               }}
             >
-              <Icon
-                name={hasText ? 'arrow-up' : 'mic'}
+              <MIcon
+                name={hasText ? 'arrow_upward' : 'mic'}
                 size={24}
                 color={hasText ? '#121212' : '#f6f6f6'}
               />
@@ -182,17 +183,13 @@ export default function BottomDock({
                 WebkitTapHighlightColor: 'transparent',
               }}
             >
-              <span
-                className="material-symbols-rounded"
-                style={{
-                  fontSize: 24,
-                  fontVariationSettings: t.active ? "'wght' 400, 'FILL' 1" : "'wght' 300",
-                  color: t.active ? '#f6f6f6' : TEXT_TERTIARY,
-                }}
-                aria-hidden
-              >
-                {t.icon}
-              </span>
+              <MIcon
+                name={t.icon}
+                size={24}
+                weight={t.active ? 400 : 300}
+                fill={t.active ? 1 : 0}
+                color={t.active ? '#f6f6f6' : TEXT_TERTIARY}
+              />
               <span
                 style={{
                   fontSize: 12,

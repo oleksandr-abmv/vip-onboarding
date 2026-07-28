@@ -1,3 +1,5 @@
+import { theme } from '../theme';
+
 // ─── Shared top-level screen chrome ──────────────────────────────────────────
 //
 // The layout shell every top-level tab (Discover, Menu) and detail view uses:
@@ -98,7 +100,14 @@ export function Header({
         </button>
       )}
       {!onBack && left && (
-        <span style={{ pointerEvents: 'auto', position: 'absolute', left: 16, top: `calc(env(safe-area-inset-top, 0px) + 8px)` }}>
+        <span
+          style={{
+            pointerEvents: 'auto',
+            position: 'absolute',
+            left: 16,
+            top: `calc(env(safe-area-inset-top, 0px) + ${height === 56 ? 8 : 16}px)`,
+          }}
+        >
           {left}
         </span>
       )}
@@ -139,9 +148,8 @@ export function Header({
 }
 
 /**
- * Figma `buttonIcon` - a bordered rounded square, not a filled circle.
- * 40px / `radius 12` (radiusButtonIconLarge) is the nav-bar size; the 32px /
- * `radius 8` variant lives in components/Sheet.tsx as `sheetIconButtonStyle`.
+ * Figma `buttonIcon` - a bordered circle. 40px is the nav-bar size; the 32px
+ * variant lives in components/Sheet.tsx as `sheetIconButtonStyle`.
  */
 export const iconButtonStyle: React.CSSProperties = {
   width: 40,
@@ -151,7 +159,7 @@ export const iconButtonStyle: React.CSSProperties = {
   justifyContent: 'center',
   background: '#101111',
   border: '1px solid #444547',
-  borderRadius: 12,
+  borderRadius: theme.radii.button,
   cursor: 'pointer',
   padding: 0,
   flexShrink: 0,

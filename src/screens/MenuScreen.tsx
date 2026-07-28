@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Icon } from '../components/Icon';
+import MIcon from '../components/MIcon';
 import Dialog from '../components/Dialog';
 import Sheet from '../components/Sheet';
 import MemorySheet from '../components/MemorySheet';
@@ -83,14 +83,14 @@ export default function MenuScreen({
 
           <Group label="Personalization">
             <Row
-              icon="sun"
+              icon="routine"
               label="Appearance"
               value={appearance}
               onClick={() => setSheet('appearance')}
             />
-            <Row icon="globe" label="Language" value={language} onClick={() => setSheet('language')} />
+            <Row icon="language" label="Language" value={language} onClick={() => setSheet('language')} />
             <Row
-              icon="book-open"
+              icon="menu_book"
               label="Data Memory"
               value={memoryEnabled ? 'On' : 'Off'}
               onClick={() => setSheet('memory')}
@@ -111,7 +111,7 @@ export default function MenuScreen({
               onClick={() => onNotice('Feedback form opens here')}
             />
             <Row
-              icon="help-circle"
+              icon="help"
               label="Need help? Contact us"
               onClick={() => onNotice('Concierge support opens here')}
             />
@@ -119,7 +119,7 @@ export default function MenuScreen({
 
           <Group label="Account">
             <Row icon="logout" label="Sign out" onClick={onSignOut} />
-            <Row icon="trash" label="Delete account" destructive onClick={() => setSheet('delete')} />
+            <Row icon="delete" label="Delete account" destructive onClick={() => setSheet('delete')} />
           </Group>
 
           <p
@@ -350,14 +350,14 @@ function Row({
   const tint = destructive ? DANGER : TEXT_PRIMARY;
   return (
     <button onClick={onClick} style={rowStyle}>
-      <Icon name={icon} size={24} color={tint} />
+      <MIcon name={icon} size={24} color={tint} />
       <span style={{ flex: 1, minWidth: 0, fontSize: 16, color: tint, lineHeight: '22px' }}>{label}</span>
       {value && (
         <span style={{ fontSize: 12, color: TEXT_SECONDARY, lineHeight: '16px', whiteSpace: 'nowrap' }}>
           {value}
         </span>
       )}
-      <Icon name="chevron-right" size={24} color={tint} />
+      <MIcon name="keyboard_arrow_right" size={24} color={tint} />
     </button>
   );
 }
@@ -375,7 +375,7 @@ function ToggleRow({
 }) {
   return (
     <button onClick={onChange} role="switch" aria-checked={on} aria-label={label} style={rowStyle}>
-      <Icon name={icon} size={24} color={TEXT_PRIMARY} />
+      <MIcon name={icon} size={24} color={TEXT_PRIMARY} />
       <span style={{ flex: 1, minWidth: 0, fontSize: 16, color: TEXT_PRIMARY, lineHeight: '22px' }}>{label}</span>
       <Toggle on={on} />
     </button>
@@ -425,7 +425,7 @@ function OptionSheet({
               }}
             >
               <span style={{ flex: 1 }}>{o}</span>
-              {active && <Icon name="check" size={20} color="#fff" />}
+              {active && <MIcon name="check" size={20} color="#fff" />}
             </button>
           );
         })}

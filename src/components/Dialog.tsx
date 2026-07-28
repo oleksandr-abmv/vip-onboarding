@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Icon } from './Icon';
+import MIcon from './MIcon';
+import { theme } from '../theme';
 
 // ─── Centered confirm dialog ─────────────────────────────────────────────────
 //
@@ -15,7 +16,7 @@ const DANGER = '#dc8589';
 export default function Dialog({
   title,
   body,
-  icon = 'warn',
+  icon = 'error',
   confirmLabel,
   cancelLabel = 'Cancel',
   onConfirm,
@@ -54,7 +55,7 @@ export default function Dialog({
           transform: 'translateY(-50%)',
           zIndex: 401,
           background: SURFACE,
-          borderRadius: 16,
+          borderRadius: theme.radii.card,
           padding: '24px 16px 16px',
           display: 'flex',
           flexDirection: 'column',
@@ -77,13 +78,13 @@ export default function Dialog({
             justifyContent: 'center',
             background: 'none',
             border: 'none',
-            borderRadius: 12,
+            borderRadius: theme.radii.button,
             cursor: 'pointer',
             padding: 0,
             WebkitTapHighlightColor: 'transparent',
           }}
         >
-          <Icon name="close" size={24} color={TEXT_PRIMARY} />
+          <MIcon name="close" size={24} color={TEXT_PRIMARY} />
         </button>
 
         <span
@@ -99,7 +100,7 @@ export default function Dialog({
           }}
           aria-hidden
         >
-          <Icon name={icon} size={24} color={TEXT_SECONDARY} />
+          <MIcon name={icon} size={24} color={TEXT_SECONDARY} />
         </span>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, textAlign: 'center', width: '100%' }}>
