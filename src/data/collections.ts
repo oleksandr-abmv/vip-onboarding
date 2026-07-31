@@ -21,6 +21,14 @@ export interface Collection {
   /** Optional note per product name. */
   notes: Record<string, string>;
   createdAt: number;
+  /**
+   * Optional cover, shown as the page's hero the way a product page leads with
+   * its photograph. Two kinds arrive here: an **outfit's** styled flat-lay (an
+   * app asset path, editorial, copied in when the look is saved) and a picture
+   * the **user uploaded** (a data URL). They are laid out differently - see
+   * `CollectionPage` - and the path tells them apart.
+   */
+  cover?: string;
 }
 
 let seq = 0;

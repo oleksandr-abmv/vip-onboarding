@@ -66,6 +66,7 @@ export default function CollectionPage({
   onSave,
   preview = false,
   onSaveCollection,
+  onSetCover,
 }: {
   collection: Collection;
   byName: (name: string) => Product | undefined;
@@ -96,6 +97,8 @@ export default function CollectionPage({
    */
   preview?: boolean;
   onSaveCollection?: () => void;
+  /** Set or clear the collection's cover. `null` removes it. */
+  onSetCover: (cover: string | null) => void;
 }) {
   const [headerMenu, setHeaderMenu] = useState(false);
   const [showRename, setShowRename] = useState(false);
@@ -105,6 +108,29 @@ export default function CollectionPage({
   const [openProduct, setOpenProduct] = useState<Product | null>(null);
 
   const rootRef = useRef<HTMLDivElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
+  /**
+   * Read the chosen picture straight into a data URL. The prototype has no
+   * upload endpoint and state is in memory anyway, so the file never leaves the
+   * page - which is also why it is capped: a full-size phone photo as a data URL
+   * is several megabytes of string sitting in React state.
+   */
+  const onCoverPicked = (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      onNotice('That file is not an image');
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      onNotice('That image is too large. Pick one under 8MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => onSetCover(String(reader.result));
+    reader.onerror = () => onNotice('Could not read that image');
+    reader.readAsDataURL(file);
+  };
 
   const items = useMemo(
     () => collection.items.map(byName).filter(Boolean) as Product[],
@@ -140,10 +166,20 @@ export default function CollectionPage({
             onClick: () => onNotice('Your virtual fitting room is being prepared'),
           },
         ]),
-    // Renaming and deleting only make sense once the look is the user's.
+    // Renaming, re-covering and deleting only make sense once the look is the
+    // user's. An outfit's cover is editorial until they save it, at which point
+    // it is copied onto their collection and becomes theirs to change.
     ...(preview
       ? []
       : [
+          {
+            icon: 'image',
+            label: collection.cover ? 'Change cover' : 'Add cover',
+            onClick: () => coverInputRef.current?.click(),
+          },
+          ...(collection.cover
+            ? [{ icon: 'hide_image', label: 'Remove cover', onClick: () => onSetCover(null) }]
+            : []),
           { icon: 'edit', label: 'Rename', onClick: () => setShowRename(true) },
           {
             icon: 'delete',
@@ -216,6 +252,35 @@ export default function CollectionPage({
           ...(items.length === 0 ? { display: 'flex', flexDirection: 'column' } : null),
         }}
       >
+        {/* Cover hero, when the collection has one. Deliberately NOT the product
+            page's full-bleed band: that runs the picture to both screen edges,
+            and a 4:3 cover in it left grey gutters either side that read as a
+            broken image. This is an inset card instead - page margins, the same
+            16 radius as everything else, and its own 4:3 box - so the cover sits
+            on the page like a card rather than being cropped into a strip.
+
+            `cover` fills it: the art is already 4:3 and carries its own margins,
+            and an uploaded photo of any shape fills rather than letterboxing. */}
+        {collection.cover && (
+          <div
+            style={{
+              margin: `8px ${PAGE}px 16px`,
+              aspectRatio: '4 / 3',
+              background: '#fff',
+              borderRadius: 16,
+              overflow: 'hidden',
+            }}
+          >
+            <img
+              src={collection.cover}
+              alt=""
+              aria-hidden
+              draggable={false}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          </div>
+        )}
+
         {/* Centered title block: name, meta, description. */}
         <div
           style={{
@@ -356,6 +421,20 @@ export default function CollectionPage({
         ariaLabel="Ask AI Concierge"
         showAttach={false}
         onSend={(text) => askConcierge(text)}
+      />
+
+      {/* The cover picker, opened from the "..." menu. Kept out of the layout so
+          the menu row is the only affordance and there is no stray control. */}
+      <input
+        ref={coverInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          onCoverPicked(e.target.files?.[0]);
+          // Reset so picking the same file twice still fires a change.
+          e.target.value = '';
+        }}
       />
 
       {/* Header "..." menu */}

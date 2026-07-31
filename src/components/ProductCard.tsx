@@ -97,7 +97,10 @@ export default function ProductCard({
             src={product.image}
             alt={product.name}
             draggable={false}
-            style={{ maxWidth: '72%', maxHeight: '82%', objectFit: 'contain', display: 'block' }}
+            // The piece fills more of its tile than the old 72/82 left it: at the
+            // card widths the feed uses now there was a wide dead margin around
+            // every product. Still short of the edges, so cut-outs keep air.
+            style={{ maxWidth: '84%', maxHeight: '90%', objectFit: 'contain', display: 'block' }}
           />
         )}
       </div>

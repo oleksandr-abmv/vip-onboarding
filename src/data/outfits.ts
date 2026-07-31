@@ -21,7 +21,8 @@ export interface Outfit {
   id: string;
   name: string;
   description: string;
-  /** The styled flat-lay. Portrait, cut out on white. */
+  /** The styled flat-lay. **Landscape 4:3**, cut out on white - it is shown as a
+   * wide hero and a wide card, and a portrait crop left grey gutters in both. */
   image: string;
   /** Catalogue product names, in the order they read down the look. */
   items: string[];

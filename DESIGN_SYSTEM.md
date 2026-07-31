@@ -164,14 +164,27 @@ meta via `outfitMeta()` rather than a bare "N pieces". **Tapping one opens the
 collection page**, not a generic product list - previewed until the look is
 hearted (see **Collection page**).
 
-**Tailored Outfits** is the row underneath, and the only thing that separates it is the
-card. `OutfitCard` is the **styled flat-lay as shot** (`/public/outfits/*.webp`)
-rather than a cover built from contents: same **230px width** as every other
-Discover card, a **4:3** image box with the portrait art `contain`ed on white
-(a crop takes the shoes off the bottom of the look), then the same name +
-"N pieces · $total" and the same **heart and "..."** a collection card carries.
-Tapping one opens the **ordinary collection page** under `outfit-col-<id>`;
-there is no separate outfit page, and it must not grow one.
+**Tailored Outfits** is the row underneath, and the only thing that separates it
+is the card. `OutfitCard` is the **styled flat-lay as shot**
+(`/public/outfits/*.webp`, **landscape 4:3**) rather than a cover built from
+contents: the shared rail width, a 4:3 image box with the art **`contain`ed on
+white inside 10px of padding**, then the same name + "N pieces · $total" and the
+same **heart and "..."** a collection card carries. `cover` was tried and clipped
+the outer pieces off the ends of the look. Tapping one opens the **ordinary
+collection page** under `outfit-col-<id>`; there is no separate outfit page, and
+it must not grow one.
+
+**Every card in a Discover rail is `RAIL_CARD_W` (280) wide** - product,
+collection, outfit and category alike - so the rails line up down the page and
+the next card peeks by the same amount in each. Change it in one place.
+
+**Collection covers.** A collection may carry a `cover`: an outfit's flat-lay
+(copied in when the look is saved) or a picture the user uploaded from
+**"..." > Add / Change / Remove cover**. It renders as an **inset 4:3 card**
+(page margins, radius 16, `object-fit: cover`) above the title - deliberately
+NOT the product page's full-bleed band, which left grey gutters either side of a
+4:3 picture and read as a broken image. Uploads are read straight to a data URL,
+capped at 8MB; the prototype has no upload endpoint.
 
 **Every horizontal rail keeps its inset on the inner track, and the track is
 `width: max-content`** - `Section`, and the Categories two-row grid. Put the

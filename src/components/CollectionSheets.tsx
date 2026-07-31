@@ -270,9 +270,13 @@ export function CollectionFan({
 }) {
   // Tile geometry, as fractions of the cover width in the design frame:
   // 120.652 / 343 wide, 11.664 padding and corner, 80 between adjacent centres.
-  const TILE_W = 35.18; // cqw
-  const TILE_PAD = 3.4; // cqw
-  const TILE_RADIUS = 3.4; // cqw
+  // The whole fan is scaled to 85% of the file's geometry: at the card widths
+  // the feed actually uses, the tiles at full size crowded the cover edge to
+  // edge. Every number below is the Figma value times 0.85, so the fan keeps its
+  // proportions exactly and only its footprint changes.
+  const TILE_W = 29.9; // cqw (35.18 in the file)
+  const TILE_PAD = 2.89; // cqw (3.4)
+  const TILE_RADIUS = 2.89; // cqw (3.4)
   const TILE_ASPECT = '120.652 / 114.72';
   // The trio does not sit on the cover's vertical midline in the file; it rides
   // slightly low so the rotated corners have room at the top.
@@ -280,8 +284,12 @@ export function CollectionFan({
   // How far the outermost tile's centre may sit from the middle before its
   // rotated corner leaves the cover. Taken from the file's three-tile layout,
   // where the outer tiles land 19px inside a 343px card.
-  const EDGE = 23.32; // cqw
-  const BASE_STEP = 23.32; // cqw between adjacent centres while they still fit
+  // Spread, unlike tile size, is NOT scaled down with the tiles. Shrinking the
+  // tiles freed room at both ends of the cover, so the fan opens wider than the
+  // file's to use it: at four tiles each one now shows 60% of itself instead of
+  // 44%, and the run still lands a few cqw inside the edge.
+  const EDGE = 27; // cqw from the middle to the outermost tile's centre
+  const BASE_STEP = 22; // cqw between adjacent centres while they still fit
 
   const shown = items.filter(Boolean).slice(0, max) as Product[];
   const n = shown.length;
@@ -319,7 +327,7 @@ export function CollectionFan({
             left: '50%',
             top: '50%',
             transform: 'translate(-50%, -50%)',
-            width: '27.27cqw',
+            width: '23.18cqw',
             opacity: 0.35,
             display: 'block',
           }}
@@ -345,7 +353,7 @@ export function CollectionFan({
                 // The file's shadow token is a light-mode one and vanishes on
                 // this surface, so the tiles get a dark one instead - without it
                 // the overlaps read as one flat shape.
-                boxShadow: '0 2px 4.7cqw rgba(0, 0, 0, 0.45)',
+                boxShadow: '0 2px 4cqw rgba(0, 0, 0, 0.45)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

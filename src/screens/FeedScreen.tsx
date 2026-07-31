@@ -31,6 +31,10 @@ import {
 import { screenStyle, bodyStyle, Header, iconButtonStyle } from './screenChrome';
 
 const PAGE = 16; // horizontal page margin, matches Figma page/margins token
+// One width for every card in a Discover rail - product, collection, outfit and
+// category alike - so the rails line up down the page and the next card peeks by
+// the same amount in each. Change it here, not per component.
+const RAIL_CARD_W = 280;
 
 interface FeedScreenProps {
   gender: string | null;
@@ -283,6 +287,7 @@ export default function FeedScreen({
           items: outfit.items.filter((n) => !!byName(n)),
           notes: {},
           createdAt: Date.now(),
+          cover: outfit.image,
         },
       ]);
       showSnack('Saved to your collections', 'View', () => {
@@ -297,6 +302,12 @@ export default function FeedScreen({
       });
     }
   };
+
+  /** Set or clear a collection's cover picture. */
+  const setCollectionCover = (id: string, cover: string | null) =>
+    setCollections((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, cover: cover ?? undefined } : c)),
+    );
 
   const toggleCollection = (look: FeedSection) => {
     const id = lookCollectionId(look.id);
@@ -1032,7 +1043,7 @@ export default function FeedScreen({
                       setOpenMenuId((id) => (id === product.name ? null : product.name))
                     }
                     onCloseMenu={() => setOpenMenuId(null)}
-                    width={230}
+                    width={RAIL_CARD_W}
                   />
                 ))}
               </Section>
@@ -1058,7 +1069,7 @@ export default function FeedScreen({
                       setOpenMenuId((id) => (id === product.name ? null : product.name))
                     }
                     onCloseMenu={() => setOpenMenuId(null)}
-                    width={230}
+                    width={RAIL_CARD_W}
                   />
                 ))}
               </Section>
@@ -1212,6 +1223,7 @@ export default function FeedScreen({
         items: outfit.items.filter((n) => !!byName(n)),
         notes: {},
         createdAt: 0,
+        cover: outfit.image,
       } satisfies Collection;
     }
     return null;
@@ -1268,6 +1280,7 @@ export default function FeedScreen({
           isSaved={isSaved}
           onSave={(p) => setAddTarget(p)}
           preview={isPreviewCollection}
+          onSetCover={(cover) => setCollectionCover(openCollection.id, cover)}
           onSaveCollection={() => {
             setCollections((prev) =>
               prev.some((c) => c.id === openCollection.id)
@@ -1577,7 +1590,7 @@ function CollectionCard({
   onToggleSave,
   onMoreLikeThis,
   onHide,
-  width = 230,
+  width = RAIL_CARD_W,
   unit = 'items',
   meta,
   pinned = false,
@@ -1734,7 +1747,7 @@ function OutfitCard({
   onToggleSave,
   onMoreLikeThis,
   onHide,
-  width = 230,
+  width = RAIL_CARD_W,
 }: {
   outfit: Outfit;
   meta: string;
@@ -1801,16 +1814,17 @@ function OutfitCard({
       )}
       {showMenu && <OverflowMenu onMoreLikeThis={onMoreLikeThis!} onHide={onHide!} />}
 
-      {/* Same 230 width as every other Discover card, and near enough the same
-          height: at the art's own 3:4 the card towered over the row. So the box
-          is landscape and the flat-lay is `contain`ed inside it rather than
-          cropped - a crop takes the shoes off the bottom of the look. It shows
-          smaller; that is the price of the row lining up. */}
+      {/* 4:3, matching the art, so the rails line up. `contain` with padding
+          rather than `cover`: filling the tile edge to edge clipped the outer
+          pieces off the ends of the look, and a look with its shoes cut off is
+          not the look. The inset also gives the flat-lay air inside the card. */}
       <div
         style={{
           width: '100%',
           aspectRatio: '4 / 3',
           background: '#fff',
+          padding: 10,
+          boxSizing: 'border-box',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1940,7 +1954,7 @@ function CategoryRow({
   onOpen,
   // 230, the width every other card in the Discover carousels uses, so the rows
   // line up with the Collections and Outfits rails above them.
-  width = 230,
+  width = RAIL_CARD_W,
 }: {
   name: string;
   count: number;
