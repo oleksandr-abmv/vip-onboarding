@@ -11,6 +11,8 @@ import MIcon from '../components/MIcon';
 import ScanIcon from '../components/ScanIcon';
 import SearchField, { SearchFieldAction } from '../components/SearchField';
 import SearchModal from '../components/SearchModal';
+import CenteredState from '../components/CenteredState';
+import AskConciergeOffer from '../components/AskConciergeOffer';
 import ProductCard, { MenuRow } from '../components/ProductCard';
 import { theme } from '../theme';
 import ScanScreen from './ScanScreen';
@@ -674,17 +676,34 @@ export default function FeedScreen({
             />
           </div>
           {savedFiltered.length === 0 ? (
-            <p
-              style={{
-                margin: '40px 0',
-                textAlign: 'center',
-                fontSize: 14,
-                lineHeight: '20px',
-                color: '#999',
-              }}
-            >
-              No collections match "{savedQuery.trim()}".
-            </p>
+            // Two different nothings. With a query this is a dead end - the
+            // filter only matches names and descriptions the user wrote, so the
+            // concierge is the way out, exactly as it is on the search modal's
+            // no-match state. With no query there is simply nothing saved yet,
+            // and "New Collection" is already sitting underneath, so the state
+            // says so and stays out of the way.
+            savedQuery.trim() !== '' ? (
+              <CenteredState
+                title="No collections"
+                hint={`Nothing here for "${savedQuery.trim()}".`}
+                icon="search_off"
+                action={
+                  <AskConciergeOffer
+                    onClick={() =>
+                      askConcierge({
+                        text: `Help me put together a collection for "${savedQuery.trim()}"`,
+                      })
+                    }
+                  />
+                }
+              />
+            ) : (
+              <CenteredState
+                title="Nothing saved yet"
+                hint="Heart a piece anywhere in the app, or start a collection below."
+                icon="favorite"
+              />
+            )
           ) : (
             <>
               {/* Pinned rail: the same horizontal carousel Discover's Collections

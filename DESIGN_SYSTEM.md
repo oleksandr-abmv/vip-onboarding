@@ -208,9 +208,16 @@ action at the end rather than another collection in the column; the dashed outli
 reads as an empty slot rather than something that already exists. It is hidden
 while the list is filtered, where it would read as a result.
 
-The empty state is the shared `CenteredEmptyState` (skeleton illustration +
-title + subtitle, no button). Category "See all" pages keep a back button +
-single-column large cards.
+**Two empty states, both the shared `<CenteredState>`** (`src/components/CenteredState.tsx`:
+56px icon disc, title 20/600, one hint line, optional action). **Filtered to
+nothing** is a dead end - the filter only matches names and descriptions the user
+wrote themselves - so it takes `search_off`, "No collections" / `Nothing here for
+"q".`, and an **`<AskConciergeOffer>`** whose prompt is `Help me put together a
+collection for "q"`. That is the identical treatment the search modal's no-match
+state gets, because it is the same situation reached two ways. **Nothing saved at
+all** is not a dead end (the `NewCollectionCard` is right underneath), so it takes
+`favorite`, "Nothing saved yet", and no action. Category "See all" pages keep a
+back button + single-column large cards.
 
 **Hearts manage collection membership everywhere.** A heart fills when the piece
 sits in any collection; tapping one (product card, product page nav, scan match
@@ -490,9 +497,11 @@ opened it, entering with `sheetSlideUp` 260ms.
   - *Results*: whatever the caller passes as `children`, so each surface renders its
     own row type (Discover a 2-col `ProductCard` grid, Saved `CollectionCard`s, a
     collection its `ItemRow`s). The modal never knows about them.
-  - *Nothing found*: the same centred block with `search_off`, "No matches", and a
-    light primary **Ask AI Concierge** pill. It is the point of the state - a dead
-    end hands the query to the concierge instead of stranding the user.
+  - *Nothing found*: the shared **`<CenteredState>`** with `search_off`, "No
+    matches", and an **`<AskConciergeOffer>`**. It is the point of the state - a
+    dead end hands the query to the concierge instead of stranding the user. The
+    **Saved tab's filtered-to-nothing state uses the same component the same
+    way**; keep them in step, since they are one situation reached two ways.
 
 ### Screen chrome (`src/screens/screenChrome.tsx`)
 `screenStyle`, `bodyStyle`, `Header`, and `iconButtonStyle` - the shell every
