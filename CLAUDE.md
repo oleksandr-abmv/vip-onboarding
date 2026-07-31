@@ -247,6 +247,15 @@ tabs share. Anything two tabs both touch belongs here, not inside a tab:
   boutiques/stores are NOT saveable. Creating one is the **`add_2` icon button in
   the header's top-right corner**, not a row in the list. See
   `src/data/collections.ts`.
+- `pinnedIds: string[]` - **pinned collections**, most recently pinned last. A
+  pin toggle sits beside each card's name (`keep`, filled when pinned), and
+  pinned collections lift out of the Saved column into a **horizontal rail at
+  the top of the tab**, the same carousel Discover's Collections row uses, so a
+  pinned collection is the same object in a faster place rather than a new kind
+  of thing. The column below only gains its "All collections" heading once
+  something is pinned. Pinned ids are **derived against the live list, not
+  pruned on delete**, so deleting a pinned collection and hitting Undo brings
+  the pin back with it.
 - **Hearts manage collection membership everywhere.** A heart is filled when the
   piece sits in any collection (`isSaved`), and tapping one - on a product card,
   the product page, or a scan match - opens the Add to collection flow with the

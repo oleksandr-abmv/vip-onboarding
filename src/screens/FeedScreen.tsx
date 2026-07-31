@@ -157,6 +157,22 @@ export default function FeedScreen({
   // User-curated groups of saved pieces. Owned here because Saved, the product
   // page, the scan results, and Discover's look cards all write to them.
   const [collections, setCollections] = useState<Collection[]>(() => seedCollections(gender));
+  // Collections the user pinned, most recently pinned last. Pinned ones lift out
+  // of the Saved column into a horizontal rail at the top of the tab, the same
+  // shape Discover's Collections row uses, so the handful you are living in stay
+  // one swipe away while the rest of the list keeps growing underneath.
+  const [pinnedIds, setPinnedIds] = useState<string[]>([]);
+  const togglePin = (id: string) => {
+    const wasPinned = pinnedIds.includes(id);
+    // Undo restores the whole previous array rather than toggling back, so it
+    // returns the rail to the exact order it had, not just the membership.
+    const before = pinnedIds;
+    setPinnedIds(wasPinned ? before.filter((p) => p !== id) : [...before, id]);
+    showSnack(wasPinned ? 'Unpinned' : 'Pinned to the top', 'Undo', () => {
+      setPinnedIds(before);
+      setSnack(null);
+    });
+  };
   // The collection page open over the Saved tab (survives tab switches, so
   // coming back from Chat lands on the same collection).
   const [openCollectionId, setOpenCollectionId] = useState<string | null>(null);
@@ -430,6 +446,21 @@ export default function FeedScreen({
     );
   }, [collectionsNewestFirst, savedQuery]);
 
+  // Pinned lift out of the column into the rail, in the order they were pinned.
+  // Derived by intersecting with the live list rather than pruned on delete, so
+  // deleting a pinned collection and hitting Undo brings the pin back with it.
+  const savedPinned = useMemo(
+    () =>
+      pinnedIds
+        .map((id) => savedFiltered.find((c) => c.id === id))
+        .filter((c): c is Collection => !!c),
+    [pinnedIds, savedFiltered],
+  );
+  const savedRest = useMemo(
+    () => savedFiltered.filter((c) => !pinnedIds.includes(c.id)),
+    [savedFiltered, pinnedIds],
+  );
+
   /**
    * Idle-state chips for the catalog search: actual pieces, one per category so
    * they spread across the catalog. Named pieces rather than departments, because
@@ -655,19 +686,52 @@ export default function FeedScreen({
               No collections match "{savedQuery.trim()}".
             </p>
           ) : (
-            <div style={savedColStyle}>
-              {savedFiltered.map((c) => (
-                <CollectionCard
-                  key={c.id}
-                  name={c.name}
-                  count={c.items.length}
-                  items={c.items.map(byName).filter(Boolean) as Product[]}
-                  meta={collectionMeta(c, byName)}
-                  width="100%"
-                  onOpen={() => setOpenCollectionId(c.id)}
-                />
-              ))}
-            </div>
+            <>
+              {/* Pinned rail: the same horizontal carousel Discover's Collections
+                  row uses, so a pinned collection reads as the same object in a
+                  faster place rather than a new kind of thing. Cards keep the
+                  230px carousel width, which is what makes it scroll. */}
+              {savedPinned.length > 0 && (
+                <Section title="Pinned">
+                  {savedPinned.map((c) => (
+                    <CollectionCard
+                      key={c.id}
+                      name={c.name}
+                      count={c.items.length}
+                      items={c.items.map(byName).filter(Boolean) as Product[]}
+                      meta={collectionMeta(c, byName)}
+                      onOpen={() => setOpenCollectionId(c.id)}
+                      pinned
+                      onTogglePin={() => togglePin(c.id)}
+                    />
+                  ))}
+                  {/* One pinned card leaves the rail mostly gap and nothing to
+                      scroll, so the second slot is drawn empty. */}
+                  {savedPinned.length === 1 && <PinnedSlotCard />}
+                </Section>
+              )}
+              {savedRest.length > 0 && (
+                <>
+                  {/* Only titled once something sits above it, so an unpinned
+                      Saved tab stays the bare list it has always been. */}
+                  {savedPinned.length > 0 && <SectionHeader title="All collections" />}
+                  <div style={savedColStyle}>
+                    {savedRest.map((c) => (
+                      <CollectionCard
+                        key={c.id}
+                        name={c.name}
+                        count={c.items.length}
+                        items={c.items.map(byName).filter(Boolean) as Product[]}
+                        meta={collectionMeta(c, byName)}
+                        width="100%"
+                        onOpen={() => setOpenCollectionId(c.id)}
+                        onTogglePin={() => togglePin(c.id)}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
           )}
           {/* Creator row closes the list - horizontal, so it reads as the action
               at the end rather than another collection in the column. Hidden
@@ -1352,6 +1416,8 @@ function CollectionCard({
   width = 230,
   unit = 'items',
   meta,
+  pinned = false,
+  onTogglePin,
 }: {
   name: string;
   count: number;
@@ -1367,6 +1433,9 @@ function CollectionCard({
   unit?: string;
   /** Overrides the "count unit" line (user collections show "N items · $total"). */
   meta?: string;
+  /** When provided, the card shows a pin toggle beside its name. */
+  pinned?: boolean;
+  onTogglePin?: () => void;
 }) {
   const showMenu = !!(onMoreLikeThis && onHide);
   return (
@@ -1425,24 +1494,110 @@ function CollectionCard({
       {showMenu && <OverflowMenu onMoreLikeThis={onMoreLikeThis!} onHide={onHide!} />}
       {/* The fanned cover: up to three pieces, the outer two kicked out 15deg. */}
       <CollectionFan items={items} size="100%" radius={0} />
+      <div style={{ padding: '12px 14px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p
+            style={{
+              fontSize: 15,
+              fontWeight: 600,
+              color: '#f7f7f7',
+              lineHeight: '20px',
+              margin: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {name}
+          </p>
+          <span style={{ fontSize: 13, fontWeight: 400, color: '#999', lineHeight: '18px' }}>
+            {meta ?? `${count} ${unit}`}
+          </span>
+        </div>
+        {/* Pin sits with the name rather than over the cover: it is a property of
+            the collection, not an action on the imagery, and the cover's corners
+            are already spoken for by the heart and the "..." menu. Filled when
+            pinned, the same way the dock marks its active tab. */}
+        {onTogglePin && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onTogglePin(); }}
+            aria-label={pinned ? `Unpin ${name}` : `Pin ${name} to the top`}
+            aria-pressed={pinned}
+            style={{
+              width: 32,
+              height: 32,
+              flexShrink: 0,
+              borderRadius: theme.radii.button,
+              background: pinned ? 'rgba(246,246,246,0.12)' : 'transparent',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              padding: 0,
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            <MIcon
+              name="keep"
+              size={20}
+              weight={pinned ? 400 : 300}
+              fill={pinned ? 1 : 0}
+              color={pinned ? '#f6f6f6' : '#999'}
+            />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Empty pin slot (second card of a one-item Pinned rail) ───────────────────
+//
+// A rail holding exactly one card is mostly gap: the carousel does not scroll,
+// and the single card reads as a mistake rather than a shortlist. This fills the
+// second position with the shape of the card that is missing, so the row has the
+// rhythm of a rail and quietly says there is room for another.
+//
+// Same skeleton vocabulary as `GhostCards` (dark fills, dim bars, no shimmer -
+// this is not loading, it is empty), and the same tile geometry the real cover
+// uses, so the ghost tiles land exactly where products would.
+function PinnedSlotCard() {
+  const tile = (offset: number, rotate: number) => (
+    <div
+      key={rotate}
+      style={{
+        position: 'absolute',
+        left: '50%',
+        top: '54.39%',
+        width: '35.18cqw',
+        aspectRatio: '120.652 / 114.72',
+        transform: `translate(-50%, -50%) translateX(${offset}cqw) rotate(${rotate}deg)`,
+        background: '#151515',
+        border: '1px solid #232323',
+        borderRadius: '3.4cqw',
+      }}
+    />
+  );
+  return (
+    <div
+      aria-hidden
+      style={{
+        width: 230,
+        flexShrink: 0,
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px dashed #2c2c2c',
+        borderRadius: 16,
+        overflow: 'hidden',
+      }}
+    >
+      <div style={{ position: 'relative', width: '100%', aspectRatio: '600 / 400', containerType: 'inline-size' }}>
+        {tile(-11.66, -15)}
+        {tile(11.66, 15)}
+      </div>
       <div style={{ padding: '12px 14px 14px' }}>
-        <p
-          style={{
-            fontSize: 15,
-            fontWeight: 600,
-            color: '#f7f7f7',
-            lineHeight: '20px',
-            margin: 0,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {name}
-        </p>
-        <span style={{ fontSize: 13, fontWeight: 400, color: '#999', lineHeight: '18px' }}>
-          {meta ?? `${count} ${unit}`}
-        </span>
+        <div style={{ height: 9, borderRadius: 5, background: '#1e1e1e', width: '62%', marginBottom: 8 }} />
+        <div style={{ height: 8, borderRadius: 4, background: '#171717', width: '44%' }} />
       </div>
     </div>
   );

@@ -190,7 +190,18 @@ filters the list in place. The body is a **single column** (`savedColStyle`) of
 full-width `CollectionCard`s whose meta line is **"N items · $total"** (`meta` prop
 overrides the default "count unit"); tap opens the **collection page**.
 Collections are ordered **newest first** (`createdAt` descending), so the one just
-saved leads the list. **`NewCollectionCard` closes the list** as a **horizontal
+saved leads the list.
+
+**Pinning.** Each card carries a **pin toggle beside its name**, not over the
+cover: pinning is a property of the collection rather than an action on the
+imagery, and the cover's corners already belong to the heart and the "..." menu.
+A 32px circular button holding `keep` at 20px, `#999` outline when loose and
+**`#f6f6f6` filled on `rgba(246,246,246,0.12)`** when pinned, the same way the
+dock marks its active tab. Pinned collections lift into a **`<Section>` titled
+"Pinned"** at the top of the tab - the identical horizontal carousel Discover's
+Collections row uses, cards at the carousel's 230px so it actually scrolls - and
+the column below gains an **"All collections"** `SectionHeader`. With nothing
+pinned the tab stays exactly the bare list it was, no headings. **`NewCollectionCard` closes the list** as a **horizontal
 64px row** - `1px dashed #3a3a3a` on `rgba(255,255,255,0.02)`, `radius 16`, a 22px
 `add_2` beside "New Collection" 15/600. Horizontal and last, so it reads as the
 action at the end rather than another collection in the column; the dashed outline
