@@ -15,7 +15,7 @@ import ProductCard, { MenuRow } from '../components/ProductCard';
 import { theme } from '../theme';
 import ScanScreen from './ScanScreen';
 import CollectionPage from './CollectionPage';
-import { AddToCollectionFlow, CollectionCover, CreateCollectionSheet } from '../components/CollectionSheets';
+import { AddToCollectionFlow, CollectionFan, CreateCollectionSheet } from '../components/CollectionSheets';
 import { SEED_MEMORY_FACTS, type MemoryFact } from '../data/memory';
 import {
   collectionMeta,
@@ -1423,8 +1423,8 @@ function CollectionCard({
         </button>
       )}
       {showMenu && <OverflowMenu onMoreLikeThis={onMoreLikeThis!} onHide={onHide!} />}
-      {/* The shared 2x2 cover: placeholders when sparse, "+N" when overflowing. */}
-      <CollectionCover items={items} total={count} size="100%" aspect="4 / 3" radius={0} />
+      {/* The fanned cover: up to three pieces, the outer two kicked out 15deg. */}
+      <CollectionFan items={items} size="100%" radius={0} />
       <div style={{ padding: '12px 14px 14px' }}>
         <p
           style={{

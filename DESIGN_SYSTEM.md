@@ -154,8 +154,8 @@ onboarding banner (while incomplete), then three groups:
   (`grid-auto-flow: column`, two rows). Each row is a list item: a 54px rounded
   thumbnail + category name + "N items". Tapping opens the category as a list.
 
-`CollectionCard` (used by **Collections**) is the shared `CollectionCover` **2x2
-grid** (1px even gutters, "+N" scrim past four) + name + "N pieces", plus a
+`CollectionCard` (used by **Collections**) is the shared `CollectionFan` **cover**
+(up to four tiles, outer ones rotated) + name + "N pieces", plus a
 **favorite heart** (saves the whole look to Saved > Collections) and a "..." menu
 (self-contained `OverflowMenu`, portaled like the product-card menu). Discover's
 **Collections** group stays a **horizontal carousel** (230px cards) but the cards
@@ -214,14 +214,37 @@ results, and Discover's look hearts all write to the same list. Prices come from
 the shared deterministic price history (`priceOf`), summed into the "N items ·
 $total" meta line (`collectionMeta`).
 
-**The cover** (`CollectionCover`, shared between the 56px row thumb and the full
-card at `size="100%" aspect="4/3"`): always a 2x2 grid. 0 items → one full tile on
-`#161616` with the VIP logotype at `opacity 0.35`; 1-4 items → images fill in on
-the `#ececec` gallery backdrop and **empty cells take the same `#161616` surface**
-with the logotype at `opacity 0.22`, no filter. The light backdrop exists to sit a
-product on, so a slot with no product does not get it, and a half-filled cover
-stops reading as a grid with the lights left on. 5+ items → 3 previews and the 4th
-image under a `rgba(10,10,10,0.62)` overlay with a **"+N"** label (N = count - 3).
+**The card cover** is `CollectionFan` (Figma node 5442-23149) at
+`size="100%" aspect="600/400"`: up to four product tiles dropped on the surface
+like photos on a table, the outer ones kicked out so you can see what is inside
+without opening anything. Tiles are `#ececec`, **35.18% of the cover width**,
+aspect `120.652/114.72`, padding and corner both **9.67% of the tile**, centred
+on **54.39%** of the cover height. Rotation fans evenly from **-15deg to +15deg**
+(so two read `-15/+15` and three read `-15/0/+15`, as the file draws them), and
+paint order runs left to right, so the stack cascades to the right. Every
+measurement is in `cqw` off the cover's own width, so the fan holds its
+proportions at the 230px Discover width as well as full bleed.
+
+Adjacent centres sit **23.32% of the cover width** apart until the run would
+leave the cover; past three the step tightens so the outermost tile keeps its
+margin and the extras slide in underneath. **Four is the ceiling**: it still
+shows 44% of every tile, where five drops to a third and the middle of the fan
+turns into slivers you cannot read. 0 items → the VIP logotype at **27.27% of
+the cover width**, `opacity 0.35`, bare on `#161616` with no tile behind it -
+there is no piece to sit on one.
+
+There are **no empty slots and no "+N"**: a two-piece collection is two tiles,
+not two tiles and two holes, and the card's own subtitle already reads
+"12 pieces · $48,000", so a badge would say it twice.
+
+**The 56px row thumb** (the add-to-collection sheet) stays `CollectionCover`, the
+**2x2 grid**: 0 items → one full tile on `#161616` with the VIP logotype at
+`opacity 0.35`; 1-4 items → images fill in on the `#ececec` gallery backdrop and
+**empty cells take the same `#161616` surface** with the logotype at
+`opacity 0.22`. The light backdrop exists to sit a product on, so a slot with no
+product does not get it. 5+ items → 3 previews and the 4th image under a
+`rgba(10,10,10,0.62)` overlay with a **"+N"** label (N = count - 3). A fan at
+that size would be three unreadable slivers, so the grid stays.
 
 **Ways in** (all lead to the same sheet flow):
 - **Hearts** - product cards, the product page nav, scan match rows.

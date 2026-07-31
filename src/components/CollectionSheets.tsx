@@ -230,6 +230,148 @@ export function CollectionCover({
   );
 }
 
+/**
+ * The fanned collection cover (Figma node 5442-23149): up to three product
+ * tiles laid out like photos dropped on a table, the outer two kicked out by
+ * 15deg so you can see what is inside without opening anything.
+ *
+ *   0 items   the VIP logotype on the bare surface, no tile
+ *   1 item    one tile, centred, square to the card
+ *   2 items   two tiles at -15deg / +15deg
+ *   3+ items  three tiles at -15deg / 0 / +15deg
+ *
+ * Unlike the 2x2 `CollectionCover` there are no empty slots to fill: a
+ * two-piece collection is two tiles, not two tiles and two holes. Past three
+ * pieces the extras simply are not drawn - the card's own subtitle already
+ * reads "12 pieces - $48,000", so a "+9" badge would say it twice.
+ *
+ * Every measurement is in `cqw` (percent of the cover's own width) taken
+ * straight from the 343px-wide frame in the file, so the fan keeps its
+ * proportions at the 230px Discover width as well as full bleed.
+ */
+export function CollectionFan({
+  items,
+  size = '100%',
+  aspect = '600 / 400',
+  radius = 0,
+  max = 4,
+}: {
+  items: (Product | undefined)[];
+  size?: number | string;
+  aspect?: string;
+  radius?: number;
+  /**
+   * Tiles drawn before the rest of the collection is left off the cover. The
+   * file draws three; four still shows enough of every piece to recognise it
+   * (44% of each tile), and five drops that to a third, where the middle of the
+   * fan turns into slivers you cannot read. Four is the ceiling worth using.
+   */
+  max?: number;
+}) {
+  // Tile geometry, as fractions of the cover width in the design frame:
+  // 120.652 / 343 wide, 11.664 padding and corner, 80 between adjacent centres.
+  const TILE_W = 35.18; // cqw
+  const TILE_PAD = 3.4; // cqw
+  const TILE_RADIUS = 3.4; // cqw
+  const TILE_ASPECT = '120.652 / 114.72';
+  // The trio does not sit on the cover's vertical midline in the file; it rides
+  // slightly low so the rotated corners have room at the top.
+  const TILE_CY = '54.39%';
+  // How far the outermost tile's centre may sit from the middle before its
+  // rotated corner leaves the cover. Taken from the file's three-tile layout,
+  // where the outer tiles land 19px inside a 343px card.
+  const EDGE = 23.32; // cqw
+  const BASE_STEP = 23.32; // cqw between adjacent centres while they still fit
+
+  const shown = items.filter(Boolean).slice(0, max) as Product[];
+  const n = shown.length;
+  // Up to three tiles keep the file's spacing exactly. Past that the run would
+  // walk out of the cover, so the step tightens to pin the outermost tile at
+  // the same margin and the extras slide in underneath.
+  const step = n < 2 ? 0 : Math.min(BASE_STEP, (EDGE * 2) / (n - 1));
+  // Rotation fans evenly from -15 to +15, which reproduces the file's -15/0/+15
+  // for three and -15/+15 for two.
+  const angles = shown.map((_, i) => (n < 2 ? 0 : -15 + (30 / (n - 1)) * i));
+
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: 'relative',
+        width: size,
+        ...(aspect ? { aspectRatio: aspect } : { height: size }),
+        flexShrink: 0,
+        borderRadius: radius,
+        overflow: 'hidden',
+        background: SURFACE,
+        containerType: 'inline-size',
+      }}
+    >
+      {shown.length === 0 ? (
+        // Image-less collection: the uniform VIP logotype placeholder, bare on
+        // the surface. No tile behind it - there is no piece to sit on one.
+        <img
+          src="/vip-logo.svg"
+          alt=""
+          aria-hidden
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '27.27cqw',
+            opacity: 0.35,
+            display: 'block',
+          }}
+        />
+      ) : (
+        shown.map((p, i) => {
+          // Centre the run of tiles: n tiles span n-1 steps either side.
+          const offset = (i - (n - 1) / 2) * step;
+          return (
+            <div
+              key={p.name}
+              style={{
+                position: 'absolute',
+                left: '50%',
+                top: TILE_CY,
+                width: `${TILE_W}cqw`,
+                aspectRatio: TILE_ASPECT,
+                transform: `translate(-50%, -50%) translateX(${offset}cqw) rotate(${angles[i]}deg)`,
+                background: '#ececec',
+                borderRadius: `${TILE_RADIUS}cqw`,
+                padding: `${TILE_PAD}cqw`,
+                boxSizing: 'border-box',
+                // The file's shadow token is a light-mode one and vanishes on
+                // this surface, so the tiles get a dark one instead - without it
+                // the overlaps read as one flat shape.
+                boxShadow: '0 2px 4.7cqw rgba(0, 0, 0, 0.45)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+              }}
+            >
+              <img
+                src={p.image}
+                alt=""
+                aria-hidden
+                draggable={false}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  display: 'block',
+                }}
+              />
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
 /** Compact product row: thumb + name/brand + price. Used in note + add sheets. */
 function ProductMiniRow({
   product,
