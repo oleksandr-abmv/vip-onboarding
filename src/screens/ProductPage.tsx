@@ -3,66 +3,43 @@ import { safeTop } from '../theme';
 import { type Product } from '../data/products';
 import { categoryConfigs, getSubcategories } from '../data/categoryConfig';
 import HistoricalPrice from '../components/HistoricalPrice';
+import MIcon from '../components/MIcon';
+import NavIconButton from '../components/NavIconButton';
+import WhereToBuy, { BoutiqueMapView } from '../components/WhereToBuy';
 import { getPriceHistory } from '../data/priceHistory';
+import { boutiquesFor } from '../data/boutiques';
+import { isClothing } from '../data/collections';
+import { outlinedActionStyle, primaryActionStyle } from './screenChrome';
+import BottomDock from '../components/BottomDock';
+import type { ConciergePrompt } from './ChatScreen';
 
 const PAGE = 16;
+
 /** Nav height below the safe area: 10 top pad + 40 button + 20 bottom pad. */
 const NAV_H = 70;
 
 interface ProductPageProps {
   product: Product;
+  /** In any collection - the heart manages membership via the sheet flow. */
   saved: boolean;
   onToggleSave: () => void;
   onClose: () => void;
   gender: string | null;
-  /** Names of stores already saved, and a toggle that persists them upstream. */
-  savedStores?: string[];
-  onToggleStore?: (store: SavedStore) => void;
+  /** Toast for actions with no destination yet (Virtual try-on). */
+  onNotice?: (message: string) => void;
+  /** The pinned prompt field's hand-off: a NEW chat with this piece attached. */
+  onAskConcierge?: (prompt: ConciergePrompt) => void;
 }
 
-type Store = {
-  name: string;
-  tagline: string;
-  address: string;
-  phone: string;
-  distance: string;
-  image: string;
-};
-
-/** A store plus its brand, persisted so it can render in the Saved > Stores tab. */
-export type SavedStore = Store & { brand: string };
-
-// Real storefront photos pulled from the internet (keyword-matched, stable per
-// `lock`). Falls back to the brand wordmark if a photo fails to load.
-const STORE_IMAGES = [
-  'https://loremflickr.com/600/400/boutique,storefront/?lock=27',
-  'https://loremflickr.com/600/400/luxury,boutique,facade/?lock=54',
-];
-
-// Mock boutiques for a product, keyed off its brand. Prototype data - stands in
-// for a "where to buy" lookup.
-function storesFor(product: Product): Store[] {
-  return [
-    {
-      name: `${product.brand} Flagship`,
-      tagline: 'Flagship boutique',
-      address: '31 Rue Cambon, Paris',
-      phone: '+33 142-68-3700',
-      distance: '1km from you',
-      image: STORE_IMAGES[0],
-    },
-    {
-      name: `${product.brand} Madison Ave`,
-      tagline: 'Concept store',
-      address: '680 Madison Ave, New York',
-      phone: '+1 212-555-0142',
-      distance: '2km from you',
-      image: STORE_IMAGES[1],
-    },
-  ];
-}
-
-export default function ProductPage({ product, saved, onToggleSave, onClose, gender, savedStores, onToggleStore }: ProductPageProps) {
+export default function ProductPage({
+  product,
+  saved,
+  onToggleSave,
+  onClose,
+  gender,
+  onNotice,
+  onAskConcierge,
+}: ProductPageProps) {
   const isPlaceholder = product.image === '/vip-logo.svg';
   const categoryName = categoryConfigs[product.category]?.name || product.category;
 
@@ -75,6 +52,8 @@ export default function ProductPage({ product, saved, onToggleSave, onClose, gen
 
   const genderLabel =
     product.gender === 'female' ? 'Women' : product.gender === 'male' ? 'Men' : 'Unisex';
+
+  const tryOn = isClothing(product);
 
   // Derived bullet list when the product has no explicit spec bullets.
   const bullets = useMemo(() => {
@@ -93,7 +72,10 @@ export default function ProductPage({ product, saved, onToggleSave, onClose, gen
     { label: 'Category', value: categoryName },
   ];
 
-  const stores = useMemo(() => storesFor(product), [product]);
+  // Where to buy. The list and the full-screen map share one dataset, and the
+  // map is opened focused on whichever boutique was tapped.
+  const boutiques = useMemo(() => boutiquesFor(product), [product]);
+  const [mapFocus, setMapFocus] = useState<string | null>(null);
 
   // Price history drives both the "general price" line and the chart. Computed
   // once here and shared so the displayed price always matches the chart's today.
@@ -177,7 +159,7 @@ export default function ProductPage({ product, saved, onToggleSave, onClose, gen
               share
             </span>
           </NavIconButton>
-          <NavIconButton label={saved ? 'Remove from saved' : 'Save to favorites'} onClick={onToggleSave}>
+          <NavIconButton label={saved ? 'Manage in your collections' : 'Save to a collection'} onClick={onToggleSave}>
             <span
               className="material-symbols-rounded"
               style={{
@@ -203,7 +185,8 @@ export default function ProductPage({ product, saved, onToggleSave, onClose, gen
           overflowX: 'hidden',
           WebkitOverflowScrolling: 'touch',
           paddingTop: safeTop(NAV_H),
-          paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + 28px)`,
+          // The pinned prompt field below carries the safe-area inset.
+          paddingBottom: 28,
         }}
       >
         {/* Hero image. Not pinned: it scrolls straight up under the nav, so no
@@ -253,42 +236,22 @@ export default function ProductPage({ product, saved, onToggleSave, onClose, gen
           <HistoricalPrice key={`${product.brand}-${product.name}`} product={product} history={history} />
         </div>
 
-        {/* Primary actions: official retail + Ask VIP.ai concierge */}
+        {/* Actions: Virtual try-on (clothing only), then official retail. Exactly
+            one filled primary - a car has nothing to try on, so that button is
+            absent rather than dead and retail takes the filled slot. The concierge
+            is not here; it is the prompt field pinned at the bottom. */}
         <div style={{ padding: `16px ${PAGE}px 0`, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <button
-            style={{
-              width: '100%',
-              height: 54,
-              background: '#f6f6f6',
-              color: '#121212',
-              border: 'none',
-              borderRadius: 100,
-              fontSize: 16,
-              fontWeight: 500,
-              cursor: 'pointer',
-            }}
-          >
+          {tryOn && (
+            <button
+              onClick={() => onNotice?.('Your virtual fitting room is being prepared')}
+              style={primaryActionStyle}
+            >
+              <MIcon name="apparel" size={20} color="#121212" />
+              Virtual try-on
+            </button>
+          )}
+          <button style={tryOn ? outlinedActionStyle : primaryActionStyle}>
             Explore on Official Site
-          </button>
-          <button
-            style={{
-              width: '100%',
-              height: 54,
-              background: '#242424',
-              color: '#f2f2f2',
-              border: '1px solid #313131',
-              borderRadius: 100,
-              fontSize: 16,
-              fontWeight: 500,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-            }}
-          >
-            <img src="/vip-logo.svg" alt="" aria-hidden style={{ width: 18, height: 18, opacity: 0.9 }} />
-            Ask VIP.ai
           </button>
         </div>
 
@@ -339,236 +302,44 @@ export default function ProductPage({ product, saved, onToggleSave, onClose, gen
         {/* Section divider */}
         <div style={{ height: 6, background: '#141414', marginTop: 24 }} />
 
-        {/* Available in stores */}
-        <div style={{ padding: `20px 0 8px` }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: '#fff', margin: 0, padding: `0 ${PAGE}px`, lineHeight: '24px' }}>
-            Available in stores
-          </h2>
-          <div
-            style={{
-              display: 'flex',
-              gap: 16,
-              overflowX: 'auto',
-              padding: `16px ${PAGE}px 0`,
-              scrollPadding: `0 ${PAGE}px`,
-              scrollSnapType: 'x proximity',
-              WebkitOverflowScrolling: 'touch',
-            }}
-          >
-            {stores.map((store) => (
-              <StoreCard
-                key={store.name}
-                store={store}
-                brand={product.brand}
-                saved={savedStores?.includes(store.name) ?? false}
-                onToggle={() => onToggleStore?.({ ...store, brand: product.brand })}
-              />
-            ))}
-          </div>
-        </div>
+        {/* Where to buy */}
+        <WhereToBuy boutiques={boutiques} onOpenMap={setMapFocus} onNotice={onNotice} />
 
       </div>
-    </div>
-  );
-}
 
-// ── Circular nav icon button (matches the Figma product-page nav) ────────────
-function NavIconButton({
-  label,
-  onClick,
-  children,
-}: {
-  label: string;
-  onClick?: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      aria-label={label}
-      style={{
-        // Re-enable taps (the gradient nav container sets pointer-events: none).
-        pointerEvents: 'auto',
-        width: 40,
-        height: 40,
-        borderRadius: 100,
-        // Translucent dark fill so the button stays legible over both the dark
-        // scrim and the light hero as the gradient fades.
-        background: 'rgba(20,20,20,0.55)',
-        border: '1px solid rgba(255,255,255,0.14)',
-        backdropFilter: 'blur(4px)',
-        WebkitBackdropFilter: 'blur(4px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-        padding: 0,
-        flexShrink: 0,
-        WebkitTapHighlightColor: 'transparent',
-      }}
-    >
-      {children}
-    </button>
-  );
-}
+      {/* The concierge, as a prompt field rather than a button - the same call the
+          collection page makes. What you want to ask about a piece is specific
+          ("does this come in black?"), so it goes in one step instead of landing
+          in an empty chat. Sending starts a NEW chat with the piece attached. */}
+      {onAskConcierge && (
+        <BottomDock
+          placeholder="Ask about this piece"
+          showAttach={false}
+          onSend={(text) =>
+            onAskConcierge({
+              text,
+              attachment: {
+                title: `${product.brand} ${product.name}`,
+                subtitle: priceLabel,
+                images: [product.image],
+                target: { kind: 'product', name: product.name },
+              },
+            })
+          }
+        />
+      )}
 
-// ── Store / boutique card ────────────────────────────────────────────────────
-function StoreCard({
-  store,
-  brand,
-  saved,
-  onToggle,
-}: {
-  store: Store;
-  brand: string;
-  saved: boolean;
-  onToggle: () => void;
-}) {
-  const [imgError, setImgError] = useState(false);
-  return (
-    <div
-      style={{
-        position: 'relative',
-        width: 264,
-        flexShrink: 0,
-        background: '#0c0c0c',
-        border: '1px solid #282828',
-        borderRadius: 16,
-        overflow: 'hidden',
-        scrollSnapAlign: 'start',
-      }}
-    >
-      {/* Store image - real storefront photo (falls back to a brand wordmark). */}
-      <div
-        style={{
-          height: 150,
-          background: '#ececec',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        {imgError ? (
-          <span
-            style={{
-              fontSize: 19,
-              fontWeight: 600,
-              letterSpacing: 1.5,
-              textTransform: 'uppercase',
-              color: '#1a1a1a',
-              textAlign: 'center',
-              lineHeight: 1.25,
-              padding: '0 20px',
-            }}
-          >
-            {brand}
-          </span>
-        ) : (
-          <img
-            src={store.image}
-            alt={store.name}
-            loading="lazy"
-            onError={() => setImgError(true)}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          />
-        )}
-        {/* Distance tag */}
-        <span
-          style={{
-            position: 'absolute',
-            right: 8,
-            bottom: 8,
-            background: 'rgba(20,20,20,0.82)',
-            color: '#f2f2f2',
-            fontSize: 12,
-            fontWeight: 500,
-            padding: '3px 8px',
-            borderRadius: 100,
-            backdropFilter: 'blur(4px)',
-          }}
-        >
-          {store.distance}
-        </span>
-      </div>
+      {/* Full-screen map, over the page. Sits outside the scroll body so it is
+          pinned rather than scrolling with it. */}
+      {mapFocus !== null && (
+        <BoutiqueMapView
+          boutiques={boutiques}
+          initialId={mapFocus}
+          onClose={() => setMapFocus(null)}
+          onNotice={onNotice}
+        />
+      )}
 
-      {/* Favorite icon button */}
-      <button
-        onClick={onToggle}
-        aria-label={saved ? 'Remove store from saved' : 'Save store'}
-        style={{
-          position: 'absolute',
-          top: 8,
-          right: 8,
-          width: 32,
-          height: 32,
-          borderRadius: 100,
-          background: 'rgba(20,20,20,0.72)',
-          border: '1px solid rgba(255,255,255,0.12)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          padding: 0,
-          backdropFilter: 'blur(4px)',
-        }}
-      >
-        <span
-          className="material-symbols-rounded"
-          style={{
-            fontSize: 18,
-            fontVariationSettings: saved ? "'wght' 500, 'FILL' 1" : "'wght' 400",
-            color: saved ? '#ef4d63' : '#e7e7e7',
-          }}
-          aria-hidden
-        >
-          favorite
-        </span>
-      </button>
-
-      {/* Meta */}
-      <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <p
-          style={{
-            fontSize: 16,
-            fontWeight: 600,
-            color: '#f7f7f7',
-            lineHeight: '20px',
-            margin: 0,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {store.name}
-        </p>
-        <p style={{ fontSize: 14, color: '#999', lineHeight: '18px', margin: 0 }}>{store.tagline}</p>
-        <InfoRow icon="location_on" text={store.address} />
-        <InfoRow icon="call" text={store.phone} />
-      </div>
-    </div>
-  );
-}
-
-function InfoRow({ icon, text }: { icon: string; text: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <span className="material-symbols-rounded" style={{ fontSize: 16, color: '#cfcfcf', flexShrink: 0 }} aria-hidden>
-        {icon}
-      </span>
-      <span
-        style={{
-          fontSize: 14,
-          color: '#dedede',
-          lineHeight: '20px',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {text}
-      </span>
     </div>
   );
 }

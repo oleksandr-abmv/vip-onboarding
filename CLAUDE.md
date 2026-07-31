@@ -80,7 +80,7 @@ every matching string.)
 - Defaults match the file's "Icons/Outlined/Large" style: 24px, `wght 300` (Light), `FILL 0`, `GRAD 0`. `weight` and `fill` are props - the active bottom-dock tab uses `weight={400} fill={1}`.
 - Set `decorative={false}` + `label="Something"` when the icon conveys meaning to screen readers.
 - The font is loaded in `index.html` with the full `opsz,wght,FILL,GRAD` axes, so any Material Symbols name works without adding assets.
-- **The one exception:** a few glyphs in the file are custom vectors rather than Material Symbols. Do not substitute the nearest Material name (a `crop_free` stand-in for the temporary-chat bubble read as four corner brackets and was wrong). Export the path from Figma and wrap it in a component next to `MIcon`, as `src/components/TemporaryChatIcon.tsx` does. Note in the file that it is the design's own path, not a redraw.
+- **The one exception:** a few glyphs in the file are custom vectors rather than Material Symbols. Do not substitute the nearest Material name (a `crop_free` stand-in for the temporary-chat bubble read as four corner brackets and was wrong). Export the path from Figma and wrap it in a component next to `MIcon`, as `src/components/TemporaryChatIcon.tsx` (the chat nav bar's Incognito mode) and `src/components/ScanIcon.tsx` (the dock's Scan tab and the search field's trailing action) do. Note in the file that it is the design's own path, not a redraw. The dock supports these via `DockTab.renderIcon`.
 - **Legacy:** `src/components/Icon.tsx` + `src/icons/core/` (the CORE UI SVG library) are no longer used by any screen. Do not add icons there.
 
 ---
@@ -153,6 +153,20 @@ Any category or subcategory **without an image asset yet** uses the **VIP logoty
 
 ## Styling conventions
 
+**Overlays must never move the content behind them.** Sheets, dialogs and menus are
+absolutely positioned over the screen; opening one may not shift, scroll or resize
+anything underneath. Two rules protect that, and both are easy to undo by accident:
+
+- **Never use the `autoFocus` attribute inside an overlay.** Use `useAutoFocus()`
+  from `src/hooks/useAutoFocus.ts` (it focuses with `preventScroll: true`). Plain
+  `autoFocus` fires while the panel is still translated a full height below the
+  fold, so the browser scrolls the nearest scrollable ancestor to reveal the field
+  and the entire screen visibly jumps, then unwinds as the animation lands.
+- The frame and every screen root use **`overflow: clip`, not `hidden`**
+  (`PhoneFrame.tsx`, `screenStyle` in `screens/screenChrome.tsx`). `clip` cannot
+  become a scroll container, so nothing can scroll them. Do not "fix" these back
+  to `hidden`.
+
 **Full design system: [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md).** Follow its tokens and
 component specs for any UI work. **Use `theme.radii` / `theme.colors` from
 `src/theme.ts` rather than raw values.** Key invariant: **buttons, icon buttons and
@@ -192,12 +206,66 @@ These are the signals downstream screens depend on - keep them in sync:
 Once the user reaches the feed, `FeedScreen` owns the tab state and everything the
 tabs share. Anything two tabs both touch belongs here, not inside a tab:
 
-- `tab: 'home' | 'menu' | 'chat'` - `home` also carries the detail views.
+- `tab: 'home' | 'saved' | 'chat' | 'menu'` - the four stateful dock tabs; `home`
+  also carries the detail views. The dock order is **Home · Saved · Chat · Scan ·
+  Menu** (Figma node 5410-6902); **Scan**, the fourth item, is an overlay
+  (`showScan`), not a tab - Close returns to whatever was underneath, and the
+  Scan item is never marked active.
+- `query: string` - **Discover search**. A non-empty query swaps the feed groups
+  for a results grid in place; it does not push a screen. Tapping the Home dock
+  item while on Home clears it. **Search is one experience, `<SearchModal>`**
+  (`src/components/SearchModal.tsx`): a full screen with an autofocused field, a
+  Cancel button, an idle state, live results supplied by the caller, and an **Ask
+  AI Concierge** offer on **both** its idle and no-match states.
+
+  Discover's field, the Add pieces sheet's and the collection page's header
+  `search` all open it. **Saved is the exception and filters in place**: its field
+  sits on the page and narrows the grid as you type, because that list is short,
+  already on screen and already scoped. The collection page's search is scoped too
+  but stays a **mode**: a header icon opens the modal **straight onto every piece in
+  the collection** (`showAllWhenEmpty`, so there is no idle state to wade through),
+  typing narrows it, and Cancel closes the whole thing. The field
+  itself is the shared `<SearchField>` (`src/components/SearchField.tsx`), which
+  also backs the Add pieces sheet. Do not hand-roll another one, and match with
+  **`matchesQuery()` from `src/data/products.ts`** rather than an inline predicate.
+  It tests the category's **display name as well as its id**, which is load-bearing:
+  several ids are internal and differ from the only label the user sees (`Footwear`
+  is "Shoes", `Vehicles` is "Cars", `Fashion and Apparel` is "Clothing", `Jewellery`
+  is "Jewelry"), so an id-only match makes "shoes" return nothing.
 - `memoryEnabled: boolean`, `memoryFacts: MemoryFact[]` - **Data Memory**. The Menu
   tab edits them (Data Memory sheet, Manage Data Memory) and the Chat tab writes to them,
   so both must read the same store. See `src/data/memory.ts`.
 - `chatMessages`, `chatRatings` - the concierge thread. Held here so switching tabs
-  does not discard the conversation.
+  does not discard the conversation. `chatPrompt` is the "Ask AI Concierge" hand-off:
+  set it and switch to the chat tab, and `ChatScreen` auto-sends it once.
+  **The chat nav bar actions depend on whether the thread is empty**: idle offers
+  Incognito mode + History, and once there is a message it becomes New chat + More
+  (Figma node 5410-6912). Keep both variants working when editing that header.
+- `collections: Collection[]` - **Collections**, the only kind of saving in the
+  app. The Saved tab (dock label and page header both **"Saved"**) lists
+  collections and nothing else - no segments, no saved-products list, and
+  boutiques/stores are NOT saveable. Creating one is the **`add_2` icon button in
+  the header's top-right corner**, not a row in the list. See
+  `src/data/collections.ts`.
+- **Hearts manage collection membership everywhere.** A heart is filled when the
+  piece sits in any collection (`isSaved`), and tapping one - on a product card,
+  the product page, or a scan match - opens the Add to collection flow with the
+  piece's current collections pre-checked. Unchecking and saving removes it.
+  There is no separate bookmark icon; do not add one.
+- **A Discover look opens the collection page, not a product list.** Looks carry a
+  deterministic `look-<id>` collection id, so tapping one opens the same page a
+  saved collection does. Until it is hearted there is no stored `Collection`, so
+  FeedScreen builds one from the look and passes `preview`. The page stays fully
+  usable (notes and hearts work, hearts meaning what they mean everywhere else);
+  only what needs a stored collection changes - "Save Collection" replaces Add
+  pieces, and Rename / Delete leave the menu. **Writing a note files the look** in
+  the same state update, so a note is never dropped. Either way the page then
+  becomes the real one.
+- `openCollectionId` - the collection page push over the Saved **or Home** tab
+  (Home so a Discover look can open it). Deliberately
+  kept when switching tabs so "Ask AI Concierge" and back lands on the same
+  collection; tapping the Saved dock item while already on Saved pops it.
+- `addTarget: Product | null` - the piece the heart's sheet flow is managing.
 
 When memory is **off**, nothing may be written silently: the chat says so in its
 reply and skips the "Memory updated" chip.
@@ -205,6 +273,85 @@ reply and skips the "Memory updated" chip.
 There are **two ways into editing memory** and both must keep working: Menu > Data
 Memory, and tapping the "Memory updated" chip (or the snackbar's Manage action) in
 a chat. Both open the same `<MemorySheet>`.
+
+**Every way into Add to collection must keep working**: hearts (product cards,
+product page, scan match rows), hearting a Discover look (files the look as a
+collection), the collection page's pinned "Add pieces" sheet (combined search +
+scan, one piece per tap), and Saved > New collection. All of them run through
+the same `AddToCollectionFlow` / `AddItemsSheet` / `CreateCollectionSheet`.
+
+**Reaching the concierge starts a NEW chat** (thread and ratings cleared) and
+auto-sends a prompt carrying an attachment card - the collection (cover + meta),
+the piece, or the scanned photo. Everything routes through `askConcierge` in
+FeedScreen. **The attachment card is tappable and opens what it names**: it carries
+an `AttachmentTarget` (`{kind: 'collection', id}` / `{kind: 'product', name}`) and
+FeedScreen's `openAttachment` resolves it, since the chat does not own collections
+or the product page. A scan with no confident match has no target and stays inert;
+so does a collection that has since been deleted.
+
+**Where something stands for the concierge, use the VIP logotype, not the
+`auto_awesome` sparkle**: `<ConciergeMark>` (`src/components/ConciergeMark.tsx`,
+`onLight` for the filled pill). The sparkle is every AI product's badge and this
+one is ours. The exception is the chat's own suggestion rows, where the glyph
+labels a kind of prompt rather than the concierge (whose name is in the label).
+
+**On a page about one thing, the concierge is a prompt field, not a button.** The
+collection page, the product page and the scan results each pin a prompt-only
+`<BottomDock>` (no attach) that sends whatever the user typed with that thing
+attached. **Where the field does more than one job its placeholder cycles**, with
+a **static lead-in and only the tail moving**: the collection page runs "Ask to
+find you a piece / add pieces / modify this collection". A single static hint only
+advertises one of the three and nobody would guess the rest, but rotating whole
+sentences is hard to read at a glance. Pass `placeholder` an array plus
+`placeholderPrefix`; a plain string stays a plain placeholder. Keep the lead-in
+short - spelling out "Ask AI Concierge to" ate the width the tails need. What you want to ask is specific
+("what shoes go with this?"), so it goes in one step instead of landing in an empty
+chat and typing it there. **On a page about nothing in particular** - the search
+modal's idle and no-match states, both empty states of the Add pieces sheet - it is
+the **"Ask AI Concierge"** offer instead (`src/components/AskConciergeOffer.tsx`),
+because there is nothing yet to ask about. Either way **no dead end just stops**:
+searching only finds what is already tagged in the catalog, so the concierge is
+always the way out. The action is called **"Ask AI Concierge"** everywhere.
+
+**The offer argues, in one line.** Most people assume a search box is all there
+is, so `<AskConciergeOffer>` carries a line under its CTA saying what the concierge
+does that search cannot ("Describe an occasion, a budget or a mood. It looks past
+the catalog."). One line, not a panel: a headline plus worked examples was tried
+here and made an empty search screen feel like homework.
+
+**Search suggestion chips are real rows from the data being searched**, never a
+list of departments: pieces from the catalogue on Discover, pieces in this
+collection on the collection page. A chip is a demonstration of a good query, so it
+must never come back empty. They sit in **one horizontally-scrolling row**, and the
+idle state carries no headline - the field's placeholder already says what this
+searches.
+
+**Virtual try-on is clothing-only**, via `isClothing()` / `collectionHasClothing()`
+in `src/data/collections.ts`. Keep that gate if categories are renamed. On the
+**product page** the button is **omitted entirely** for a non-clothing piece (a car
+has nothing to try on, so a dead button is noise). On the **collection page** it is
+the **primary button** of the action stack when the collection has clothing, and
+otherwise a **disabled menu item** - the collection still exists, so the action stays
+named rather than vanishing.
+
+**Both pages build their actions the same way: exactly one filled primary, the rest
+outlined, full width** (`primaryActionStyle` / `outlinedActionStyle` in
+`src/screens/screenChrome.tsx` - use those, don't restyle a button in place). When
+the natural primary is unavailable the next action takes the filled slot rather than
+leaving the page with none. The collection page's priority is **Save Collection →
+Virtual try-on → Add pieces** (a preview look never offers Add pieces, having no
+stored collection to add to); the product page promotes Ask AI Concierge.
+
+**Where to buy** (`src/components/WhereToBuy.tsx`) is the product page's stockist
+section: map preview, filter chips, then one row per boutique. Two invariants:
+
+- **Boutiques carry no photography.** Name, address, hours and stock are what
+  decide where you go; a storefront photo said nothing and doubled every row.
+  Do not reintroduce store images. Boutiques stay **not saveable** (no heart).
+- **The map is drawn, not tiled** (`src/components/StoreMap.tsx`), and pins and
+  distances come from one set of coordinates in `src/data/mapCanvas.ts` /
+  `src/data/boutiques.ts` - a boutique's `x` / `y` **produces** its distance.
+  Move a pin and the row follows; never hardcode a distance next to a pin.
 
 ---
 

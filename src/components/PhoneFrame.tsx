@@ -38,7 +38,10 @@ export default function PhoneFrame({ children }: { children: ReactNode }) {
           width: '100%',
           height: '100dvh',
           background: theme.colors.background,
-          overflow: 'hidden',
+          // `clip` rather than `hidden` so an overlay animating in from the bottom
+          // can never turn the frame into something the browser scrolls. See
+          // `screenStyle` in screens/screenChrome.tsx.
+          overflow: 'clip',
         }}
       >
         {children}
@@ -55,7 +58,7 @@ export default function PhoneFrame({ children }: { children: ReactNode }) {
         height: '100%',
         width: '100%',
         background: theme.colors.background,
-        overflow: 'hidden',
+        overflow: 'clip',
       }}
     >
       <div
@@ -64,7 +67,10 @@ export default function PhoneFrame({ children }: { children: ReactNode }) {
           position: 'relative',
           width: DESIGN_W,
           height: DESIGN_H,
-          overflow: 'hidden',
+          // `clip` rather than `hidden` so an overlay animating in from the bottom
+          // can never turn the frame into something the browser scrolls. See
+          // `screenStyle` in screens/screenChrome.tsx.
+          overflow: 'clip',
           transform: `scale(${scale})`,
           transformOrigin: 'center center',
           borderRadius: 40,

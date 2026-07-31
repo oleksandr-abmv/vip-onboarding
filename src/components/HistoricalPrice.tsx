@@ -340,6 +340,14 @@ const PLOT_BOT = 221;
 const XLABEL_Y = 239;
 const TIP_W = 116;
 const TIP_H = 56;
+// Time is mapped inside this inset rather than edge to edge. A price step can land
+// a day after the window opens (one day of a 1-year window is 0.27% of the plot,
+// well under a pixel), and mapped edge to edge the level it stepped FROM gets no
+// width at all: the chart draws a bare vertical line hanging off the left edge, and
+// a "-1.0%" tag sits above a line that appears to start at its lowest point. The
+// inset guarantees the first and last level a visible run and keeps the end markers
+// clear of the plot bounds; the line still extends flat to both edges either side.
+const EDGE_PAD = 10;
 
 function Chart({ history, view, today }: { history: PriceHistory; view: View; today: Date }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -360,32 +368,37 @@ function Chart({ history, view, today }: { history: PriceHistory; view: View; to
 
   const tone = TONES[view.tone];
   const plotW = Math.max(1, w - PLOT_X);
+  // Data lives in the inset band; the line then runs flat out to PLOT_X and w.
+  const innerX = PLOT_X + EDGE_PAD;
+  const innerW = Math.max(1, plotW - EDGE_PAD * 2);
   const t0 = view.windowStart.getTime();
   const t1 = today.getTime();
   const tspan = t1 - t0 || 1;
 
   const scale = useMemo(() => niceScale(view.min, view.max), [view.min, view.max]);
 
-  const x = (d: Date) => PLOT_X + ((d.getTime() - t0) / tspan) * plotW;
-  const xt = (t: number) => PLOT_X + t * plotW;
+  const x = (d: Date) => innerX + ((d.getTime() - t0) / tspan) * innerW;
+  const xt = (t: number) => innerX + t * innerW;
   const y = (price: number) => {
     const raw = GRID_YS[0] + ((scale.hi - price) / (scale.hi - scale.lo)) * (GRID_YS[2] - GRID_YS[0]);
     return Math.max(PLOT_TOP, Math.min(PLOT_BOT, raw));
   };
 
   // Step polyline: startPrice held to first in-window change, jump, ... to today.
+  // The ends are pinned to the plot edges, not to xt(0) / xt(1), so the opening and
+  // closing levels always read even when a step sits right on the window boundary.
   const pts: { x: number; y: number }[] = [];
-  pts.push({ x: xt(0), y: y(view.startPrice) });
+  pts.push({ x: PLOT_X, y: y(view.startPrice) });
   let prev = view.startPrice;
   for (const c of view.inWindow) {
     pts.push({ x: x(c.date), y: y(prev) });
     pts.push({ x: x(c.date), y: y(c.price) });
     prev = c.price;
   }
-  pts.push({ x: xt(1), y: y(prev) });
+  pts.push({ x: w, y: y(prev) });
 
   const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
-  const areaPath = `${linePath} L${xt(1).toFixed(2)} ${PLOT_BOT} L${xt(0).toFixed(2)} ${PLOT_BOT} Z`;
+  const areaPath = `${linePath} L${w.toFixed(2)} ${PLOT_BOT} L${PLOT_X} ${PLOT_BOT} Z`;
 
   // Markers sit on the change events only - the design has no "today" dot.
   const markers = view.inWindow.map((c) => ({ x: x(c.date), y: y(c.price) }));
@@ -410,7 +423,7 @@ function Chart({ history, view, today }: { history: PriceHistory; view: View; to
     const el = ref.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const t = (clientX - rect.left - PLOT_X) / plotW;
+    const t = (clientX - rect.left - innerX) / innerW;
     setScrub(Math.max(0, Math.min(1, t)));
   }
 

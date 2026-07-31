@@ -17,6 +17,8 @@ export interface MenuItem {
   icon: string;
   label: string;
   destructive?: boolean;
+  /** Grayed out and inert (virtual try-on on a collection with no clothing). */
+  disabled?: boolean;
   onClick: () => void;
 }
 
@@ -62,7 +64,9 @@ export default function ContextualMenu({
           <div key={item.label} style={{ display: 'flex', flexDirection: 'column' }}>
             <button
               role="menuitem"
+              aria-disabled={item.disabled || undefined}
               onClick={() => {
+                if (item.disabled) return;
                 onClose();
                 item.onClick();
               }}
@@ -76,10 +80,11 @@ export default function ContextualMenu({
                 height: 63,
                 padding: '12px 8px',
                 borderRadius: 4,
-                cursor: 'pointer',
+                cursor: item.disabled ? 'default' : 'pointer',
                 fontSize: 16,
                 lineHeight: '22px',
                 color: item.destructive ? DANGER : TEXT_PRIMARY,
+                opacity: item.disabled ? 0.38 : 1,
                 WebkitTapHighlightColor: 'transparent',
               }}
             >

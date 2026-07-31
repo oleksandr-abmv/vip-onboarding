@@ -45,6 +45,14 @@ html, body, #root {
   background: radial-gradient(ellipse at 50% 40%, transparent 30%, rgba(0,0,0,0.4) 100%);
 }
 
+/* Field placeholders (Figma text/textTertiary in the dark theme). Set globally so
+   the prompt field, the search field and the memory input all read the same. */
+input::placeholder,
+textarea::placeholder {
+  color: #8b8b8b;
+  opacity: 1;
+}
+
 /* Forward: new screen rises from bottom, old fades out slightly upward */
 @keyframes screenEnterFromRight {
   from { opacity: 0; transform: translateY(50px); }
@@ -249,6 +257,15 @@ html, body, #root {
   100% { width: 100%; }
 }
 
+/* Cycling prompt placeholder: rises in, holds, lifts out. The animation runs for
+   the whole interval between phrases, so one leaves exactly as the next arrives. */
+@keyframes placeholderCycle {
+  0% { opacity: 0; transform: translateY(7px); }
+  9% { opacity: 1; transform: translateY(0); }
+  91% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-7px); }
+}
+
 /* Skeleton shimmer for loading placeholders */
 @keyframes skeletonShimmer {
   0% { background-position: -200% 0; }
@@ -331,4 +348,13 @@ html, body, #root {
 @keyframes cardExitSkip {
   0%   { transform: translateX(0) scale(1);    opacity: 1; }
   100% { transform: translateX(32%) scale(0.92);  opacity: 0; }
+}
+
+/* Scan overlay: the "identifying" sweep line over the taken photo */
+@keyframes scanSweep {
+  0%   { top: 4%;  opacity: 0; }
+  12%  { opacity: 1; }
+  50%  { top: 94%; }
+  88%  { opacity: 1; }
+  100% { top: 4%;  opacity: 0; }
 }

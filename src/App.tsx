@@ -72,10 +72,6 @@ function App() {
   // Free-form "custom" text per category, captured when user picks the Custom tile on a Subcategory screen.
   const [customByCategory, setCustomByCategory] = useState<Record<string, string>>({});
   const [likedProducts, setLikedProducts] = useState<string[]>([]);
-  // Feed "favorites" - the products the user saves from the Discover feed. Kept
-  // separate from `likedProducts` (the onboarding taste-deck signal) so saving on
-  // the feed never moves the onboarding completion percentage.
-  const [savedProducts, setSavedProducts] = useState<string[]>([]);
   // Set once the user passes the Notifications step - the final onboarding signal.
   const [notificationsDone, setNotificationsDone] = useState(false);
   // The onboarding screen the user left from (via "Finish later") so the feed can
@@ -375,8 +371,6 @@ function App() {
           <FeedScreen
             gender={gender}
             selectedInterests={selectedInterests}
-            savedProducts={savedProducts}
-            onSavedChange={setSavedProducts}
             onboardingPct={onboardingPct}
             onboardingComplete={onboardingComplete}
             onResumeOnboarding={resumeOnboarding}

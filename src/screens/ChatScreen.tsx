@@ -22,10 +22,30 @@ const TEXT_PRIMARY = '#f6f6f6';
 const TEXT_SECONDARY = '#f4f5f7';
 const PAGE = 16;
 
+/**
+ * What an attachment card points back at. The chat only carries the descriptor;
+ * FeedScreen owns the collections and the product page, so it does the opening.
+ * A scan with no confident match has no destination and stays inert.
+ */
+export type AttachmentTarget =
+  | { kind: 'collection'; id: string }
+  | { kind: 'product'; name: string };
+
+export interface ChatAttachment {
+  title: string;
+  subtitle?: string;
+  /** Up to 4 images; one renders as a single tile, more as a 2x2 cover. */
+  images: string[];
+  /** Makes the card tappable: it opens the thing the message is about. */
+  target?: AttachmentTarget;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   text: string;
+  /** User only: the attached collection / scan context. */
+  attachment?: ChatAttachment;
   /** Assistant only: renders the "Memory updated" chip above the text. */
   memoryUpdated?: boolean;
 }
@@ -34,11 +54,20 @@ export interface ChatMessage {
 const SUGGESTIONS = [
   { icon: 'search', label: 'Find a piece & where to buy', prompt: 'Find me a piece and where to buy it' },
   { icon: 'apparel', label: 'Style a look & virtual try-on', prompt: 'Style a look for me' },
+  // The one place the sparkle stays rather than the VIP mark: these four rows are
+  // a menu of things to type, so the glyph is labelling a kind of prompt, not
+  // standing in for the concierge (whose name is already in the label).
   { icon: 'auto_awesome', label: 'Ask the concierge', prompt: 'Remember that I like Van Cleef & Arpels as a brand' },
   { icon: 'palette', label: 'Search by color', prompt: 'Show me pieces in deep green' },
 ];
 
 const RECALL = /\b(what do you (remember|know)|what'?s in (my )?memory|remind me what)\b/i;
+
+/** The "Ask AI Concierge" hand-off payload (scan results / collection page). */
+export interface ConciergePrompt {
+  text: string;
+  attachment?: ChatAttachment;
+}
 
 let msgSeq = 0;
 const nextId = () => `msg-${(msgSeq += 1)}`;
@@ -55,6 +84,9 @@ export default function ChatScreen({
   onManageMemory,
   onNotice,
   tabs,
+  initialPrompt,
+  onPromptConsumed,
+  onOpenAttachment,
 }: {
   memoryEnabled: boolean;
   onMemoryEnabledChange: (enabled: boolean) => void;
@@ -69,6 +101,11 @@ export default function ChatScreen({
   /** Snackbar, including the one that confirms a memory write. */
   onNotice: (message: string, action?: { label: string; onAction: () => void }) => void;
   tabs: DockTab[];
+  /** Auto-sent on entry (the scan results / collection "Ask AI Concierge"). */
+  initialPrompt?: ConciergePrompt | null;
+  onPromptConsumed?: () => void;
+  /** Opens what an attachment card names. Omit and the cards stay inert. */
+  onOpenAttachment?: (target: AttachmentTarget) => void;
 }) {
   const [thinking, setThinking] = useState(false);
   // The Memory sheet, opened by tapping a "Memory updated" chip.
@@ -139,16 +176,30 @@ export default function ChatScreen({
   // Cleanup runs once, so it needs the latest closure rather than the first one.
   const deliverRef = useRef(deliver);
   useEffect(() => { deliverRef.current = deliver; });
-  useEffect(
-    () => () => {
-      if (replyTimer.current) clearTimeout(replyTimer.current);
-      deliverRef.current();
-    },
-    [],
-  );
+  // On unmount, hand the pending reply over instead of dropping the turn. The
+  // delivery is deferred a tick and cancelled on an immediate remount
+  // (StrictMode's simulated unmount), which otherwise answered the auto-sent
+  // concierge prompt instantly in dev; the reply timer restarts in that case.
+  const unmountDeliver = useRef<number | null>(null);
+  useEffect(() => {
+    if (unmountDeliver.current) {
+      clearTimeout(unmountDeliver.current);
+      unmountDeliver.current = null;
+      if (pending.current && !replyTimer.current) {
+        replyTimer.current = window.setTimeout(() => deliverRef.current(), 700);
+      }
+    }
+    return () => {
+      if (replyTimer.current) {
+        clearTimeout(replyTimer.current);
+        replyTimer.current = null;
+      }
+      unmountDeliver.current = window.setTimeout(() => deliverRef.current(), 0);
+    };
+  }, []);
 
-  const send = (text: string) => {
-    onMessagesChange((prev) => [...prev, { id: nextId(), role: 'user', text }]);
+  const send = (text: string, attachment?: ChatAttachment) => {
+    onMessagesChange((prev) => [...prev, { id: nextId(), role: 'user', text, attachment }]);
     setThinking(true);
 
     const fact = extractMemory(text);
@@ -158,6 +209,23 @@ export default function ChatScreen({
     pending.current = { text, fact };
     replyTimer.current = window.setTimeout(() => deliverRef.current(), 700);
   };
+
+  // "Ask AI Concierge" hand-off: a prompt from the scan results or a collection is
+  // sent as if the user typed it (with its attachment). Ref-guarded so a
+  // StrictMode double effect (or a re-render before the parent clears the
+  // prop) cannot send it twice.
+  const lastPrompt = useRef<ConciergePrompt | null>(null);
+  useEffect(() => {
+    if (!initialPrompt) {
+      lastPrompt.current = null;
+      return;
+    }
+    if (lastPrompt.current === initialPrompt) return;
+    lastPrompt.current = initialPrompt;
+    send(initialPrompt.text, initialPrompt.attachment);
+    onPromptConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPrompt]);
 
   const newChat = () => {
     if (replyTimer.current) clearTimeout(replyTimer.current);
@@ -180,6 +248,11 @@ export default function ChatScreen({
             <MIcon name="keyboard_arrow_down" size={18} color={TEXT_PRIMARY} />
           </span>
         }
+        // The nav bar actions depend on whether the thread has anything in it.
+        // Idle (Figma node 5410-6912) offers the two ways to start, Incognito
+        // mode and History, and keeps New chat in place but disabled - there is
+        // no thread to clear yet. Once there is a message Incognito gives way to
+        // More, and History stays put across both states.
         left={
           <button onClick={newChat} aria-label="New chat" style={iconButtonStyle}>
             <MIcon name="edit_square" size={24} color={TEXT_PRIMARY} />
@@ -187,20 +260,42 @@ export default function ChatScreen({
         }
         right={
           <span style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={() => onNotice('Temporary chat is off')}
-              aria-label="Temporary chat"
-              style={iconButtonStyle}
-            >
-              <TemporaryChatIcon size={24} color={TEXT_PRIMARY} />
-            </button>
-            <button
-              onClick={() => onNotice('Chat options open here')}
-              aria-label="More options"
-              style={iconButtonStyle}
-            >
-              <MIcon name="more_horiz" size={24} color={TEXT_PRIMARY} />
-            </button>
+            {empty ? (
+              <>
+                <button
+                  onClick={() => onNotice('Incognito mode is off')}
+                  aria-label="Incognito mode"
+                  style={iconButtonStyle}
+                >
+                  {/* The design's own vector, not a Material glyph. */}
+                  <TemporaryChatIcon size={24} color={TEXT_PRIMARY} />
+                </button>
+                <button
+                  onClick={() => onNotice('Chat history opens here')}
+                  aria-label="History"
+                  style={iconButtonStyle}
+                >
+                  <MIcon name="history" size={24} color={TEXT_PRIMARY} />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => onNotice('Chat history opens here')}
+                  aria-label="History"
+                  style={iconButtonStyle}
+                >
+                  <MIcon name="history" size={24} color={TEXT_PRIMARY} />
+                </button>
+                <button
+                  onClick={() => onNotice('Chat options open here')}
+                  aria-label="More options"
+                  style={iconButtonStyle}
+                >
+                  <MIcon name="more_horiz" size={24} color={TEXT_PRIMARY} />
+                </button>
+              </>
+            )}
           </span>
         }
       />
@@ -223,7 +318,7 @@ export default function ChatScreen({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: PAGE }}>
             {messages.map((m) =>
               m.role === 'user' ? (
-                <UserBubble key={m.id} text={m.text} />
+                <UserBubble key={m.id} text={m.text} attachment={m.attachment} onOpenAttachment={onOpenAttachment} />
               ) : (
                 <AssistantTurn
                   key={m.id}
@@ -333,7 +428,19 @@ function ChatIdle({ onPick }: { onPick: (text: string) => void }) {
 
 // ─── Turns ───────────────────────────────────────────────────────────────────
 
-function UserBubble({ text }: { text: string }) {
+function UserBubble({
+  text,
+  attachment,
+  onOpenAttachment,
+}: {
+  text: string;
+  attachment?: ChatAttachment;
+  onOpenAttachment?: (target: AttachmentTarget) => void;
+}) {
+  // The card is a button whenever the thing it names can still be opened, so
+  // "what goes with this?" is one tap away from the thing itself.
+  const target = attachment?.target;
+  const open = target && onOpenAttachment ? () => onOpenAttachment(target) : undefined;
   return (
     <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
       <div
@@ -348,8 +455,103 @@ function UserBubble({ text }: { text: string }) {
           color: TEXT_PRIMARY,
         }}
       >
+        {attachment && (
+          <div
+            onClick={open}
+            role={open ? 'button' : undefined}
+            tabIndex={open ? 0 : undefined}
+            aria-label={open ? `Open ${attachment.title}` : undefined}
+            onKeyDown={
+              open
+                ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      open();
+                    }
+                  }
+                : undefined
+            }
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: 8,
+              marginBottom: 10,
+              background: 'rgba(255,255,255,0.06)',
+              borderRadius: 8,
+              cursor: open ? 'pointer' : undefined,
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            <AttachmentCover images={attachment.images} />
+            <div style={{ minWidth: 0 }}>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  lineHeight: '18px',
+                  color: TEXT_PRIMARY,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {attachment.title}
+              </p>
+              {attachment.subtitle && (
+                <span style={{ fontSize: 12, lineHeight: '16px', color: '#999' }}>
+                  {attachment.subtitle}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
         {text}
       </div>
+    </div>
+  );
+}
+
+/** 44px tile: one image renders alone, several become a 2x2 mini cover. */
+function AttachmentCover({ images }: { images: string[] }) {
+  const many = images.length > 1;
+  return (
+    <div
+      aria-hidden
+      style={{
+        width: 44,
+        height: 44,
+        flexShrink: 0,
+        borderRadius: 8,
+        overflow: 'hidden',
+        display: many ? 'grid' : 'flex',
+        ...(many
+          ? { gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 1, background: '#282828' }
+          : { alignItems: 'center', justifyContent: 'center', background: '#ececec' }),
+      }}
+    >
+      {(many ? images.slice(0, 4) : images).map((src, i) => (
+        <span
+          key={i}
+          style={{
+            background: '#ececec',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            width: '100%',
+            height: '100%',
+          }}
+        >
+          <img
+            src={src}
+            alt=""
+            draggable={false}
+            style={{ maxWidth: '86%', maxHeight: '88%', objectFit: 'contain', display: 'block' }}
+          />
+        </span>
+      ))}
     </div>
   );
 }

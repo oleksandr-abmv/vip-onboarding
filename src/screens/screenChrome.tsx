@@ -13,7 +13,12 @@ export const screenStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   background: 'transparent',
-  overflow: 'hidden',
+  // `clip`, not `hidden`: an overlay entering with `sheetSlideUp` momentarily
+  // overhangs the bottom, and `hidden` would make this a scroll container that
+  // the browser can then scroll to reveal a focused field, shunting the whole
+  // screen sideways with no scrollbar to explain it. `clip` cannot scroll at all.
+  // The scroll body inside keeps its own `overflowY: auto`. See `useAutoFocus`.
+  overflow: 'clip',
 };
 
 export const bodyStyle: React.CSSProperties = {
@@ -51,6 +56,9 @@ export function Header({
   /** Figma navBar is 56px; the plain title header stays at 64. */
   height?: number;
 }) {
+  // Leading/trailing controls are the 40px `iconButtonStyle` circle, centred in
+  // the bar so they read as part of the nav bar at any header height.
+  const actionTop = `calc(env(safe-area-inset-top, 0px) + ${Math.max(0, (height - 40) / 2)}px)`;
   return (
     <div
       style={{
@@ -72,22 +80,19 @@ export function Header({
           'linear-gradient(to bottom, #0A0A0A 0%, #0A0A0A 52%, rgba(10,10,10,0) 100%)',
       }}
     >
+      {/* Back is the same bordered circle as the trailing controls: a bare glyph
+          on one side of a bar whose other side carries outlined buttons read as
+          two different kinds of control. */}
       {onBack && (
         <button
           onClick={onBack}
           aria-label="Back"
           style={{
+            ...iconButtonStyle,
             pointerEvents: 'auto',
-            marginLeft: 8,
-            width: 44,
-            height: 44,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 0,
+            position: 'absolute',
+            left: 16,
+            top: actionTop,
           }}
         >
           <span
@@ -105,7 +110,7 @@ export function Header({
             pointerEvents: 'auto',
             position: 'absolute',
             left: 16,
-            top: `calc(env(safe-area-inset-top, 0px) + ${height === 56 ? 8 : 16}px)`,
+            top: actionTop,
           }}
         >
           {left}
@@ -137,7 +142,7 @@ export function Header({
             pointerEvents: 'auto',
             position: 'absolute',
             right: 16,
-            top: `calc(env(safe-area-inset-top, 0px) + ${height === 56 ? 8 : 16}px)`,
+            top: actionTop,
           }}
         >
           {right}
@@ -151,6 +156,37 @@ export function Header({
  * Figma `buttonIcon` - a bordered circle. 40px is the nav-bar size; the 32px
  * variant lives in components/Sheet.tsx as `sheetIconButtonStyle`.
  */
+/**
+ * Full-width page actions, filled and outlined. Shared so the product page and
+ * the collection page offer their actions in one visual language: exactly one
+ * filled primary at the top of the stack, the rest outlined under it.
+ */
+const actionBase: React.CSSProperties = {
+  width: '100%',
+  height: 44,
+  borderRadius: theme.radii.button,
+  fontSize: 15,
+  fontWeight: 500,
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 8,
+  WebkitTapHighlightColor: 'transparent',
+};
+export const primaryActionStyle: React.CSSProperties = {
+  ...actionBase,
+  background: '#f6f6f6',
+  color: '#121212',
+  border: 'none',
+};
+export const outlinedActionStyle: React.CSSProperties = {
+  ...actionBase,
+  background: 'transparent',
+  color: '#f6f6f6',
+  border: '1px solid #313131',
+};
+
 export const iconButtonStyle: React.CSSProperties = {
   width: 40,
   height: 40,

@@ -36,6 +36,7 @@ export default function Sheet({
   title,
   onClose,
   onBack,
+  action,
   full = false,
   children,
 }: {
@@ -43,6 +44,10 @@ export default function Sheet({
   onClose: () => void;
   /** Renders a back control in the leading 32px slot. */
   onBack?: () => void;
+  /** Trailing header control (the collections sheet's "Create"). When set, the
+      close button moves to the leading slot - the Figma "X · title · action"
+      header - unless `onBack` already claims it. */
+  action?: ReactNode;
   /** Fill the screen below the status bar (the Memory sheet's height). */
   full?: boolean;
   children: ReactNode;
@@ -87,12 +92,16 @@ export default function Sheet({
             padding: '16px 16px 8px',
           }}
         >
-          <span style={{ width: 32, flexShrink: 0 }}>
-            {onBack && (
+          <span style={{ minWidth: 32, flexShrink: 0, display: 'flex' }}>
+            {onBack ? (
               <button onClick={onBack} aria-label="Back" style={sheetIconButtonStyle}>
                 <MIcon name="arrow_left_alt" size={20} color={TEXT_PRIMARY} />
               </button>
-            )}
+            ) : action ? (
+              <button onClick={onClose} aria-label="Close" style={sheetIconButtonStyle}>
+                <MIcon name="close" size={20} color={TEXT_PRIMARY} />
+              </button>
+            ) : null}
           </span>
           <p
             style={{
@@ -108,9 +117,15 @@ export default function Sheet({
           >
             {title}
           </p>
-          <button onClick={onClose} aria-label="Close" style={sheetIconButtonStyle}>
-            <MIcon name="close" size={20} color={TEXT_PRIMARY} />
-          </button>
+          {action ? (
+            <span style={{ minWidth: 32, flexShrink: 0, display: 'flex', justifyContent: 'flex-end' }}>
+              {action}
+            </span>
+          ) : (
+            <button onClick={onClose} aria-label="Close" style={sheetIconButtonStyle}>
+              <MIcon name="close" size={20} color={TEXT_PRIMARY} />
+            </button>
+          )}
         </div>
         {children}
       </div>

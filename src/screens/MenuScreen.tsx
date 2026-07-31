@@ -1,9 +1,11 @@
 import { useState, type ReactNode } from 'react';
 import MIcon from '../components/MIcon';
+import ScanIcon from '../components/ScanIcon';
 import Dialog from '../components/Dialog';
 import Sheet from '../components/Sheet';
 import MemorySheet from '../components/MemorySheet';
 import Toggle from '../components/Toggle';
+import { theme } from '../theme';
 import { screenStyle, bodyStyle, Header } from './screenChrome';
 
 // ─── Menu tab ────────────────────────────────────────────────────────────────
@@ -46,6 +48,8 @@ interface MenuScreenProps {
   onMemoryEnabledChange: (enabled: boolean) => void;
   /** Push the full-screen Manage Memory view. */
   onManageMemory: () => void;
+  /** Open the scan overlay - the Scan product action under the profile card. */
+  onScan: () => void;
   /** Bottom bar, passed in so the tab bar stays owned by the feed. */
   bottomBar?: ReactNode;
 }
@@ -61,6 +65,7 @@ export default function MenuScreen({
   memoryEnabled,
   onMemoryEnabledChange,
   onManageMemory,
+  onScan,
   bottomBar,
 }: MenuScreenProps) {
   const [appearance, setAppearance] = useState('Dark');
@@ -80,6 +85,13 @@ export default function MenuScreen({
           ) : (
             <UserCard name={userName} email={userEmail} />
           )}
+
+          {/* Actions row under the profile card (reference node 4510-80962).
+              Same scan overlay as the dock's Scan item. */}
+          <button onClick={onScan} style={actionButtonStyle}>
+            <ScanIcon size={24} color={TEXT_PRIMARY} />
+            <span style={{ fontSize: 16, fontWeight: 500, lineHeight: '22px' }}>Scan Product</span>
+          </button>
 
           <Group label="Personalization">
             <Row
@@ -299,6 +311,25 @@ function GuestCard({ onCreateAccount }: { onCreateAccount: () => void }) {
     </div>
   );
 }
+
+/** The "Actions" button under the profile card (reference node 4510-80962):
+    `height 40`, outlined, icon + 16/22/500 label centred. The reference draws it
+    at `radius 12`, but every button in this app is a pill - see CLAUDE.md. */
+const actionButtonStyle: React.CSSProperties = {
+  all: 'unset',
+  boxSizing: 'border-box',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 4,
+  width: '100%',
+  height: 40,
+  border: `1px solid ${BORDER}`,
+  borderRadius: theme.radii.button,
+  color: TEXT_PRIMARY,
+  cursor: 'pointer',
+  WebkitTapHighlightColor: 'transparent',
+};
 
 // ─── Group + rows ────────────────────────────────────────────────────────────
 
