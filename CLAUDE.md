@@ -274,6 +274,23 @@ tabs share. Anything two tabs both touch belongs here, not inside a tab:
   (Home so a Discover look can open it). Deliberately
   kept when switching tabs so "Ask AI Concierge" and back lands on the same
   collection; tapping the Saved dock item while already on Saved pops it.
+- **Tailored Outfits** (`src/data/outfits.ts`) - the Discover row **after Mixed Collections**
+  (the group of coordinated looks; the Saved tab's own list stays "Saved").
+  An outfit is one look already styled, where a collection is a bag of pieces the
+  user gathered. **The difference lives entirely in the card**; there is no
+  outfit page:
+  - The card is the **styled flat-lay as shot** (`/public/outfits/*.webp`,
+    generated for this prototype), squared off with `object-fit: contain` on
+    white so nothing is cropped, and it carries **no heart and no "..."**. You
+    open an outfit; you decide about it inside.
+  - Opening one **pushes the ordinary collection page** under the deterministic
+    id `outfit-col-<id>`, exactly the way a Discover look pushes `look-<id>`.
+    FeedScreen builds the preview `Collection` from `OUTFITS`; "Save Collection"
+    then files it for real. A look is a look once you are inside it, so **do not
+    give outfits their own page** - that was tried and removed, along with a
+    cover image at the top of it.
+  - The imagery is **menswear**, so the row is hidden when `gender === 'female'`
+    rather than offering a look that cannot be worn. New imagery, new branch.
 - `addTarget: Product | null` - the piece the heart's sheet flow is managing.
 
 When memory is **off**, nothing may be written silently: the chat says so in its

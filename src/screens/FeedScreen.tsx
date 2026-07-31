@@ -17,6 +17,7 @@ import ProductCard, { MenuRow } from '../components/ProductCard';
 import { theme } from '../theme';
 import ScanScreen from './ScanScreen';
 import CollectionPage from './CollectionPage';
+import { OUTFITS, outfitMetaLine, type Outfit } from '../data/outfits';
 import { AddToCollectionFlow, CollectionFan, CreateCollectionSheet } from '../components/CollectionSheets';
 import { SEED_MEMORY_FACTS, type MemoryFact } from '../data/memory';
 import {
@@ -50,7 +51,11 @@ type FeedSection = { id: string; name: string; items: Product[] };
 // list (opened from a "View all" on the Discover groups). Saved is its own tab.
 type Detail =
   | { kind: 'category'; id: string; name: string }
-  | { kind: 'list'; title: string; items: Product[] };
+  | { kind: 'list'; title: string; items: Product[] }
+  // Two "View all"s that are not lists of products: the looks themselves, and
+  // every category rather than only the ones the user picked as interests.
+  | { kind: 'outfits' }
+  | { kind: 'categories' };
 /** The four stateful dock tabs. Scan is the fourth dock item, but an overlay. */
 type Tab = 'home' | 'saved' | 'chat' | 'menu';
 // Transient toast shown after saving / removing a product.
@@ -260,7 +265,39 @@ export default function FeedScreen({
 
   /** Hearting a Discover look files it as a collection of its pieces. */
   const lookCollectionId = (id: string) => `look-${id}`;
+  /** An outfit opens the collection page too, under its own deterministic id. */
+  const outfitCollectionId = (id: string) => `outfit-col-${id}`;
   const isCollectionSaved = (id: string) => collections.some((c) => c.id === lookCollectionId(id));
+  const isOutfitSaved = (id: string) => collections.some((c) => c.id === outfitCollectionId(id));
+  /** The outfit card's heart: files the whole look, the same as a look's heart. */
+  const toggleOutfitSaved = (outfit: Outfit) => {
+    const id = outfitCollectionId(outfit.id);
+    const existing = collections.find((c) => c.id === id);
+    if (!existing) {
+      setCollections((prev) => [
+        ...prev,
+        {
+          id,
+          name: outfit.name,
+          description: outfit.description,
+          items: outfit.items.filter((n) => !!byName(n)),
+          notes: {},
+          createdAt: Date.now(),
+        },
+      ]);
+      showSnack('Saved to your collections', 'View', () => {
+        setSnack(null);
+        goSaved();
+      });
+    } else {
+      setCollections((prev) => prev.filter((c) => c.id !== id));
+      showSnack('Removed from your collections', 'Undo', () => {
+        setCollections((prev) => (prev.some((c) => c.id === id) ? prev : [...prev, existing]));
+        setSnack(null);
+      });
+    }
+  };
+
   const toggleCollection = (look: FeedSection) => {
     const id = lookCollectionId(look.id);
     const existing = collections.find((c) => c.id === id);
@@ -462,6 +499,10 @@ export default function FeedScreen({
     () => savedFiltered.filter((c) => !pinnedIds.includes(c.id)),
     [savedFiltered, pinnedIds],
   );
+
+  // The flat-lays are shot as menswear, so the section stays out of a women's
+  // feed rather than offering a look that cannot be worn. Everyone else sees it.
+  const feedOutfits = useMemo(() => (gender === 'female' ? [] : OUTFITS), [gender]);
 
   /**
    * Idle-state chips for the catalog search: actual pieces, one per category so
@@ -771,6 +812,61 @@ export default function FeedScreen({
         <BottomDock tabs={dockTabs('saved')} />
       </div>
     );
+  } else if (detail && detail.kind === 'outfits') {
+    // Every look, two up. Same card as the rail so a look reads the same here.
+    body = (
+      <div style={screenStyle}>
+        <Header title="Tailored Outfits" onBack={() => setDetail(null)} />
+        <div ref={bodyRef} style={bodyStyle}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: `12px ${PAGE}px ${PAGE}px` }}>
+            {feedOutfits.map((o) => (
+              <OutfitCard
+                key={o.id}
+                outfit={o}
+                meta={outfitMetaLine(o, byName)}
+                width="100%"
+                onOpen={() => setOpenCollectionId(outfitCollectionId(o.id))}
+                saved={isOutfitSaved(o.id)}
+                onToggleSave={() => toggleOutfitSaved(o)}
+              />
+            ))}
+          </div>
+        </div>
+        <BottomDock tabs={dockTabs('home')} />
+      </div>
+    );
+  } else if (detail && detail.kind === 'categories') {
+    // Every category in the catalog, not just the interests the feed groups by,
+    // which is the only reason to tap "View all" on a list you can already see.
+    const allCategories = (() => {
+      const byCat: Record<string, Product[]> = {};
+      for (const p of genderFilter(PRODUCTS, gender)) {
+        if (p.image === '/vip-logo.svg' || hidden.has(p.name)) continue;
+        (byCat[p.category] ||= []).push(p);
+      }
+      return Object.entries(byCat)
+        .map(([id, items]) => ({ id, name: categoryConfigs[id]?.name ?? id, items }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    })();
+    body = (
+      <div style={screenStyle}>
+        <Header title="Categories" onBack={() => setDetail(null)} />
+        <div ref={bodyRef} style={bodyStyle}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: `12px ${PAGE}px ${PAGE}px` }}>
+            {allCategories.map((c) => (
+              <CategoryRow
+                key={c.id}
+                name={c.name}
+                count={c.items.length}
+                cover={c.items[0].image}
+                onOpen={() => setDetail({ kind: 'list', title: c.name, items: c.items })}
+              />
+            ))}
+          </div>
+        </div>
+        <BottomDock tabs={dockTabs('home')} />
+      </div>
+    );
   } else if (detail) {
     // ── "See all" detail view (per-category / titled list) ──────────────────
     const detailItems =
@@ -945,8 +1041,8 @@ export default function FeedScreen({
             {/* Trending - horizontal carousel (keeps the "..." menu) */}
             {trending.length > 0 && (
               <Section
-                title="Trending"
-                onViewAll={() => setDetail({ kind: 'list', title: 'Trending', items: trending })}
+                title="Trending Pieces"
+                onViewAll={() => setDetail({ kind: 'list', title: 'Trending Pieces', items: trending })}
               >
                 {trending.map((product) => (
                   <ProductCard
@@ -973,11 +1069,11 @@ export default function FeedScreen({
                 "N items · $total" meta rather than a bare "N pieces". */}
             {outfits.length > 0 && (
               <Section
-                title="Collections"
+                title="Mixed Collections"
                 onViewAll={() =>
                   setDetail({
                     kind: 'list',
-                    title: 'Collections',
+                    title: 'Mixed Collections',
                     items: dedupeByName(outfits.flatMap((o) => o.items)),
                   })
                 }
@@ -1000,10 +1096,36 @@ export default function FeedScreen({
               </Section>
             )}
 
+            {/* Outfits: looks that have already been styled, so the card is the
+                finished flat-lay rather than a cover assembled from contents.
+                Sits after Collections deliberately - Collections is what the
+                user could gather, Outfits is what somebody gathered for them.
+                Menswear imagery, so it stays out of a women's feed rather than
+                offering a look that cannot be worn. */}
+            {feedOutfits.length > 0 && (
+              <Section title="Tailored Outfits" onViewAll={() => setDetail({ kind: 'outfits' })}>
+                {feedOutfits.map((o) => (
+                  <OutfitCard
+                    key={o.id}
+                    outfit={o}
+                    meta={outfitMetaLine(o, byName)}
+                    onOpen={() => setOpenCollectionId(outfitCollectionId(o.id))}
+                    saved={isOutfitSaved(o.id)}
+                    onToggleSave={() => toggleOutfitSaved(o)}
+                    onMoreLikeThis={moreLikeThis}
+                    onHide={() => showSnack('Noted, fewer like this', 'Got it', () => setSnack(null))}
+                  />
+                ))}
+              </Section>
+            )}
+
             {/* Categories - full-width stack when few, else a 2-row horizontal scroll */}
             {categoryGroups.length > 0 && (
               <section style={{ paddingTop: 8, paddingBottom: 8 }}>
-                <SectionHeader title="Categories" />
+                <SectionHeader
+                  title="Categories"
+                  onViewAll={() => setDetail({ kind: 'categories' })}
+                />
                 {categoryGroups.length <= 2 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: `0 ${PAGE}px` }}>
                     {categoryGroups.map((c) => (
@@ -1026,9 +1148,11 @@ export default function FeedScreen({
                         gridTemplateRows: 'auto auto',
                         gridAutoColumns: 'max-content',
                         gap: 10,
-                        // Padding on the grid (not the scroller) so the right inset
-                        // survives at scroll end.
+                        // Padding on the grid (not the scroller), and the grid
+                        // sized to its content, so the right inset is part of
+                        // the scrollable width and survives at scroll end.
                         padding: `0 ${PAGE}px`,
+                        width: 'max-content',
                       }}
                     >
                       {categoryGroups.map((c) => (
@@ -1066,16 +1190,32 @@ export default function FeedScreen({
   const previewCollection = useMemo(() => {
     if (!openCollectionId || savedOpenCollection) return null;
     const look = outfits.find((o) => lookCollectionId(o.id) === openCollectionId);
-    if (!look) return null;
-    return {
-      id: openCollectionId,
-      name: look.name,
-      description: 'A look put together for you.',
-      items: look.items.map((p) => p.name),
-      notes: {},
-      createdAt: 0,
-    } satisfies Collection;
-  }, [openCollectionId, savedOpenCollection, outfits]);
+    if (look) {
+      return {
+        id: openCollectionId,
+        name: look.name,
+        description: 'A look put together for you.',
+        items: look.items.map((p) => p.name),
+        notes: {},
+        createdAt: 0,
+      } satisfies Collection;
+    }
+    // An Outfit opens the very same page a collection does. Only its card on
+    // Discover looks different (the styled flat-lay); once you are inside, a
+    // look is a look and the page has no reason to be a second design.
+    const outfit = OUTFITS.find((o) => outfitCollectionId(o.id) === openCollectionId);
+    if (outfit) {
+      return {
+        id: openCollectionId,
+        name: outfit.name,
+        description: outfit.description,
+        items: outfit.items.filter((n) => !!byName(n)),
+        notes: {},
+        createdAt: 0,
+      } satisfies Collection;
+    }
+    return null;
+  }, [openCollectionId, savedOpenCollection, outfits, byName]);
   const openCollection = savedOpenCollection ?? previewCollection;
   const isPreviewCollection = !savedOpenCollection && !!previewCollection;
   // Snackbar geometry: above whatever occupies the bottom of the screen. The
@@ -1326,17 +1466,15 @@ function Section({
   return (
     <section style={{ paddingTop: 8, paddingBottom: 8 }}>
       <SectionHeader title={title} onViewAll={onViewAll} />
-      <div
-        style={{
-          display: 'flex',
-          gap: 12,
-          overflowX: 'auto',
-          padding: `0 ${PAGE}px`,
-          scrollPadding: `0 ${PAGE}px`,
-          WebkitOverflowScrolling: 'touch',
-        }}
-      >
-        {children}
+      {/* The inset lives on the track, not the scroller, and the track is
+          `max-content` wide so its trailing padding is part of the scrollable
+          width. Put the padding on the scroller instead and the last card ends
+          flush against the screen edge at scroll end, with the right margin
+          only appearing at rest. */}
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <div style={{ display: 'flex', gap: 12, padding: `0 ${PAGE}px`, width: 'max-content' }}>
+          {children}
+        </div>
       </div>
     </section>
   );
@@ -1578,6 +1716,138 @@ function CollectionCard({
   );
 }
 
+// ── Outfit card (Discover > Outfits) ─────────────────────────────────────────
+//
+// The collection card's twin, and deliberately not identical to it: where that
+// one assembles a cover out of the pieces inside, this shows the styled flat-lay
+// as it was shot. Portrait rather than 3:2, so the two sit differently in the
+// feed and you can tell a look from a list at a glance without reading a word.
+//
+// It carries the same heart and "..." a collection card does, and they mean the
+// same things: the heart files the look under `outfit-col-<id>`, the menu tunes
+// what the feed shows. Only the picture is different.
+function OutfitCard({
+  outfit,
+  meta,
+  onOpen,
+  saved = false,
+  onToggleSave,
+  onMoreLikeThis,
+  onHide,
+  width = 230,
+}: {
+  outfit: Outfit;
+  meta: string;
+  onOpen: () => void;
+  saved?: boolean;
+  onToggleSave?: () => void;
+  onMoreLikeThis?: () => void;
+  onHide?: () => void;
+  width?: number | string;
+}) {
+  const showMenu = !!(onMoreLikeThis && onHide);
+  return (
+    <div
+      onClick={onOpen}
+      style={{
+        position: 'relative',
+        width,
+        flexShrink: 0,
+        background: '#0c0c0c',
+        border: '1px solid #282828',
+        borderRadius: 16,
+        overflow: 'hidden',
+        cursor: 'pointer',
+        scrollSnapAlign: 'start',
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >
+      {onToggleSave && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleSave(); }}
+          aria-label={saved ? 'Remove from saved' : 'Save to favorites'}
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: showMenu ? 48 : 8,
+            width: 32,
+            height: 32,
+            borderRadius: 100,
+            background: 'rgba(20,20,20,0.72)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            padding: 0,
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            WebkitTapHighlightColor: 'transparent',
+            zIndex: 3,
+          }}
+        >
+          <span
+            className="material-symbols-rounded"
+            style={{
+              fontSize: 18,
+              fontVariationSettings: saved ? "'wght' 500, 'FILL' 1" : "'wght' 400",
+              color: saved ? '#ef4d63' : '#e7e7e7',
+            }}
+            aria-hidden
+          >
+            favorite
+          </span>
+        </button>
+      )}
+      {showMenu && <OverflowMenu onMoreLikeThis={onMoreLikeThis!} onHide={onHide!} />}
+
+      {/* Same 230 width as every other Discover card, and near enough the same
+          height: at the art's own 3:4 the card towered over the row. So the box
+          is landscape and the flat-lay is `contain`ed inside it rather than
+          cropped - a crop takes the shoes off the bottom of the look. It shows
+          smaller; that is the price of the row lining up. */}
+      <div
+        style={{
+          width: '100%',
+          aspectRatio: '4 / 3',
+          background: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+        }}
+      >
+        <img
+          src={outfit.image}
+          alt=""
+          aria-hidden
+          draggable={false}
+          style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+        />
+      </div>
+      <div style={{ padding: '12px 14px 14px' }}>
+        <p
+          style={{
+            fontSize: 15,
+            fontWeight: 600,
+            color: '#f7f7f7',
+            lineHeight: '20px',
+            margin: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {outfit.name}
+        </p>
+        <span style={{ fontSize: 13, fontWeight: 400, color: '#999', lineHeight: '18px' }}>
+          {meta}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // ── Empty pin slot (second card of a one-item Pinned rail) ───────────────────
 //
 // A rail holding exactly one card is mostly gap: the carousel does not scroll,
@@ -1668,7 +1938,9 @@ function CategoryRow({
   count,
   cover,
   onOpen,
-  width = 208,
+  // 230, the width every other card in the Discover carousels uses, so the rows
+  // line up with the Collections and Outfits rails above them.
+  width = 230,
 }: {
   name: string;
   count: number;

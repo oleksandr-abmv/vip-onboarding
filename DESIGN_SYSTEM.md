@@ -158,13 +158,26 @@ onboarding banner (while incomplete), then three groups:
 (up to four tiles, outer ones rotated) + name + "N pieces", plus a
 **favorite heart** (saves the whole look to Saved > Collections) and a "..." menu
 (self-contained `OverflowMenu`, portaled like the product-card menu). Discover's
-**Collections** group stays a **horizontal carousel** (230px cards) but the cards
-read like the Saved tab's: same cover, and the same **"N items · $total"** meta via
-`outfitMeta()` rather than a bare "N pieces". **Tapping one opens the collection
-page**, not a generic product list - previewed until the look is hearted (see
-**Collection page**). The
-Categories/carousel scrollers keep their horizontal padding on the **inner track**
-so the right inset survives at scroll end.
+**Mixed Collections** group stays a **horizontal carousel** (230px cards) but the
+cards read like the Saved tab's: same cover, and the same **"N items · $total"**
+meta via `outfitMeta()` rather than a bare "N pieces". **Tapping one opens the
+collection page**, not a generic product list - previewed until the look is
+hearted (see **Collection page**).
+
+**Tailored Outfits** is the row underneath, and the only thing that separates it is the
+card. `OutfitCard` is the **styled flat-lay as shot** (`/public/outfits/*.webp`)
+rather than a cover built from contents: same **230px width** as every other
+Discover card, a **4:3** image box with the portrait art `contain`ed on white
+(a crop takes the shoes off the bottom of the look), then the same name +
+"N pieces · $total" and the same **heart and "..."** a collection card carries.
+Tapping one opens the **ordinary collection page** under `outfit-col-<id>`;
+there is no separate outfit page, and it must not grow one.
+
+**Every horizontal rail keeps its inset on the inner track, and the track is
+`width: max-content`** - `Section`, and the Categories two-row grid. Put the
+padding on the scroller itself and the trailing inset is not part of the
+scrollable width, so the last card ends flush against the screen edge at scroll
+end and the margin only reappears at rest.
 
 Discover opens with the **onboarding-progress banner** (while onboarding is under
 100%) at the very top, then the **search field**: placeholder "Search for products",
