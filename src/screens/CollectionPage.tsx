@@ -26,7 +26,7 @@ import {
 } from '../data/collections';
 import { type Product } from '../data/products';
 import { shareContent, shareMessage } from '../data/share';
-import { coverFillsBox, nextCover } from '../data/covers';
+import { nextCover } from '../data/covers';
 
 // ─── Collection page (push over the Saved or Home tab) ───────────────────────
 //
@@ -248,8 +248,8 @@ export default function CollectionPage({
             16 radius as everything else, and its own 4:3 box - so the cover sits
             on the page like a card rather than being cropped into a strip.
 
-            `cover` fills it: the art is already 4:3 and carries its own margins,
-            and an uploaded photo of any shape fills rather than letterboxing. */}
+            `contain` on white: every cover is a 4:3 flat-lay with its own safe
+            margin, so it lands flush and nothing is ever cropped off a look. */}
         {collection.cover && (
           <div
             style={{
@@ -265,12 +265,7 @@ export default function CollectionPage({
               alt=""
               aria-hidden
               draggable={false}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: coverFillsBox(collection.cover) ? 'cover' : 'contain',
-                display: 'block',
-              }}
+              style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
             />
           </div>
         )}

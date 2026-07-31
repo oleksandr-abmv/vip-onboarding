@@ -9,10 +9,12 @@
 // of pre-generated covers. Regenerating always moves to a different one, which is
 // what the user is asking for when they press it.
 //
-// They are **product still lifes, not abstract texture**. A cover stands for a
-// collection of things, so a swatch of silk or marble said nothing about it; a
-// watch and a card holder on stone reads as the same catalogue the collection is
-// drawn from.
+// They are **cut-out pieces on white, exactly the flat-lay language the outfit
+// and decor art uses** - not abstract texture and not styled-on-a-surface
+// photography. A cover stands for a collection of things, so a swatch of silk
+// said nothing about it, and a shot on stone belonged to a different app. Every
+// cover is landscape 4:3 with its own ~6% safe margin baked in, so it lands
+// flush in a 4:3 box and needs no cropping anywhere.
 
 export const GENERATED_COVERS: string[] = [
   '/covers/watch-desk.webp',
@@ -28,13 +30,3 @@ export function nextCover(current?: string): string {
   const i = current ? GENERATED_COVERS.indexOf(current) : -1;
   return GENERATED_COVERS[(i + 1) % GENERATED_COVERS.length];
 }
-
-/**
- * Whether a cover can be cropped to fill a box that is not its own ratio.
- *
- * Generated covers are photographs that already run edge to edge, so cropping
- * one only trims the surface it sits on. An **outfit's flat-lay** is a composed
- * picture with its pieces near the edges, so it has to be contained instead -
- * crop it and the look loses a shoe.
- */
-export const coverFillsBox = (src: string): boolean => src.startsWith('/covers/');

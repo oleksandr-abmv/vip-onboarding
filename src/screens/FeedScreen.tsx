@@ -18,7 +18,6 @@ import { theme } from '../theme';
 import ScanScreen from './ScanScreen';
 import CollectionPage from './CollectionPage';
 import { OUTFITS, DECOR_SETS, outfitMetaLine, type Outfit } from '../data/outfits';
-import { coverFillsBox } from '../data/covers';
 import { AddToCollectionFlow, CollectionFan, CreateCollectionSheet } from '../components/CollectionSheets';
 import { SEED_MEMORY_FACTS, type MemoryFact } from '../data/memory';
 import {
@@ -1728,10 +1727,9 @@ function CollectionCard({
           The cover wins: it is the picture somebody chose for this collection,
           where the fan is only what the app can assemble in its absence.
 
-          Same split as the collection page's hero, via `coverFillsBox`: a
-          **generated** cover is edge-to-edge texture so it fills, and a **styled
-          flat-lay** is contained on white so the look never loses a piece off
-          the edge. */}
+          `contain` on white, as everywhere else covers appear: every one is a
+          4:3 flat-lay of cut-out pieces with its own safe margin, so nothing is
+          ever cropped. */}
       {cover ? (
         <div
           style={{
@@ -1749,7 +1747,7 @@ function CollectionCard({
             style={{
               width: '100%',
               height: '100%',
-              objectFit: coverFillsBox(cover) ? 'cover' : 'contain',
+              objectFit: 'contain',
               display: 'block',
             }}
           />
