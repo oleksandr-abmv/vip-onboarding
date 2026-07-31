@@ -18,6 +18,7 @@ import { theme } from '../theme';
 import ScanScreen from './ScanScreen';
 import CollectionPage from './CollectionPage';
 import { OUTFITS, DECOR_SETS, outfitMetaLine, type Outfit } from '../data/outfits';
+import { coverFillsBox } from '../data/covers';
 import { AddToCollectionFlow, CollectionFan, CreateCollectionSheet } from '../components/CollectionSheets';
 import { SEED_MEMORY_FACTS, type MemoryFact } from '../data/memory';
 import {
@@ -776,6 +777,7 @@ export default function FeedScreen({
                       count={c.items.length}
                       items={c.items.map(byName).filter(Boolean) as Product[]}
                       meta={collectionMeta(c, byName)}
+                      cover={c.cover}
                       onOpen={() => setOpenCollectionId(c.id)}
                       pinned
                       onTogglePin={() => togglePin(c.id)}
@@ -806,6 +808,7 @@ export default function FeedScreen({
                         count={c.items.length}
                         items={c.items.map(byName).filter(Boolean) as Product[]}
                         meta={collectionMeta(c, byName)}
+                        cover={c.cover}
                         width="100%"
                         onOpen={() => setOpenCollectionId(c.id)}
                         onTogglePin={() => togglePin(c.id)}
@@ -1644,6 +1647,7 @@ function CollectionCard({
   meta,
   pinned = false,
   onTogglePin,
+  cover,
 }: {
   name: string;
   count: number;
@@ -1662,6 +1666,8 @@ function CollectionCard({
   /** When provided, the card shows a pin toggle beside its name. */
   pinned?: boolean;
   onTogglePin?: () => void;
+  /** Wins over the fan of pieces when the collection has one. */
+  cover?: string;
 }) {
   const showMenu = !!(onMoreLikeThis && onHide);
   return (
@@ -1718,8 +1724,39 @@ function CollectionCard({
         </button>
       )}
       {showMenu && <OverflowMenu onMoreLikeThis={onMoreLikeThis!} onHide={onHide!} />}
-      {/* The fanned cover: up to three pieces, the outer two kicked out 15deg. */}
-      <CollectionFan items={items} size="100%" radius={0} />
+      {/* A cover, if the collection has one, otherwise the fan of its pieces.
+          The cover wins: it is the picture somebody chose for this collection,
+          where the fan is only what the app can assemble in its absence.
+
+          Same split as the collection page's hero, via `coverFillsBox`: a
+          **generated** cover is edge-to-edge texture so it fills, and a **styled
+          flat-lay** is contained on white so the look never loses a piece off
+          the edge. */}
+      {cover ? (
+        <div
+          style={{
+            width: '100%',
+            aspectRatio: '600 / 400',
+            background: '#fff',
+            overflow: 'hidden',
+          }}
+        >
+          <img
+            src={cover}
+            alt=""
+            aria-hidden
+            draggable={false}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: coverFillsBox(cover) ? 'cover' : 'contain',
+              display: 'block',
+            }}
+          />
+        </div>
+      ) : (
+        <CollectionFan items={items} size="100%" radius={0} />
+      )}
       <div style={{ padding: '12px 14px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p

@@ -179,12 +179,20 @@ collection, outfit and category alike - so the rails line up down the page and
 the next card peeks by the same amount in each. Change it in one place.
 
 **Collection covers.** A collection may carry a `cover`: an outfit's flat-lay
-(copied in when the look is saved) or a picture the user uploaded from
-**"..." > Add / Change / Remove cover**. It renders as an **inset 4:3 card**
-(page margins, radius 16, `object-fit: cover`) above the title - deliberately
-NOT the product page's full-bleed band, which left grey gutters either side of a
-4:3 picture and read as a broken image. Uploads are read straight to a data URL,
-capped at 8MB; the prototype has no upload endpoint.
+(copied in when the look is saved) or one **generated** from
+**"..." > Generate / Regenerate / Remove cover**. There is deliberately **no
+upload** - the app owns the picture, so every cover is the same shape and the
+same safe fit, and no collection ends up with a sideways phone photo across the
+top of it. Regenerating always lands on a different one
+(`nextCover`, `src/data/covers.ts`).
+
+It renders as an **inset 4:3 card** (page margins, radius 16) above the title -
+deliberately NOT the product page's full-bleed band, which left grey gutters
+either side of a 4:3 picture and read as a broken image. **A cover also replaces
+the fan on the collection's card**: it is the picture somebody chose, where the
+fan is only what the app can assemble without one. Fit comes from
+**`coverFillsBox()`**: a generated cover is edge-to-edge texture so it fills,
+and a flat-lay is contained so the look never loses a piece off the edge.
 
 **Every horizontal rail keeps its inset on the inner track, and the track is
 `width: max-content`** - `Section`, and the Categories two-row grid. Put the

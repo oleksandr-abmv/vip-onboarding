@@ -26,6 +26,7 @@ import {
 } from '../data/collections';
 import { type Product } from '../data/products';
 import { shareContent, shareMessage } from '../data/share';
+import { coverFillsBox, nextCover } from '../data/covers';
 
 // ─── Collection page (push over the Saved or Home tab) ───────────────────────
 //
@@ -108,28 +109,14 @@ export default function CollectionPage({
   const [openProduct, setOpenProduct] = useState<Product | null>(null);
 
   const rootRef = useRef<HTMLDivElement>(null);
-  const coverInputRef = useRef<HTMLInputElement>(null);
-
   /**
-   * Read the chosen picture straight into a data URL. The prototype has no
-   * upload endpoint and state is in memory anyway, so the file never leaves the
-   * page - which is also why it is capped: a full-size phone photo as a data URL
-   * is several megabytes of string sitting in React state.
+   * Generate the collection's cover. There is deliberately no upload: the app
+   * owns the picture, so every cover is the same shape and the same safe fit.
+   * Regenerating always lands on a different one.
    */
-  const onCoverPicked = (file: File | undefined) => {
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      onNotice('That file is not an image');
-      return;
-    }
-    if (file.size > 8 * 1024 * 1024) {
-      onNotice('That image is too large. Pick one under 8MB.');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => onSetCover(String(reader.result));
-    reader.onerror = () => onNotice('Could not read that image');
-    reader.readAsDataURL(file);
+  const generateCover = () => {
+    onNotice(collection.cover ? 'Regenerating cover' : 'Generating cover');
+    window.setTimeout(() => onSetCover(nextCover(collection.cover)), 900);
   };
 
   const items = useMemo(
@@ -173,9 +160,11 @@ export default function CollectionPage({
       ? []
       : [
           {
-            icon: 'image',
-            label: collection.cover ? 'Change cover' : 'Add cover',
-            onClick: () => coverInputRef.current?.click(),
+            // Not the `auto_awesome` sparkle: see the concierge-mark rule in
+            // CLAUDE.md. These say what happens, not who did it.
+            icon: collection.cover ? 'autorenew' : 'image',
+            label: collection.cover ? 'Regenerate cover' : 'Generate cover',
+            onClick: generateCover,
           },
           ...(collection.cover
             ? [{ icon: 'hide_image', label: 'Remove cover', onClick: () => onSetCover(null) }]
@@ -276,7 +265,12 @@ export default function CollectionPage({
               alt=""
               aria-hidden
               draggable={false}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: coverFillsBox(collection.cover) ? 'cover' : 'contain',
+                display: 'block',
+              }}
             />
           </div>
         )}
@@ -421,20 +415,6 @@ export default function CollectionPage({
         ariaLabel="Ask AI Concierge"
         showAttach={false}
         onSend={(text) => askConcierge(text)}
-      />
-
-      {/* The cover picker, opened from the "..." menu. Kept out of the layout so
-          the menu row is the only affordance and there is no stray control. */}
-      <input
-        ref={coverInputRef}
-        type="file"
-        accept="image/*"
-        style={{ display: 'none' }}
-        onChange={(e) => {
-          onCoverPicked(e.target.files?.[0]);
-          // Reset so picking the same file twice still fires a change.
-          e.target.value = '';
-        }}
       />
 
       {/* Header "..." menu */}
