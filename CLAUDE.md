@@ -291,6 +291,15 @@ tabs share. Anything two tabs both touch belongs here, not inside a tab:
     cover image at the top of it.
   - The imagery is **menswear**, so the row is hidden when `gender === 'female'`
     rather than offering a look that cannot be worn. New imagery, new branch.
+  - **Furniture & Decor Ideas** is the same object for rooms instead of people
+    (`DECOR_SETS`, the row underneath): same card, same flat-lay treatment, same
+    collection page behind it. It is unisex, so it has no gender branch. Both
+    lists resolve through `allStyledSets`, so an id from either row opens and
+    covers correctly - add a third row there too.
+  - The flat-lays are **landscape 4:3 with their own ~6% safe margin baked in**,
+    so they land flush in a 4:3 box. Portrait art was tried and left grey gutters
+    in both the card and the cover; padding on top of the art's own margin was
+    tried and doubled it.
 - `addTarget: Product | null` - the piece the heart's sheet flow is managing.
 
 When memory is **off**, nothing may be written silently: the chat says so in its

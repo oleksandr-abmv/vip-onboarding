@@ -17,7 +17,7 @@ import ProductCard, { MenuRow } from '../components/ProductCard';
 import { theme } from '../theme';
 import ScanScreen from './ScanScreen';
 import CollectionPage from './CollectionPage';
-import { OUTFITS, outfitMetaLine, type Outfit } from '../data/outfits';
+import { OUTFITS, DECOR_SETS, outfitMetaLine, type Outfit } from '../data/outfits';
 import { AddToCollectionFlow, CollectionFan, CreateCollectionSheet } from '../components/CollectionSheets';
 import { SEED_MEMORY_FACTS, type MemoryFact } from '../data/memory';
 import {
@@ -59,6 +59,7 @@ type Detail =
   // Two "View all"s that are not lists of products: the looks themselves, and
   // every category rather than only the ones the user picked as interests.
   | { kind: 'outfits' }
+  | { kind: 'decor' }
   | { kind: 'categories' };
 /** The four stateful dock tabs. Scan is the fourth dock item, but an overlay. */
 type Tab = 'home' | 'saved' | 'chat' | 'menu';
@@ -514,6 +515,10 @@ export default function FeedScreen({
   // The flat-lays are shot as menswear, so the section stays out of a women's
   // feed rather than offering a look that cannot be worn. Everyone else sees it.
   const feedOutfits = useMemo(() => (gender === 'female' ? [] : OUTFITS), [gender]);
+  // Decor is unisex, so unlike the outfits it is never filtered out.
+  const feedDecor = DECOR_SETS;
+  /** Both styled rows, for resolving an id back to its set. */
+  const allStyledSets = useMemo(() => [...OUTFITS, ...DECOR_SETS], []);
 
   /**
    * Idle-state chips for the catalog search: actual pieces, one per category so
@@ -846,6 +851,28 @@ export default function FeedScreen({
         <BottomDock tabs={dockTabs('home')} />
       </div>
     );
+  } else if (detail && detail.kind === 'decor') {
+    body = (
+      <div style={screenStyle}>
+        <Header title="Furniture & Decor Ideas" onBack={() => setDetail(null)} />
+        <div ref={bodyRef} style={bodyStyle}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: `12px ${PAGE}px ${PAGE}px` }}>
+            {feedDecor.map((o) => (
+              <OutfitCard
+                key={o.id}
+                outfit={o}
+                meta={outfitMetaLine(o, byName)}
+                width="100%"
+                onOpen={() => setOpenCollectionId(outfitCollectionId(o.id))}
+                saved={isOutfitSaved(o.id)}
+                onToggleSave={() => toggleOutfitSaved(o)}
+              />
+            ))}
+          </div>
+        </div>
+        <BottomDock tabs={dockTabs('home')} />
+      </div>
+    );
   } else if (detail && detail.kind === 'categories') {
     // Every category in the catalog, not just the interests the feed groups by,
     // which is the only reason to tap "View all" on a list you can already see.
@@ -1130,6 +1157,28 @@ export default function FeedScreen({
               </Section>
             )}
 
+            {/* Furniture & Decor Ideas: the same styled-set card, for rooms
+                rather than people. Unisex, so it has no gender branch. */}
+            {feedDecor.length > 0 && (
+              <Section
+                title="Furniture & Decor Ideas"
+                onViewAll={() => setDetail({ kind: 'decor' })}
+              >
+                {feedDecor.map((o) => (
+                  <OutfitCard
+                    key={o.id}
+                    outfit={o}
+                    meta={outfitMetaLine(o, byName)}
+                    onOpen={() => setOpenCollectionId(outfitCollectionId(o.id))}
+                    saved={isOutfitSaved(o.id)}
+                    onToggleSave={() => toggleOutfitSaved(o)}
+                    onMoreLikeThis={moreLikeThis}
+                    onHide={() => showSnack('Noted, fewer like this', 'Got it', () => setSnack(null))}
+                  />
+                ))}
+              </Section>
+            )}
+
             {/* Categories - full-width stack when few, else a 2-row horizontal scroll */}
             {categoryGroups.length > 0 && (
               <section style={{ paddingTop: 8, paddingBottom: 8 }}>
@@ -1214,7 +1263,7 @@ export default function FeedScreen({
     // An Outfit opens the very same page a collection does. Only its card on
     // Discover looks different (the styled flat-lay); once you are inside, a
     // look is a look and the page has no reason to be a second design.
-    const outfit = OUTFITS.find((o) => outfitCollectionId(o.id) === openCollectionId);
+    const outfit = allStyledSets.find((o) => outfitCollectionId(o.id) === openCollectionId);
     if (outfit) {
       return {
         id: openCollectionId,
@@ -1227,7 +1276,7 @@ export default function FeedScreen({
       } satisfies Collection;
     }
     return null;
-  }, [openCollectionId, savedOpenCollection, outfits, byName]);
+  }, [openCollectionId, savedOpenCollection, outfits, byName, allStyledSets]);
   const openCollection = savedOpenCollection ?? previewCollection;
   const isPreviewCollection = !savedOpenCollection && !!previewCollection;
   // Snackbar geometry: above whatever occupies the bottom of the screen. The
@@ -1814,17 +1863,15 @@ function OutfitCard({
       )}
       {showMenu && <OverflowMenu onMoreLikeThis={onMoreLikeThis!} onHide={onHide!} />}
 
-      {/* 4:3, matching the art, so the rails line up. `contain` with padding
-          rather than `cover`: filling the tile edge to edge clipped the outer
-          pieces off the ends of the look, and a look with its shoes cut off is
-          not the look. The inset also gives the flat-lay air inside the card. */}
+      {/* 4:3, matching the art, so the rails line up and the look fills the
+          tile. `contain`, never `cover`: the art already carries its own safe
+          margin, so it lands flush at this ratio, and anything off-ratio is
+          letterboxed rather than having its outer pieces clipped off. */}
       <div
         style={{
           width: '100%',
           aspectRatio: '4 / 3',
           background: '#fff',
-          padding: 10,
-          boxSizing: 'border-box',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

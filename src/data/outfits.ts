@@ -96,6 +96,48 @@ export const OUTFITS: Outfit[] = [
   },
 ];
 
+/**
+ * Furniture & Decor Ideas: the same object as an outfit, for rooms instead of
+ * people. Same card, same flat-lay treatment, same collection page behind it -
+ * the only reason it is a separate list is that it is a separate row, and that
+ * it is unisex where the outfits are menswear.
+ */
+export const DECOR_SETS: Outfit[] = [
+  {
+    id: 'decor-reading-corner',
+    name: 'The Reading Corner',
+    description: 'A chair you sink into and somewhere to put the book down.',
+    image: '/outfits/decor-reading.webp',
+    items: ['Eames Lounge Chair', 'Noguchi Coffee Table', 'Usm Haller Shelving', 'No 5'],
+  },
+  {
+    id: 'decor-long-table',
+    name: 'The Long Table',
+    description: 'Reclaimed oak, pale chairs, and something worth sitting under.',
+    image: '/outfits/decor-dining.webp',
+    items: [
+      'Timber Reclaimed Oak Dining Table',
+      'Ch24 Wishbone Chair',
+      'Lalique Crystal Vase Lamp',
+      'Large Vase Of Flowers',
+    ],
+  },
+  {
+    id: 'decor-drawing-room',
+    name: 'The Drawing Room',
+    description: 'Deep seats, one loud armchair, and a wall that earns its place.',
+    image: '/outfits/decor-drawing.webp',
+    items: ['Chester Sofa', 'Medusa Armchair', 'Water Lilies', 'Pk22 Lounge Chair'],
+  },
+  {
+    id: 'decor-quiet-study',
+    name: 'The Quiet Study',
+    description: 'Low, plain and warm. The room you take calls in.',
+    image: '/outfits/decor-study.webp',
+    items: ['Charles Sofa', 'Egg Chair', 'Starry Night', 'Farm Table'],
+  },
+];
+
 /** "5 pieces · $12,400" - the meta line under an outfit, matching a collection's. */
 export function outfitMetaLine(
   outfit: Outfit,
