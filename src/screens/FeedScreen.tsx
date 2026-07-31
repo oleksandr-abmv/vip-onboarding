@@ -713,8 +713,15 @@ export default function FeedScreen({
               {savedRest.length > 0 && (
                 <>
                   {/* Only titled once something sits above it, so an unpinned
-                      Saved tab stays the bare list it has always been. */}
-                  {savedPinned.length > 0 && <SectionHeader title="All collections" />}
+                      Saved tab stays the bare list it has always been. The rail
+                      only leaves 8px under itself, which is spacing inside a
+                      section rather than between two, so the heading takes its
+                      own break above. */}
+                  {savedPinned.length > 0 && (
+                    <div style={{ paddingTop: 16 }}>
+                      <SectionHeader title="All collections" />
+                    </div>
+                  )}
                   <div style={savedColStyle}>
                     {savedRest.map((c) => (
                       <CollectionCard
