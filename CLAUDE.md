@@ -218,13 +218,13 @@ tabs share. Anything two tabs both touch belongs here, not inside a tab:
   Cancel button, an idle state, live results supplied by the caller, and an **Ask
   AI Concierge** offer on **both** its idle and no-match states.
 
-  Discover's field, the Add pieces sheet's and the collection page's header
-  `search` all open it. **Saved is the exception and filters in place**: its field
-  sits on the page and narrows the grid as you type, because that list is short,
-  already on screen and already scoped. The collection page's search is scoped too
-  but stays a **mode**: a header icon opens the modal **straight onto every piece in
-  the collection** (`showAllWhenEmpty`, so there is no idle state to wade through),
-  typing narrows it, and Cancel closes the whole thing. The field
+  Discover's field and the Add pieces sheet's both open it. **Saved is the
+  exception and filters in place**: its field sits on the page and narrows the
+  grid as you type, because that list is short, already on screen and already
+  scoped. **The collection page has no search at all**: a collection is a short
+  list the user assembled themselves and every piece is already on screen, so a
+  field to find something inside it only added a step. Searching happens where
+  there is a catalog to search, not inside a result. The field
   itself is the shared `<SearchField>` (`src/components/SearchField.tsx`), which
   also backs the Add pieces sheet. Do not hand-roll another one, and match with
   **`matchesQuery()` from `src/data/products.ts`** rather than an inline predicate.

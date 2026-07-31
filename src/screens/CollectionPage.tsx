@@ -9,7 +9,6 @@ import {
 } from './screenChrome';
 import MIcon from '../components/MIcon';
 import BottomDock from '../components/BottomDock';
-import SearchModal from '../components/SearchModal';
 import ProductCard from '../components/ProductCard';
 import ContextualMenu from '../components/ContextualMenu';
 import Dialog from '../components/Dialog';
@@ -20,20 +19,23 @@ import GhostCards from '../components/GhostCards';
 import {
   collectionHasClothing,
   collectionMeta,
+  collectionShare,
   formatPrice,
   priceOf,
   type Collection,
 } from '../data/collections';
-import { matchesQuery, type Product } from '../data/products';
+import { type Product } from '../data/products';
+import { shareContent, shareMessage } from '../data/share';
 
 // ─── Collection page (push over the Saved or Home tab) ───────────────────────
 //
 // One collection in full: a centered title block (name, meta, description), the
 // full-width action stack, then the item list where each piece carries an optional
 // note and a heart, with the concierge prompt field pinned at the bottom. The nav
-// bar holds search (the shared `<SearchModal>`) and a "..." menu of what is not
-// already on screen; pieces have no menu of their own, since the note strip and
-// the heart already cover everything one would hold.
+// bar holds share and a "..." menu of what is not already on screen; pieces have
+// no menu of their own, since the note strip and the heart already cover
+// everything one would hold. There is no search: the collection is a short list
+// the user assembled and it is all on screen already.
 //
 // `preview` is the same page for a **Discover look the user has not saved yet**.
 // It stays fully usable - notes and hearts work, and the hearts carry their
@@ -95,10 +97,6 @@ export default function CollectionPage({
   preview?: boolean;
   onSaveCollection?: () => void;
 }) {
-  const [query, setQuery] = useState('');
-  // Search is a mode, not a permanent field: the nav bar's `search` button opens
-  // the full-screen experience, and Cancel closes it.
-  const [searching, setSearching] = useState(false);
   const [headerMenu, setHeaderMenu] = useState(false);
   const [showRename, setShowRename] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
@@ -112,19 +110,15 @@ export default function CollectionPage({
     () => collection.items.map(byName).filter(Boolean) as Product[],
     [collection.items, byName],
   );
-  const filtered = useMemo(() => {
-    const q = query.trim();
-    // An empty field shows the whole collection, unlike the catalog searches.
-    if (!q) return items;
-    return items.filter((p) => matchesQuery(p, q));
-  }, [items, query]);
-
   const hasClothing = collectionHasClothing(collection, byName);
 
-  /** Leaving search clears the query, so the list is whole again on return. */
-  const closeSearch = () => {
-    setSearching(false);
-    setQuery('');
+  /**
+   * Hand the collection to someone else. The OS sheet confirms itself, so only
+   * the clipboard fallback and an outright failure say anything.
+   */
+  const handleShare = async () => {
+    const message = shareMessage(await shareContent(collectionShare(collection, byName)));
+    if (message) onNotice(message);
   };
   /**
    * The "..." menu carries what the action stack does not, so it can legitimately
@@ -189,18 +183,20 @@ export default function CollectionPage({
       }}
     >
       {/* The name lives in the body's centered block; the bar keeps controls:
-          search (opens the shared search modal) then the "..." menu. */}
+          share, then the "..." menu. There is deliberately no search here - a
+          collection is a short list the user assembled themselves and it is
+          already entirely on screen, so a field to find something inside it
+          only added a step. Share sits out here rather than in the menu because
+          handing a collection to someone is the point of building one, and a
+          collection is shareable whether or not it is yours to edit: a preview
+          look has no menu at all, and it still shares. */}
       <Header
         title=""
         onBack={onBack}
         right={
           <span style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={() => setSearching(true)}
-              aria-label="Search this collection"
-              style={iconButtonStyle}
-            >
-              <MIcon name="search" size={24} color={TEXT_PRIMARY} />
+            <button onClick={handleShare} aria-label="Share this collection" style={iconButtonStyle}>
+              <MIcon name="share" size={24} color={TEXT_PRIMARY} />
             </button>
             {menuItems.length > 0 && (
               <button onClick={() => setHeaderMenu(true)} aria-label="Collection actions" style={iconButtonStyle}>
@@ -361,57 +357,6 @@ export default function CollectionPage({
         showAttach={false}
         onSend={(text) => askConcierge(text)}
       />
-
-      {/* Search within the collection: the shared full-screen modal, so searching
-          is one experience app-wide. It opens straight onto **every** piece in
-          here (`showAllWhenEmpty`) rather than an idle state - over a short, known
-          list there is nothing to suggest, the list is the best starting point,
-          and typing narrows it. Cancel closes the whole thing. */}
-      {searching && (
-        <SearchModal
-          placeholder="Search pieces"
-          ariaLabel="Search this collection"
-          showAllWhenEmpty
-          query={query}
-          onQueryChange={setQuery}
-          onClose={closeSearch}
-          resultCount={filtered.length}
-          onAskConcierge={(q) => {
-            closeSearch();
-            onAskConcierge({
-              text: q
-                ? `Help me find "${q}" for my "${collection.name}" collection`
-                : `Help me find pieces for my "${collection.name}" collection`,
-            });
-          }}
-        >
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: `4px ${PAGE}px ${PAGE}px` }}>
-            {filtered.map((p) => (
-              <ItemRow
-                key={p.name}
-                product={p}
-                note={collection.notes[p.name]}
-                hearted={preview ? isSaved(p.name) : true}
-                showNote={!preview}
-                heartLabel={
-                  preview
-                    ? `Save ${p.brand} ${p.name} to a collection`
-                    : `Remove ${p.brand} ${p.name} from this collection`
-                }
-                onOpen={() => {
-                  closeSearch();
-                  setOpenProduct(p);
-                }}
-                onRemove={() => (preview ? onSave(p) : onRemoveItem(p.name))}
-                onEditNote={() => {
-                  closeSearch();
-                  setNoteTarget(p);
-                }}
-              />
-            ))}
-          </div>
-        </SearchModal>
-      )}
 
       {/* Header "..." menu */}
       {headerMenu && menuItems.length > 0 && (

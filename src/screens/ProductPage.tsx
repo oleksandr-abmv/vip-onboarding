@@ -9,6 +9,7 @@ import WhereToBuy, { BoutiqueMapView } from '../components/WhereToBuy';
 import { getPriceHistory } from '../data/priceHistory';
 import { boutiquesFor } from '../data/boutiques';
 import { isClothing } from '../data/collections';
+import { shareContent, shareMessage } from '../data/share';
 import { outlinedActionStyle, primaryActionStyle } from './screenChrome';
 import BottomDock from '../components/BottomDock';
 import type { ConciergePrompt } from './ChatScreen';
@@ -85,6 +86,18 @@ export default function ProductPage({
     [history],
   );
 
+  /** Same hand-off as the collection page's, one piece instead of a list. */
+  const handleShare = async () => {
+    const message = shareMessage(
+      await shareContent({
+        title: `${product.brand} ${product.name}`,
+        text: `${product.brand} ${product.name} (${priceLabel})`,
+        url: typeof window === 'undefined' ? '' : window.location.origin,
+      }),
+    );
+    if (message) onNotice?.(message);
+  };
+
   return (
     <div
       style={{
@@ -154,7 +167,7 @@ export default function ProductPage({
         </span>
 
         <div style={{ display: 'flex', gap: 8 }}>
-          <NavIconButton label="Share">
+          <NavIconButton label="Share" onClick={handleShare}>
             <span className="material-symbols-rounded" style={{ fontSize: 22, fontVariationSettings: "'wght' 300", color: '#f2f2f2' }} aria-hidden>
               share
             </span>

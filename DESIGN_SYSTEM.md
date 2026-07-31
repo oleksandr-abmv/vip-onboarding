@@ -339,8 +339,13 @@ of landing in an empty chat and typing it there. The **product page** ("Ask abou
 this piece") and the **scan results** ("Ask about this scan") pin the same field for
 the same reason; an empty send on the scan falls back to its canned line.
 
-The nav bar carries **search** then **`more_horiz`**; search opens the shared
-modal onto every piece in here (`showAllWhenEmpty`), and Cancel closes it.
+The nav bar carries **`share`** then **`more_horiz`**. Share hands the collection
+over through the OS share sheet (`navigator.share`), falling back to the clipboard
+where there is none; it sits in the bar rather than the menu because handing a
+collection to someone is the point of building one, and because a **preview look
+has no menu at all** and still has to be shareable. **There is no search here** -
+a collection is a short list the user assembled and every piece is already on
+screen, so a field to find something inside it only added a step.
 
 The "..." menu carries only what the page does not already show: **Virtual try-on**
 **disabled** (`opacity 0.38`, inert via `MenuItem.disabled`) when no piece is
@@ -453,14 +458,14 @@ a `cancel` clear that appears once there is text, then an optional trailing acti
 **The one search experience in the app.** Every search affordance opens this rather
 than filtering in place: Discover's field (`<SearchField>` with `onActivate`,
 sitting on the page so the way to search is visible without a tap to discover it),
-the Add pieces sheet's, and the collection page's header `search`. **Saved is the
-exception** - its field is a live filter over the grid, since that list is short,
-already on screen and already scoped. Full screen at `z 320` over whatever opened
-it, entering with `sheetSlideUp` 260ms.
-- **`showAllWhenEmpty`** skips the idle state and renders `children` straight away.
-  The collection page uses it: over a short, known list there is nothing to
-  suggest, so the modal opens onto **every piece in the collection** and typing
-  narrows it.
+and the Add pieces sheet's. **Saved is the exception** - its field is a live
+filter over the grid, since that list is short, already on screen and already
+scoped. The **collection page has none**: searching happens where there is a
+catalog to search, not inside a result. Full screen at `z 320` over whatever
+opened it, entering with `sheetSlideUp` 260ms.
+- **`showAllWhenEmpty`** skips the idle state and renders `children` straight
+  away, for a caller whose list is short and known rather than a catalog to
+  wade into.
 - **Top row**: the shared `<SearchField>` (`flex 1`, autofocused) + a plain
   **"Cancel"** text button 16/500. Cancelling clears the query.
 - **Three states**, driven by the query and the caller's `resultCount`:
