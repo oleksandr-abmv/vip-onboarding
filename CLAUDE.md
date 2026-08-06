@@ -440,6 +440,13 @@ rail rather than the handful that happen to sit in a hand-made look.
   the sets from there. Two lenses close the rail for anything - **the house**
   (other pieces by the same maker, only when it has two more) and **a price
   tier** ("Under $50k together").
+- **The anchor decides the gender of the look.** A men's belt is never styled
+  with a women's skirt, whatever onboarding answered: `compatible()` filters the
+  pool by the anchor's own gender, because the feed's `genderFilter` only runs
+  when the user actually stated a preference. Read the chosen pieces from
+  `Edit.products`, never by looking `Edit.items` back up by name - a few pieces
+  share a name across genders ("Cashmere Sweater" is The Row's and Loro Piana's)
+  and the lookup hands back whichever the map wrote last.
 - **An edit is rebuildable from its id**, because the collection page opens by
   id and nothing is stored: `editById` regenerates it. Keep both functions pure
   and keep the ids deterministic, or opening a look breaks.

@@ -585,7 +585,9 @@ export default function FeedScreen({
     // The lens is chosen by category upstream (see `src/data/edits.ts`).
     looksWith: (product) =>
       editsFor(product, catalogue).map((e) => {
-        const items = e.items.map(byName).filter(Boolean) as Product[];
+        // `e.products`, not a lookup by name: a few pieces share a name across
+        // genders, and resolving by name can swap in the other one.
+        const items = e.products;
         return {
           id: e.id,
           name: e.name,

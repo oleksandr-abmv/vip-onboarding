@@ -23,8 +23,15 @@ export interface Edit {
   /** `edit-<lens>-<n>-<slug>`, rebuildable by `editById`. */
   id: string;
   name: string;
-  /** Catalogue product names, the anchor piece first. */
+  /** Catalogue product names, the anchor piece first. What a collection stores. */
   items: string[];
+  /**
+   * The very pieces chosen, anchor first. A few products share a name across
+   * genders ("Cashmere Sweater" is both The Row's and Loro Piana's), so looking
+   * `items` back up by name can hand back the other gender's piece. Anything
+   * rendering the look reads this; only storing it reads `items`.
+   */
+  products: Product[];
 }
 
 type Family = 'worn' | 'lived' | 'poured' | 'driven' | 'misc';
@@ -60,6 +67,17 @@ const SETTINGS: Record<Family, string[]> = {
 const SIZE = 4;
 
 const familyOf = (product: Product): Family => FAMILY_OF[product.category] ?? 'misc';
+
+/**
+ * Can this piece sit in a look built around `anchor`? A men's belt does not get
+ * styled with a women's skirt, whatever the user answered at onboarding: the
+ * anchor declares the gender of the look, and the feed's own filter only runs
+ * when a preference was given. Unisex pieces go with anything.
+ */
+function compatible(anchor: Product, p: Product): boolean {
+  if (anchor.gender !== 'male' && anchor.gender !== 'female') return true;
+  return !p.gender || p.gender === 'unisex' || p.gender === anchor.gender;
+}
 
 function hash(s: string): number {
   let h = 2166136261;
@@ -120,8 +138,10 @@ function tierLabel(total: number): string {
 export function editsFor(product: Product, pool: Product[]): Edit[] {
   const family = familyOf(product);
   const seed = hash(product.name);
-  const kin = pool.filter((p) => familyOf(p) === family);
-  const base = kin.length >= SIZE ? kin : pool;
+  // Everything below draws from pieces that can share a look with the anchor.
+  const usable = pool.filter((p) => compatible(product, p));
+  const kin = usable.filter((p) => familyOf(p) === family);
+  const base = kin.length >= SIZE ? kin : usable;
   const out: Edit[] = [];
 
   // 1-3. The settings this kind of thing belongs to, each a different mix.
@@ -132,16 +152,19 @@ export function editsFor(product: Product, pool: Product[]): Edit[] {
       id: `edit-set${i}-${slug(product.name)}`,
       name,
       items: [product.name, ...mates.map((p) => p.name)],
+      products: [product, ...mates],
     });
   });
 
   // 4. The house. Only when the maker actually has other pieces to show.
-  const house = pool.filter((p) => p.brand === product.brand && p.name !== product.name);
+  const house = usable.filter((p) => p.brand === product.brand && p.name !== product.name);
   if (house.length >= 2) {
+    const kinfolk = house.slice(0, SIZE - 1);
     out.push({
       id: `edit-house-${slug(product.name)}`,
       name: `The ${product.brand} edit`,
-      items: [product.name, ...house.slice(0, SIZE - 1).map((p) => p.name)],
+      items: [product.name, ...kinfolk.map((p) => p.name)],
+      products: [product, ...kinfolk],
     });
   }
 
@@ -153,6 +176,7 @@ export function editsFor(product: Product, pool: Product[]): Edit[] {
       id: `edit-tier-${slug(product.name)}`,
       name: `Under ${tierLabel(total)} together`,
       items: [product.name, ...tierMates.map((p) => p.name)],
+      products: [product, ...tierMates],
     });
   }
 
