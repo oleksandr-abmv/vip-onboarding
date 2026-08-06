@@ -46,9 +46,13 @@ const PHOTO_BG = '#ececec';
 /** The app's one rail width, so this row lines up with every Discover rail. */
 const CARD_W = RAIL_CARD_W;
 const PREVIEW = 64;
-/** The rail's bookend cards. Narrower than a collection row: they carry a
-    label, not a name, a meta line and a control. Height comes from the row. */
-const CAP_W = 160;
+/**
+ * The rail's bookend cards are square, so their width is the row's height:
+ * the preview, the card's padding either side, and its hairline border.
+ * (`aspect-ratio` cannot do this - the flex item's width comes from its content,
+ * so the ratio has no auto dimension to resolve against.)
+ */
+const CAP_W = PREVIEW + 12 * 2 + 2;
 
 export default function SaveToCollection({
   collections,
@@ -119,7 +123,7 @@ export default function SaveToCollection({
            the screen edge instead of on the page margin. */
         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingTop: 16 }}>
           <div style={{ display: 'flex', gap: 12, padding: `0 ${PAGE}px`, width: 'max-content' }}>
-            <CapCard icon="add_2" label="Create" onClick={onCreate} />
+            <CapCard icon="add_2" ariaLabel="Create a collection" onClick={onCreate} />
 
             {collections.map((c) => (
               <button
@@ -134,7 +138,6 @@ export default function SaveToCollection({
 
             <CapCard
               icon="more_horiz"
-              label="More"
               onClick={onViewAll}
               ariaLabel={`View all ${collections.length} collections`}
             />
@@ -277,37 +280,27 @@ function PlusBadge() {
 }
 
 /**
- * The cards that bookend the rail: **Create** at the head, **More** at the
- * tail. Laid out like a collection row and stretched to its height by the
- * track, but narrower, with a bare glyph where the preview goes and no meta
- * line, so neither ever reads as a collection you could file into.
+ * The cards that bookend the rail: **create** at the head, **more** at the tail.
+ * The glyph alone, on the same shell stretched to the row's height by the track
+ * - a label under a plus said what the plus already said, and cost the rail a
+ * card's width of collections to say it. The name lives in `aria-label`.
  */
 function CapCard({
   icon,
-  label,
   onClick,
   ariaLabel,
 }: {
   icon: string;
-  label: string;
   onClick: () => void;
-  /** When the visible label is shorter than what the control actually does. */
-  ariaLabel?: string;
+  ariaLabel: string;
 }) {
   return (
     <button
       onClick={onClick}
       aria-label={ariaLabel}
-      // Centred, unlike a collection row: there is no preview to anchor a left
-      // edge to, so the pair sits in the middle of the card.
       style={{ ...cardShell, width: CAP_W, justifyContent: 'center', cursor: 'pointer' }}
     >
-      {/* The glyph, bare. A filled tile where the collections show a piece read
-          as a preview of nothing. */}
       <MIcon name={icon} size={24} color="#f6f6f6" />
-      <span style={{ fontSize: 16, fontWeight: 600, lineHeight: '22px', color: '#f7f7f7' }}>
-        {label}
-      </span>
     </button>
   );
 }

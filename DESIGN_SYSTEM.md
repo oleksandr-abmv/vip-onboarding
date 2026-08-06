@@ -797,10 +797,10 @@ the same call `CollectionThumb` makes in the sheet.
   (never the scroller, or the first card sits flush at x=0). Every collection,
   each ending in a `32px` outlined plus (`1px solid #444547`, transparent; a
   span, not a button, since the whole card is already the target), bookended by
-  two `160px` cards - **Create** (`add_2`) at the head and **More**
-  (`more_horiz`) at the tail. Those two take the same shell stretched to the
-  row's height, with a bare glyph and a `16/22/600` label centred, and no
-  preview tile behind the glyph.
+  two **square** glyph-only cards on the same shell - `add_2` at the head,
+  `more_horiz` at the tail. Their side is the row's height (preview + padding +
+  border), because `aspect-ratio` has no auto dimension to resolve against on a
+  flex item whose width comes from its content. Names live in `aria-label`.
 - **Saved**: the rail is gone, replaced by the same row at full width, ending in
   a filled **Saved** pill (`#f6f6f6`/`#121212`, 40px) that takes the piece back
   out. Refiling is unsave, then save again.
