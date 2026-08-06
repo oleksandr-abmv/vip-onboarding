@@ -348,7 +348,6 @@ export function AddToCollectionFlow({
   byName,
   /** The collection currently holding the piece, if any. */
   current,
-  startOnCreate = false,
   onCreate,
   onSave,
   onClose,
@@ -359,20 +358,15 @@ export function AddToCollectionFlow({
   collections: Collection[];
   byName: (name: string) => Product | undefined;
   current?: string;
-  /** Open on the create step - the rail's "Add new" card means "make one and
-      put this piece in it", so the select list is a step already stepped past.
-      Back still returns to it. */
-  startOnCreate?: boolean;
   /** Creates the collection upstream and returns it (so it can be selected). */
   onCreate: (name: string) => Collection;
   /** The chosen collection, or null to take the piece out of all of them. */
   onSave: (collectionId: string | null) => void;
   onClose: () => void;
 }) {
-  // Jump straight to "create" when the caller asked for it, or when there is
-  // nothing to choose from yet.
+  // Jump straight to "create" when there is nothing to choose from yet.
   const [step, setStep] = useState<'select' | 'create'>(
-    startOnCreate || collections.length === 0 ? 'create' : 'select',
+    collections.length === 0 ? 'create' : 'select',
   );
   const [selected, setSelected] = useState<string | null>(current ?? null);
   // A filter over the handful of collections the user named themselves, the

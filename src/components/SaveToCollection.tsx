@@ -51,7 +51,6 @@ export default function SaveToCollection({
   byName,
   currentId,
   onPick,
-  onCreate,
   onViewAll,
 }: {
   /** Newest first - the caller sorts. */
@@ -61,8 +60,6 @@ export default function SaveToCollection({
   currentId?: string;
   /** File the piece here, or take it out when this is the one it is in. */
   onPick: (collectionId: string) => void;
-  /** Straight to the create sheet, which files this piece into what it makes. */
-  onCreate: () => void;
   /** The Add to collection sheet: every collection, a search over their names. */
   onViewAll: () => void;
 }) {
@@ -70,20 +67,10 @@ export default function SaveToCollection({
 
   return (
     <div style={{ padding: '20px 0 8px' }}>
-      <div
-        style={{
-          padding: `0 ${PAGE}px`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-        }}
-      >
+      <div style={{ padding: `0 ${PAGE}px` }}>
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, lineHeight: '24px', color: '#fff' }}>
           Add to your collections
         </h2>
-        {/* Nothing left to create into once the piece is filed. */}
-        {!current && <CreateButton onClick={onCreate} />}
       </div>
 
       {current ? (
@@ -310,35 +297,6 @@ function CapCard({
       <span style={{ fontSize: 14, fontWeight: 500, lineHeight: '18px', color: '#f7f7f7' }}>
         {label}
       </span>
-    </button>
-  );
-}
-
-/** Beside the heading: outlined, so the rail's cards stay the only fills. */
-function CreateButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        flexShrink: 0,
-        height: 32,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 4,
-        padding: '0 12px 0 10px',
-        background: 'transparent',
-        border: '1px solid #444547',
-        borderRadius: theme.radii.button,
-        fontSize: 15,
-        fontWeight: 500,
-        color: '#f6f6f6',
-        whiteSpace: 'nowrap',
-        cursor: 'pointer',
-        WebkitTapHighlightColor: 'transparent',
-      }}
-    >
-      <MIcon name="add_2" size={16} color="#f6f6f6" weight={400} />
-      Create
     </button>
   );
 }

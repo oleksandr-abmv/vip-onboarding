@@ -435,13 +435,20 @@ of the same category, nearest in price, gender taken from the anchor. Tapping
 one **swaps the page and Back walks the trail** rather than closing - the trail
 lives in ProductPage, so all three hosts get it without wiring anything.
 
-**The reference is three sections, not one Details drawer**: **Specification**
-(`src/data/specs.ts`, rows following the category - a watch has a movement, a
-bottle has a vintage), **The house**, and **People** (both
-`src/data/people.ts`). Each is a row that unfolds in place, one open at a time.
-They are separate because they answer three different questions, and stacking
-them behind a single "Details" made the user open a thing to find out what was
-in it. The section is the disclosure, so the cards inside hide nothing further.
+**The Details row** opens a `full` `<Sheet>` (content scrolling inside it, or a
+content-height sheet grows past the top of the frame and takes its own close
+button with it) holding two blocks: **Specification** (`src/data/specs.ts`, rows
+following the category - a watch has a movement, a bottle has a vintage) and
+**Brand** (`src/data/people.ts`), which carries the house and, under it, the key
+people - they belong together, because the people are the story of the house.
+
+Two rules there: **only what is on public record** (these are real companies, so
+an invented name attached to one is a fabricated person; brands with no entry get
+a fallback that names nobody), and **nothing is generated** - a synthesised logo
+is an imitation of a real trademark and a synthesised portrait is a fabricated
+picture of a real person, several of whom are living. `image` on a house or a
+person is for a **licensed** file; with none, the mark is the initials set in the
+app's own type.
 
 Two rules hold there: **only what is on public record** (these are real
 companies, so an invented name attached to one is a fabricated person; brands

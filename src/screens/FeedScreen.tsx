@@ -197,8 +197,6 @@ export default function FeedScreen({
   const [pushHost, setPushHost] = useState<Exclude<Tab, 'menu'>>('saved');
   // The piece the "Add to collection" sheet flow is filing (null = closed).
   const [addTarget, setAddTarget] = useState<Product | null>(null);
-  /** The rail's "Add new" card opens the same flow already on its create step. */
-  const [addStartOnCreate, setAddStartOnCreate] = useState(false);
   // Collections the concierge has **put together but not filed**. Asked for
   // pieces like something, it assembles them and hands them over as a whole
   // collection; keeping it is the user's call, so the proposal opens the
@@ -471,10 +469,7 @@ export default function FeedScreen({
     }
   };
 
-  const closeAddFlow = () => {
-    setAddTarget(null);
-    setAddStartOnCreate(false);
-  };
+  const closeAddFlow = () => setAddTarget(null);
 
   /** The heart's sheet flow finished. */
   const finishAddFlow = (collectionId: string | null) => {
@@ -574,10 +569,6 @@ export default function FeedScreen({
       const current = collectionOf(collections, product.name)?.id;
       fileProduct(product.name, current === collectionId ? null : collectionId, { undo: true });
     },
-    onCreate: (product) => {
-      setAddStartOnCreate(true);
-      setAddTarget(product);
-    },
     // The coordinated looks that already contain this piece. Same objects
     // Discover's Mixed Collections row renders, so the product page's cards and
     // the feed's cards open the same page.
@@ -605,6 +596,8 @@ export default function FeedScreen({
     similarTo: (product) => similarTo(product, catalogue),
     isSaved: (product) => isSaved(product.name),
     onToggleSaved: (product) => setAddTarget(product),
+    onMoreLikeThis: moreLikeThis,
+    onHidePiece: (product) => hideProduct(product.name),
     renderLookMenu: () => (
       <OverflowMenu
         onMoreLikeThis={moreLikeThis}
@@ -1567,7 +1560,6 @@ export default function FeedScreen({
           collections={collectionsNewestFirst}
           byName={byName}
           current={collectionOf(collections, addTarget.name)?.id}
-          startOnCreate={addStartOnCreate}
           onCreate={createCollection}
           onSave={finishAddFlow}
           onClose={closeAddFlow}
