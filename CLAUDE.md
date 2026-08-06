@@ -434,10 +434,10 @@ back.
 product page's last section, in the space the stockist section used to hold. It
 has **two states, and only ever one of them**:
 
-- **Unsaved**: a rail of every collection, newest first, bookended by two square
-  cards on the same shell, glyph over label: **Create**, straight to the create
-  sheet, and **More**, which opens the Add to collection sheet (the same list,
-  with a search over the names).
+- **Unsaved**: a rail of every collection, newest first, ending in a square
+  **More** card that opens the Add to collection sheet (the same list, with a
+  search over the names). **Create** sits beside the heading as an outlined
+  button rather than in the rail, so every card in the rail is a collection.
 - **Saved**: the rail is **gone**, replaced by that same row at full width with
   a filled **Saved** pill, and New disappears with it. There is no second choice
   to offer once a piece is filed, because a piece lives in exactly one

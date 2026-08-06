@@ -797,11 +797,13 @@ the same call `CollectionThumb` makes in the sheet.
   (never the scroller, or the first card sits flush at x=0). Every collection,
   each ending in a `32px` outlined plus (`1px solid #444547`, transparent; a
   span, not a button, since the whole card is already the target), bookended by
-  two **square** cards on the same shell - **Create** (`add_2`) at the head and
-  **More** (`more_horiz`) at the tail, each a 24px glyph over a `14/18` label.
-  Their side is the row's height (preview + padding + border), set as a number
+  a **square** `More` card (`more_horiz` over a `14/18` label) on the same shell.
+  Its side is the row's height (preview + padding + border), set as a number
   because `aspect-ratio` has no auto dimension to resolve against on a flex item
-  whose width comes from its content.
+  whose width comes from its content. **Create** is an outlined `32px` pill
+  beside the heading (`add_2` + label, transparent on `1px solid #444547`), not
+  a card, so every card in the rail is a collection. It hides once the piece is
+  filed.
 - **Saved**: the rail is gone, replaced by the same row at full width, ending in
   a filled **Saved** pill (`#f6f6f6`/`#121212`, 40px) that takes the piece back
   out. Refiling is unsave, then save again.

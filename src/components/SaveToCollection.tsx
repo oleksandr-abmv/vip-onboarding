@@ -78,10 +78,20 @@ export default function SaveToCollection({
 
   return (
     <div style={{ padding: '20px 0 8px' }}>
-      <div style={{ padding: `0 ${PAGE}px` }}>
+      <div
+        style={{
+          padding: `0 ${PAGE}px`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, lineHeight: '24px', color: '#fff' }}>
           Save to your collections
         </h2>
+        {/* Nothing left to create into once the piece is filed. */}
+        {!current && <CreateButton onClick={onCreate} />}
       </div>
 
       {current ? (
@@ -123,8 +133,6 @@ export default function SaveToCollection({
            the screen edge instead of on the page margin. */
         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingTop: 16 }}>
           <div style={{ display: 'flex', gap: 12, padding: `0 ${PAGE}px`, width: 'max-content' }}>
-            <CapCard icon="add_2" label="Create" ariaLabel="Create a collection" onClick={onCreate} />
-
             {collections.map((c) => (
               <button
                 key={c.id}
@@ -281,12 +289,11 @@ function PlusBadge() {
 }
 
 /**
- * The cards that bookend the rail: **Create** at the head, **More** at the tail.
- * Square - their side is the row's height (the preview, the card's padding
- * either side, and its hairline border), since `aspect-ratio` has no auto
- * dimension to resolve against on a flex item whose width comes from its
- * content - with the glyph stacked over its label, so neither ever reads as a
- * collection you could file into.
+ * The card that ends the rail. Square - its side is the row's height (the
+ * preview, the card's padding either side, and its hairline border), since
+ * `aspect-ratio` has no auto dimension to resolve against on a flex item whose
+ * width comes from its content - with the glyph stacked over its label, so it
+ * never reads as a collection you could file into.
  */
 function CapCard({
   icon,
@@ -317,6 +324,35 @@ function CapCard({
       <span style={{ fontSize: 14, fontWeight: 500, lineHeight: '18px', color: '#f7f7f7' }}>
         {label}
       </span>
+    </button>
+  );
+}
+
+/** Beside the heading: outlined, so the rail's cards stay the only fills. */
+function CreateButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        flexShrink: 0,
+        height: 32,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: '0 12px 0 10px',
+        background: 'transparent',
+        border: '1px solid #444547',
+        borderRadius: theme.radii.button,
+        fontSize: 15,
+        fontWeight: 500,
+        color: '#f6f6f6',
+        whiteSpace: 'nowrap',
+        cursor: 'pointer',
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >
+      <MIcon name="add_2" size={16} color="#f6f6f6" weight={400} />
+      Create
     </button>
   );
 }
