@@ -435,9 +435,10 @@ of the same category, nearest in price, gender taken from the anchor. Tapping
 one **swaps the page and Back walks the trail** rather than closing - the trail
 lives in ProductPage, so all three hosts get it without wiring anything.
 
-**The Details row** opens a `full` `<Sheet>` (content scrolling inside it, or a
-content-height sheet grows past the top of the frame and takes its own close
-button with it). Inside: the **specification** (`src/data/specs.ts`, rows
+**The Details row opens a page, not a sheet** (`z 85`, under the snackbar's
+`z 90` so a toast still lands over it): its own back button, its own title, its
+own scroll, so it behaves like everywhere else you go rather than like something
+balanced on top of this page. Inside: the **specification** (`src/data/specs.ts`, rows
 following the category - a watch has a movement, a bottle has a vintage) and one
 outlined **Ask AI Concierge** carrying the piece.
 

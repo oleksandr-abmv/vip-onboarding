@@ -9,7 +9,6 @@ import ConciergeMark from '../components/ConciergeMark';
 import ProductCard from '../components/ProductCard';
 import ProductGallery from '../components/ProductGallery';
 import SaveToCollection from '../components/SaveToCollection';
-import Sheet from '../components/Sheet';
 import { getPriceHistory } from '../data/priceHistory';
 import { getSpecs } from '../data/specs';
 import { collectionOf, isClothing, type Collection } from '../data/collections';
@@ -525,22 +524,65 @@ export default function ProductPage({
 
       </div>
 
-      {/* `full`, and the content scrolls inside it: at content height the sheet
-          grew past the top of the frame and took its own close button with it. */}
+      {/* Details is a page, not a sheet: it has a title, a back button and a
+          scroll of its own, so it behaves like everywhere else you go in the
+          app rather than like something balanced on top of this one. Below the
+          snackbar's `z 90`, so a toast still lands over it. */}
       {showDetails && (
-        <Sheet title="Details" onClose={() => setShowDetails(false)} full>
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 85,
+            background: '#0A0A0A',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <div
+            style={{
+              flexShrink: 0,
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              padding: `${safeTop(10)} ${PAGE}px 20px`,
+            }}
+          >
+            <NavIconButton label="Back" onClick={() => setShowDetails(false)}>
+              <span
+                className="material-symbols-rounded"
+                style={{ fontSize: 22, fontVariationSettings: "'wght' 300", color: '#f2f2f2' }}
+                aria-hidden
+              >
+                arrow_left_alt
+              </span>
+            </NavIconButton>
+            <span
+              style={{
+                position: 'absolute',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                fontSize: 16,
+                fontWeight: 600,
+                color: '#fff',
+              }}
+            >
+              Details
+            </span>
+          </div>
+
           <div
             style={{
               flex: 1,
               minHeight: 0,
               overflowY: 'auto',
               WebkitOverflowScrolling: 'touch',
-              padding: `0 ${PAGE}px ${safeBottom(20)}`,
+              padding: `0 ${PAGE}px ${safeBottom(24)}`,
             }}
           >
             {/* Authored spec bullets lead when a piece has them. */}
             {product.details?.length ? (
-              <ul style={{ margin: '20px 0 0', paddingLeft: 22, listStyleType: 'disc' }}>
+              <ul style={{ margin: '0 0 20px', paddingLeft: 22, listStyleType: 'disc' }}>
                 {product.details.map((d) => (
                   <li key={d} style={{ fontSize: 16, lineHeight: '22px', color: '#c8c8c8', marginBottom: 8 }}>
                     {d}
@@ -583,9 +625,7 @@ export default function ProductPage({
             </div>
 
             {/* Everything past the table is a question, and the concierge
-                answers questions better than a block of copy nobody wrote for
-                this piece. The line above the button names what there is to ask
-                about, so the button is an offer rather than a dare. */}
+                answers questions better than copy nobody wrote for this piece. */}
             {onAskConcierge && (
               <div style={{ marginTop: 32, textAlign: 'center' }}>
                 <p style={{ margin: 0, fontSize: 18, fontWeight: 500, lineHeight: '26px', color: '#f2f2f2' }}>
@@ -617,7 +657,7 @@ export default function ProductPage({
               </button>
             )}
           </div>
-        </Sheet>
+        </div>
       )}
 
       {/* The concierge, as a prompt field rather than a button - the same call the
