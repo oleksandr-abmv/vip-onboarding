@@ -557,17 +557,24 @@ export default function ProductPage({
                 arrow_left_alt
               </span>
             </NavIconButton>
+            {/* The piece, not the word "Details": you got here from its page,
+                so the title says which one you are reading about. Clipped
+                rather than wrapped, with room left for the back button. */}
             <span
               style={{
                 position: 'absolute',
                 left: '50%',
                 transform: 'translateX(-50%)',
+                maxWidth: 'calc(100% - 120px)',
                 fontSize: 16,
                 fontWeight: 600,
                 color: '#fff',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}
             >
-              Details
+              {product.brand} {product.name}
             </span>
           </div>
 
