@@ -780,12 +780,14 @@ text is near-white here, not the app's `#999`.
   {date}. Changes will appear here." (16/400).
 - Type scale: h4 18/22, h5 + body 16, secondary subtext 14/20, caption 12/16.
 
-### Styled around this piece
+### Collections with this piece
 Generated looks built around the product (`src/data/edits.ts`), five of them, as
 the ordinary `<CollectionCard>` at `RAIL_CARD_W` with the inset on the track.
 Names come from the piece's category family (occasion, room, moment or drive),
-plus the maker's own edit and a price tier. The card carries the **heart**, which
-files the whole look, and no `...`. Tapping opens the look's collection page,
+plus the maker's own edit and a price tier. The card carries both of Discover's
+controls: the **heart**, which files the whole look, and the **`...`** (More like
+this / Do not recommend). The heart sits inboard at `right: 48` to make room, as
+`<CollectionCard>` already does whenever a menu is present. Tapping opens the look's collection page,
 previewed until saved, and closes the product page underneath so Back does not
 stack two pushes.
 

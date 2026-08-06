@@ -599,6 +599,12 @@ export default function FeedScreen({
       pushCollection(editId);
     },
     onToggleLookSaved: (editId) => toggleEditSaved(editId),
+    renderLookMenu: () => (
+      <OverflowMenu
+        onMoreLikeThis={moreLikeThis}
+        onHide={() => showSnack('Noted, fewer like this', 'Got it', () => setSnack(null))}
+      />
+    ),
   };
   // The Saved field filters in place: an empty field shows the whole list. A
   // collection is a name and its pieces, so the name is all there is to match.

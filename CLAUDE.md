@@ -430,7 +430,7 @@ its prompt field. Do not put boutiques, stock or a map back on this page
 without being asked; the deleted version is in git history if it is ever wanted
 back.
 
-**Styled around this piece** is the section above it (`src/data/edits.ts`):
+**Collections with this piece** is the section above it (`src/data/edits.ts`):
 **generated** looks, not stored ones. Five per piece, so every product has a
 rail rather than the handful that happen to sit in a hand-made look.
 
@@ -443,9 +443,11 @@ rail rather than the handful that happen to sit in a hand-made look.
 - **An edit is rebuildable from its id**, because the collection page opens by
   id and nothing is stored: `editById` regenerates it. Keep both functions pure
   and keep the ids deterministic, or opening a look breaks.
-- The cards are the ordinary `<CollectionCard>` and the **heart files the whole
-  look**, exactly as Discover's do, under the edit's own id so the page it opens
-  is then the stored one.
+- The cards are the ordinary `<CollectionCard>` and carry what Discover's do:
+  the **heart files the whole look**, under the edit's own id so the page it
+  opens is then the stored one, and the **"..." offers More like this / Do not
+  recommend**. A generated rail is only as good as the ability to tell it when
+  it is wrong, so the menu is not optional here.
 
 **Save to your collections** (`src/components/SaveToCollection.tsx`) is the
 product page's last section, in the space the stockist section used to hold. It

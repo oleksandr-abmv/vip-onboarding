@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { RAIL_CARD_W, safeTop } from '../theme';
 import { viewsOf, type Product } from '../data/products';
 import { categoryConfigs, getSubcategories } from '../data/categoryConfig';
@@ -58,6 +58,8 @@ export interface CollectionPicker {
   onOpenLook: (lookId: string) => void;
   /** The card's heart: files the whole look, as Discover's look cards do. */
   onToggleLookSaved: (lookId: string) => void;
+  /** The card's "..." menu, rendered by the host that owns its actions. */
+  renderLookMenu: (lookId: string) => ReactNode;
 }
 
 interface ProductPageProps {
@@ -369,7 +371,7 @@ export default function ProductPage({
                   color: '#fff',
                 }}
               >
-                Styled around this piece
+                Collections with this piece
               </h2>
 
               {/* Inset on the track, not the scroller - the shape every rail
@@ -394,6 +396,10 @@ export default function ProductPage({
                           ? `Remove ${look.name} from your collections`
                           : `Save ${look.name} to your collections`
                       }
+                      // Same "..." as Discover's cards: more like this, or stop
+                      // showing this kind. A generated rail is only as good as
+                      // the ability to tell it when it is wrong.
+                      menu={picker.renderLookMenu(look.id)}
                     />
                   ))}
                 </div>
