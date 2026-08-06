@@ -266,6 +266,10 @@ export default function ProductPage({
           nav instead of running up behind it; the dark page background fills that
           band. Everything still scrolls up under the nav from there. */}
       <div
+        // Keyed by piece: opening one from the Similar rail swaps the product
+        // under a scroll position halfway down the page, which looked like
+        // nothing had happened. Remounting starts the new piece at its hero.
+        key={product.name}
         style={{
           flex: 1,
           overflowY: 'auto',
@@ -554,7 +558,18 @@ export default function ProductPage({
 
             {/* Everything past the table is a question, and the concierge
                 answers questions better than a block of copy nobody wrote for
-                this piece. The house, the maker, the provenance: one ask. */}
+                this piece. The line above the button names what there is to ask
+                about, so the button is an offer rather than a dare. */}
+            {onAskConcierge && (
+              <div style={{ marginTop: 32, textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: 18, fontWeight: 500, lineHeight: '26px', color: '#f2f2f2' }}>
+                  There is more to this piece
+                </p>
+                <p style={{ margin: '6px auto 0', maxWidth: 280, fontSize: 15, lineHeight: '22px', color: '#999' }}>
+                  Its house, its makers, its provenance, and what it is worth today.
+                </p>
+              </div>
+            )}
             {onAskConcierge && (
               <button
                 onClick={() => {
@@ -569,7 +584,7 @@ export default function ProductPage({
                     },
                   });
                 }}
-                style={{ ...outlinedActionStyle, marginTop: 20 }}
+                style={{ ...outlinedActionStyle, marginTop: 16 }}
               >
                 <ConciergeMark size={20} />
                 Ask AI Concierge

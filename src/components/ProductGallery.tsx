@@ -114,6 +114,7 @@ export default function ProductGallery({ images, alt, placeholder = false, heigh
           aria-hidden
           style={{ width: 88, height: 88, opacity: 0.3, filter: 'brightness(0)', display: 'block' }}
         />
+        <BottomFade />
       </div>
     );
   }
@@ -123,6 +124,7 @@ export default function ProductGallery({ images, alt, placeholder = false, heigh
     return (
       <div style={{ ...frameStyle(height), ...centered }}>
         <img src={images[0]} alt={alt} style={imageStyle} />
+        <BottomFade />
       </div>
     );
   }
@@ -178,6 +180,8 @@ export default function ProductGallery({ images, alt, placeholder = false, heigh
 
       {/* Counter. Dark pill on a light hero, bottom-right so it clears the
           piece itself. aria-live keeps it announced as the view changes. */}
+      <BottomFade />
+
       <div
         aria-live="polite"
         aria-atomic="true"
@@ -202,5 +206,28 @@ export default function ProductGallery({ images, alt, placeholder = false, heigh
         {index + 1} / {count}
       </div>
     </div>
+  );
+}
+
+/**
+ * The hero dissolves into the page rather than ending on a hard line between the
+ * light plate and the dark body - the same idea as the nav's fade at the top, so
+ * the band is bounded by softness at both edges. Every branch draws it, since a
+ * piece with one view meets the page the same way a deck does.
+ */
+function BottomFade() {
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: 64,
+        background: 'linear-gradient(to bottom, rgba(10,10,10,0) 0%, rgba(10,10,10,0.5) 60%, #0A0A0A 100%)',
+        pointerEvents: 'none',
+      }}
+    />
   );
 }
