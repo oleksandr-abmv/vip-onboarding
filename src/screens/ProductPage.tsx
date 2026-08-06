@@ -382,6 +382,22 @@ export default function ProductPage({
           </button>
         </div>
 
+        {/* Section divider */}
+        <div style={{ height: 6, background: '#141414', marginTop: 24 }} />
+
+        {/* Add to your collections, first of the three rails: what to do with
+            this piece outranks what else there is to look at. The heart in the
+            nav opens the same decision as a sheet; this is it laid out in
+            place, with the collection the piece is in already marked. */}
+        <SaveToCollection
+          collections={picker.collections}
+          byName={picker.byName}
+          currentId={collectionOf(picker.collections, product.name)?.id}
+          onPick={(id) => picker.onPick(product, id)}
+          // The heart's own sheet: the full list, with a search.
+          onViewAll={onToggleSave}
+        />
+
         {/* Similar pieces: individual products of the same kind, nearest in
             price. Above the looks, because "another like this" is a smaller
             question than "what it goes with". */}
@@ -481,21 +497,6 @@ export default function ProductPage({
             </div>
           </>
         )}
-
-        {/* Section divider */}
-        <div style={{ height: 6, background: '#141414', marginTop: 24 }} />
-
-        {/* Save to collection: the page's last section. The heart in the nav
-            opens the same decision as a sheet; this is it laid out in place,
-            with the collection the piece is in already marked. */}
-        <SaveToCollection
-          collections={picker.collections}
-          byName={picker.byName}
-          currentId={collectionOf(picker.collections, product.name)?.id}
-          onPick={(id) => picker.onPick(product, id)}
-          // The heart's own sheet: the full list, with a search.
-          onViewAll={onToggleSave}
-        />
 
       </div>
 
