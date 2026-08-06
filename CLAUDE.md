@@ -430,6 +430,36 @@ its prompt field. Do not put boutiques, stock or a map back on this page
 without being asked; the deleted version is in git history if it is ever wanted
 back.
 
+**Save to your collections** (`src/components/SaveToCollection.tsx`) is the
+product page's last section, in the space the stockist section used to hold. It
+has **two states, and only ever one of them**:
+
+- **Unsaved**: a rail of the user's collections, capped at the first four (the
+  newest, so the likeliest answer leads), ending in a narrow **View all** card
+  that opens the Add to collection sheet - every collection, a search over their
+  names, and the **Create** that makes a new one. The section carries no create
+  control of its own.
+- **Saved**: the rail is **gone**, replaced by that same row at full width with
+  a filled **Saved** pill, and New disappears with it. There is no second choice
+  to offer once a piece is filed, because a piece lives in exactly one
+  collection. Refiling is unsave, then save again: one deliberate step instead
+  of a tap that quietly empties a slot in a collection the user had already
+  built.
+
+**Every collection here is a horizontal row** - preview, name, meta, control -
+in both states, so filing a piece does not change the shape of what you were
+looking at. This is the one surface that does NOT use `<CollectionCard>`: that
+card stacks its cover above its text, and a rail of those at picker size left
+the name truncated and the meta wrapping. **The preview is one piece, not the
+2x2 cover**, for the same reason `CollectionThumb` is one piece in the sheet:
+at row size, four images are four thumbnails too small to read.
+
+Saving and unsaving both confirm in the snackbar with **Undo**, and both end in
+FeedScreen's `fileProduct`, the same function the heart's sheet ends in, so the
+two can never disagree. Creating a collection still happens **while filing a
+piece**, inside `AddToCollectionFlow` ("Create" in its header), which is why the
+section's only door to it is View all.
+
 ---
 
 ## Things NOT to do

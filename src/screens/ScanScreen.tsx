@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import MIcon from '../components/MIcon';
-import ProductPage from './ProductPage';
+import ProductPage, { type CollectionPicker } from './ProductPage';
 import { Header, iconButtonStyle, screenStyle } from './screenChrome';
 import type { ConciergePrompt } from './ChatScreen';
 import type { Product } from '../data/products';
@@ -45,6 +45,7 @@ export default function ScanScreen({
   isSaved,
   onSave,
   onAskConcierge,
+  picker,
   onNotice,
   onClose,
 }: {
@@ -57,6 +58,8 @@ export default function ScanScreen({
   onSave: (product: Product) => void;
   /** "None of these?": starts a NEW concierge chat with the scan attached. */
   onAskConcierge: (prompt: ConciergePrompt) => void;
+  /** Forwarded straight to the product page's "Save to collection" rail. */
+  picker: CollectionPicker;
   /** Toast for the product page's actions that have no destination yet. */
   onNotice?: (message: string) => void;
   onClose: () => void;
@@ -198,6 +201,7 @@ export default function ScanScreen({
           gender={gender}
           onNotice={onNotice}
           onAskConcierge={onAskConcierge}
+          picker={picker}
         />
       )}
     </div>

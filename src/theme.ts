@@ -67,3 +67,11 @@ export const safeTop = (offset: number) =>
 /** `calc(Xpx + env(safe-area-inset-bottom, 0px))` */
 export const safeBottom = (offset: number) =>
   `calc(${offset}px + env(safe-area-inset-bottom, 0px))`;
+
+/**
+ * One width for every card in a horizontal rail - product, collection, outfit,
+ * category, and the product page's "Save to collection" row - so the rails line
+ * up down the app and the next card peeks by the same amount in each. Change it
+ * here, not per component.
+ */
+export const RAIL_CARD_W = 280;

@@ -2,7 +2,7 @@ import { useMemo, useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import PRODUCTS, { type Product } from '../data/products';
 import { categoryConfigs } from '../data/categoryConfig';
-import ProductPage from './ProductPage';
+import ProductPage, { type CollectionPicker } from './ProductPage';
 import MenuScreen from './MenuScreen';
 import ChatScreen, { type AttachmentTarget, type ChatMessage, type ConciergePrompt } from './ChatScreen';
 import MemoryScreen from './MemoryScreen';
@@ -34,13 +34,9 @@ import {
   type Collection,
 } from '../data/collections';
 import { screenStyle, bodyStyle, Header, iconButtonStyle } from './screenChrome';
-import { theme } from '../theme';
+import { RAIL_CARD_W, theme } from '../theme';
 
 const PAGE = 16; // horizontal page margin, matches Figma page/margins token
-// One width for every card in a Discover rail - product, collection, outfit and
-// category alike - so the rails line up down the page and the next card peeks by
-// the same amount in each. Change it here, not per component.
-const RAIL_CARD_W = 280;
 
 interface FeedScreenProps {
   gender: string | null;
@@ -199,6 +195,8 @@ export default function FeedScreen({
   const [pushHost, setPushHost] = useState<Exclude<Tab, 'menu'>>('saved');
   // The piece the "Add to collection" sheet flow is filing (null = closed).
   const [addTarget, setAddTarget] = useState<Product | null>(null);
+  /** The rail's "Add new" card opens the same flow already on its create step. */
+  const [addStartOnCreate, setAddStartOnCreate] = useState(false);
   // Collections the concierge has **put together but not filed**. Asked for
   // pieces like something, it assembles them and hands them over as a whole
   // collection; keeping it is the user's call, so the proposal opens the
@@ -394,13 +392,23 @@ export default function FeedScreen({
   };
 
   /**
-   * The heart's sheet flow finished. A piece lives in one collection, so this is
-   * a move, not a diff: it lands in `collectionId` and leaves wherever it was.
-   * `null` takes it out of collections altogether.
+   * File a piece. A piece lives in one collection, so this is a move, not a
+   * diff: it lands in `collectionId` and leaves wherever it was. `null` takes
+   * it out of collections altogether.
+   *
+   * The heart's sheet and the product page's "Save to collection" rail both
+   * end here, so the two can never disagree about where a piece lives.
    */
-  const finishAddFlow = (collectionId: string | null) => {
-    if (!addTarget) return;
-    const name = addTarget.name;
+  const fileProduct = (
+    name: string,
+    collectionId: string | null,
+    /**
+     * One tap on the product page's rail files the piece there and then, so
+     * the confirmation is a way back out. The heart's sheet is already a
+     * deliberate two-step choice, so its confirmation is a way onward instead.
+     */
+    opts?: { undo?: boolean },
+  ) => {
     const before = collections;
     const target = collections.find((c) => c.id === collectionId);
     setCollections((prev) =>
@@ -411,8 +419,12 @@ export default function FeedScreen({
         return c.items.includes(name) ? { ...c, items: c.items.filter((n) => n !== name) } : c;
       }),
     );
-    setAddTarget(null);
-    if (collectionId) {
+    if (collectionId && opts?.undo) {
+      showSnack(target ? `Saved to ${target.name}` : 'Saved to your collections', 'Undo', () => {
+        setCollections(before);
+        setSnack(null);
+      });
+    } else if (collectionId) {
       showSnack(target ? `Added to ${target.name}` : 'Added to your collections', 'View', () => {
         setSnack(null);
         setShowScan(false);
@@ -429,6 +441,18 @@ export default function FeedScreen({
         setSnack(null);
       });
     }
+  };
+
+  const closeAddFlow = () => {
+    setAddTarget(null);
+    setAddStartOnCreate(false);
+  };
+
+  /** The heart's sheet flow finished. */
+  const finishAddFlow = (collectionId: string | null) => {
+    if (!addTarget) return;
+    fileProduct(addTarget.name, collectionId);
+    closeAddFlow();
   };
 
   const goHome = () => {
@@ -509,6 +533,24 @@ export default function FeedScreen({
     () => [...collections].sort((a, b) => b.createdAt - a.createdAt),
     [collections],
   );
+
+  /**
+   * The product page's "Save to collection" rail, wherever the page was opened
+   * from. The rail is a radio, so tapping the collection the piece already sits
+   * in takes it back out - the same as clearing the selected row in the sheet.
+   */
+  const collectionPicker: CollectionPicker = {
+    collections: collectionsNewestFirst,
+    byName,
+    onPick: (product, collectionId) => {
+      const current = collectionOf(collections, product.name)?.id;
+      fileProduct(product.name, current === collectionId ? null : collectionId, { undo: true });
+    },
+    onCreate: (product) => {
+      setAddStartOnCreate(true);
+      setAddTarget(product);
+    },
+  };
   // The Saved field filters in place: an empty field shows the whole list. A
   // collection is a name and its pieces, so the name is all there is to match.
   const savedFiltered = useMemo(() => {
@@ -1394,6 +1436,7 @@ export default function FeedScreen({
           isSaved={isSaved}
           onSave={(p) => setAddTarget(p)}
           preview={isPreviewCollection}
+          picker={collectionPicker}
           onSaveCollection={() => {
             setCollections((prev) =>
               prev.some((c) => c.id === openCollection.id)
@@ -1422,6 +1465,7 @@ export default function FeedScreen({
           gender={gender}
           onNotice={(message) => notice(message)}
           onAskConcierge={(p) => askConcierge(p, { continueThread: pushHost === 'chat' })}
+          picker={collectionPicker}
         />
       )}
 
@@ -1433,6 +1477,7 @@ export default function FeedScreen({
           products={catalogue}
           gender={gender}
           isSaved={isSaved}
+          picker={collectionPicker}
           onSave={(p) => setAddTarget(p)}
           onAskConcierge={askConcierge}
           onNotice={(message) => notice(message)}
@@ -1450,9 +1495,10 @@ export default function FeedScreen({
           collections={collectionsNewestFirst}
           byName={byName}
           current={collectionOf(collections, addTarget.name)?.id}
+          startOnCreate={addStartOnCreate}
           onCreate={createCollection}
           onSave={finishAddFlow}
-          onClose={() => setAddTarget(null)}
+          onClose={closeAddFlow}
         />
       )}
 

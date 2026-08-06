@@ -692,9 +692,10 @@ Full-screen overlay opened by tapping any product card.
 - **Description**: paragraph + derived bullet list (category / type / gender).
 - **Spec table**: Brand / For / Category rows, label `#999` medium left, value
   `#f2f2f2` right, hairline dividers.
-The spec table is the last thing on the page. A **stockist section** (drawn map,
-store-card rail, a sheet per boutique) sat under it and was removed; where to buy
-is a question for the concierge field the page already pins.
+- **Section divider**: 6px `#141414` band.
+- **Save to collection**: the collections rail, see below. A **stockist section**
+  (drawn map, store-card rail, a sheet per boutique) sat here and was removed;
+  where to buy is a question for the concierge field the page already pins.
 
 ### Product gallery (`src/components/ProductGallery.tsx`)
 The Product Page's hero, and the **only** place a piece's imagery is rendered
@@ -778,6 +779,37 @@ text is near-white here, not the app's `#999`.
   glyph, "No price data yet" (18/500), then "We started tracking this price on
   {date}. Changes will appear here." (16/400).
 - Type scale: h4 18/22, h5 + body 16, secondary subtext 14/20, caption 12/16.
+
+### Save to your collections (`src/components/SaveToCollection.tsx`)
+The product page's last section, in the space the stockist section used to hold.
+**Two states, and only ever one of them.** Heading only: no subtitle, no create
+control, no link out.
+
+**Every collection here is a horizontal row** - a `64px` single-piece preview on
+the gallery backdrop, name `16/22/600` over meta `14/20 #999` (both clipped to
+one line), then the surface's control - on a `#101111` card, `1px solid #282828`,
+`radius 16`, padding 12. Rows, not `<CollectionCard>`: that card stacks its cover
+above its text, and a rail of those at picker size left the name with half its
+characters and the meta wrapping. The preview is **one piece, not the 2x2 cover**,
+the same call `CollectionThumb` makes in the sheet.
+
+- **Unsaved**: a rail at `RAIL_CARD_W`, the track carrying the `16px` inset
+  (never the scroller, or the first card sits flush at x=0). Four collections,
+  each ending in a `32px` outlined plus (`1px solid #444547`, transparent - a
+  span, not a button, since the whole card is already the target), then an `84px`
+  vertical **View all** card (`more_horiz` badge over a `14/18` label) that opens
+  the Add to collection sheet.
+- **Saved**: the rail is gone, replaced by the same row at full width, ending in
+  a filled **Saved** pill (`#f6f6f6`/`#121212`, 40px) that takes the piece back
+  out. Refiling is unsave, then save again.
+
+Both directions confirm in the snackbar with **Undo**.
+
+**The Add to collection sheet carries a `<SearchField>`** over the collection
+names, above its radio list, with the Saved tab's empty state ("Nothing found /
+Check the spelling or try a different name."). It and the Saved tab's field are
+the app's only two search fields, and both filter the user's own collections by
+a name they chose - never the catalog.
 
 ### Where to buy (removed)
 The product page carried a stockist section - a drawn SVG map (`StoreMap`), a

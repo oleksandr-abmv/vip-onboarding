@@ -6,8 +6,9 @@ import HistoricalPrice from '../components/HistoricalPrice';
 import MIcon from '../components/MIcon';
 import NavIconButton from '../components/NavIconButton';
 import ProductGallery from '../components/ProductGallery';
+import SaveToCollection from '../components/SaveToCollection';
 import { getPriceHistory } from '../data/priceHistory';
-import { isClothing } from '../data/collections';
+import { collectionOf, isClothing, type Collection } from '../data/collections';
 import { shareContent, shareMessage } from '../data/share';
 import { outlinedActionStyle, primaryActionStyle } from './screenChrome';
 import BottomDock from '../components/BottomDock';
@@ -25,6 +26,21 @@ const SHOW_HISTORICAL_PRICE = false;
 /** Nav height below the safe area: 10 top pad + 40 button + 20 bottom pad. */
 const NAV_H = 70;
 
+/**
+ * The collections store, as the product page's rail needs to see it. Bundled
+ * because the page is opened from three places (the feed, a collection page and
+ * a scan result) and all three forward the same thing.
+ */
+export interface CollectionPicker {
+  /** Newest first, the order every surface listing collections uses. */
+  collections: Collection[];
+  byName: (name: string) => Product | undefined;
+  /** File the piece here, or take it out when it is already the one. */
+  onPick: (product: Product, collectionId: string) => void;
+  /** Opens the create sheet, which files the piece into what it makes. */
+  onCreate: (product: Product) => void;
+}
+
 interface ProductPageProps {
   product: Product;
   /** In any collection - the heart manages membership via the sheet flow. */
@@ -34,6 +50,8 @@ interface ProductPageProps {
   gender: string | null;
   /** Toast for actions with no destination yet (Virtual try-on). */
   onNotice?: (message: string) => void;
+  /** Everything the "Save to collection" rail needs. */
+  picker: CollectionPicker;
   /** The pinned prompt field's hand-off: a NEW chat with this piece attached. */
   onAskConcierge?: (prompt: ConciergePrompt) => void;
 }
@@ -46,6 +64,7 @@ export default function ProductPage({
   gender,
   onNotice,
   onAskConcierge,
+  picker,
 }: ProductPageProps) {
   const isPlaceholder = product.image === '/vip-logo.svg';
   /** Every view of the piece. One entry means the hero is a static image. */
@@ -303,8 +322,24 @@ export default function ProductPage({
               {i < specs.length - 1 && <div style={{ height: 1, background: '#1c1c1c' }} />}
             </div>
           ))}
-          <div style={{ height: 1, background: '#282828' }} />
+          {/* No closing rule: the section band below already ends the table. */}
         </div>
+
+        {/* Section divider */}
+        <div style={{ height: 6, background: '#141414', marginTop: 24 }} />
+
+        {/* Save to collection: the page's last section. The heart in the nav
+            opens the same decision as a sheet; this is it laid out in place,
+            with the collection the piece is in already marked. */}
+        <SaveToCollection
+          collections={picker.collections}
+          byName={picker.byName}
+          currentId={collectionOf(picker.collections, product.name)?.id}
+          onPick={(id) => picker.onPick(product, id)}
+          onCreate={() => picker.onCreate(product)}
+          // The heart's own sheet: the full list, a search, and Create.
+          onViewAll={onToggleSave}
+        />
 
       </div>
 

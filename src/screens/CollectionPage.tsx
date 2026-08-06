@@ -5,7 +5,7 @@ import BottomDock from '../components/BottomDock';
 import ProductCard from '../components/ProductCard';
 import ContextualMenu from '../components/ContextualMenu';
 import Dialog from '../components/Dialog';
-import ProductPage from './ProductPage';
+import ProductPage, { type CollectionPicker } from './ProductPage';
 import type { ConciergePrompt } from './ChatScreen';
 import { CreateCollectionSheet } from '../components/CollectionSheets';
 import GhostCards from '../components/GhostCards';
@@ -44,6 +44,7 @@ export default function CollectionPage({
   onDelete,
   onRemoveItem,
   onAskConcierge,
+  picker,
   onNotice,
   gender,
   isSaved,
@@ -60,6 +61,8 @@ export default function CollectionPage({
   onRemoveItem: (name: string) => void;
   /** Passed through to the product page opened from a piece in here. */
   onAskConcierge: (prompt: ConciergePrompt) => void;
+  /** Forwarded straight to the product page's "Save to collection" rail. */
+  picker: CollectionPicker;
   onNotice: (message: string) => void;
   gender: string | null;
   /** Hearts manage collection membership app-wide. */
@@ -356,6 +359,7 @@ export default function CollectionPage({
           gender={gender}
           onNotice={onNotice}
           onAskConcierge={onAskConcierge}
+          picker={picker}
         />
       )}
     </div>

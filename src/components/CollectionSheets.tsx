@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import SearchField from './SearchField';
 import Sheet from './Sheet';
 import MIcon from './MIcon';
 import { useAutoFocus } from '../hooks/useAutoFocus';
@@ -347,6 +348,7 @@ export function AddToCollectionFlow({
   byName,
   /** The collection currently holding the piece, if any. */
   current,
+  startOnCreate = false,
   onCreate,
   onSave,
   onClose,
@@ -357,17 +359,27 @@ export function AddToCollectionFlow({
   collections: Collection[];
   byName: (name: string) => Product | undefined;
   current?: string;
+  /** Open on the create step - the rail's "Add new" card means "make one and
+      put this piece in it", so the select list is a step already stepped past.
+      Back still returns to it. */
+  startOnCreate?: boolean;
   /** Creates the collection upstream and returns it (so it can be selected). */
   onCreate: (name: string) => Collection;
   /** The chosen collection, or null to take the piece out of all of them. */
   onSave: (collectionId: string | null) => void;
   onClose: () => void;
 }) {
-  // Jump straight to "create" when there is nothing to choose from yet.
+  // Jump straight to "create" when the caller asked for it, or when there is
+  // nothing to choose from yet.
   const [step, setStep] = useState<'select' | 'create'>(
-    collections.length === 0 ? 'create' : 'select',
+    startOnCreate || collections.length === 0 ? 'create' : 'select',
   );
   const [selected, setSelected] = useState<string | null>(current ?? null);
+  // A filter over the handful of collections the user named themselves, the
+  // same animal as the Saved tab's field. Not catalog search.
+  const [query, setQuery] = useState('');
+  const q = query.trim().toLowerCase();
+  const shown = q ? collections.filter((c) => c.name.toLowerCase().includes(q)) : collections;
 
   if (step === 'create') {
     return (
@@ -409,6 +421,13 @@ export function AddToCollectionFlow({
       }
     >
       <div style={{ display: 'flex', flexDirection: 'column', padding: `8px ${PAGE}px 0` }}>
+        <div style={{ paddingBottom: 16 }}>
+          <SearchField
+            value={query}
+            onChange={setQuery}
+            placeholder="Search collections"
+          />
+        </div>
         <div
           role="radiogroup"
           aria-label="Collections"
@@ -422,7 +441,17 @@ export function AddToCollectionFlow({
             paddingBottom: 16,
           }}
         >
-          {collections.map((c) => (
+          {shown.length === 0 && (
+            <div style={{ padding: '16px 0', textAlign: 'center' }}>
+              <p style={{ margin: 0, fontSize: 16, fontWeight: 600, color: TEXT_PRIMARY, lineHeight: '22px' }}>
+                Nothing found
+              </p>
+              <p style={{ margin: '4px 0 0', fontSize: 14, color: TEXT_SECONDARY, lineHeight: '20px' }}>
+                Check the spelling or try a different name.
+              </p>
+            </div>
+          )}
+          {shown.map((c) => (
             <div
               key={c.id}
               role="radio"
