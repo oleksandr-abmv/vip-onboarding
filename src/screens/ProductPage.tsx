@@ -322,6 +322,9 @@ export default function ProductPage({
             onClick={() => onNotice?.(`Opening the ${product.brand} official site`)}
             style={tryOn ? outlinedActionStyle : primaryActionStyle}
           >
+            {/* The glyph follows the fill: this button is the primary one when
+                there is no try-on to take that slot. */}
+            <MIcon name="language" size={20} color={tryOn ? '#f6f6f6' : '#121212'} />
             Explore on Official Site
           </button>
           {/* Where to see it. The page carried a stockist section once and it was
@@ -342,6 +345,7 @@ export default function ProductPage({
               }
               style={outlinedActionStyle}
             >
+              <MIcon name="location_on" size={20} color="#f6f6f6" />
               Find stores nearby
             </button>
           )}
@@ -402,22 +406,6 @@ export default function ProductPage({
             <MIcon name="keyboard_arrow_right" size={22} color="#999" />
           </button>
         </div>
-
-        {/* Section divider */}
-        <div style={{ height: 6, background: '#141414', marginTop: 24 }} />
-
-        {/* Add to your collections, first of the three rails: what to do with
-            this piece outranks what else there is to look at. The heart in the
-            nav opens the same decision as a sheet; this is it laid out in
-            place, with the collection the piece is in already marked. */}
-        <SaveToCollection
-          collections={picker.collections}
-          byName={picker.byName}
-          currentId={collectionOf(picker.collections, product.name)?.id}
-          onPick={(id) => picker.onPick(product, id)}
-          // The heart's own sheet: the full list, with a search.
-          onViewAll={onToggleSave}
-        />
 
         {/* Similar pieces: individual products of the same kind, nearest in
             price. Above the looks, because "another like this" is a smaller
@@ -518,6 +506,22 @@ export default function ProductPage({
             </div>
           </>
         )}
+
+        {/* Section divider */}
+        <div style={{ height: 6, background: '#141414', marginTop: 24 }} />
+
+        {/* Add to your collections: the page's last section, after everything
+            there is to look at. The heart in the nav opens the same decision as
+            a sheet; this is it laid out in place, with the collection the piece
+            is in already marked. */}
+        <SaveToCollection
+          collections={picker.collections}
+          byName={picker.byName}
+          currentId={collectionOf(picker.collections, product.name)?.id}
+          onPick={(id) => picker.onPick(product, id)}
+          // The heart's own sheet: the full list, with a search.
+          onViewAll={onToggleSave}
+        />
 
       </div>
 
