@@ -550,6 +550,22 @@ export default function FeedScreen({
       setAddStartOnCreate(true);
       setAddTarget(product);
     },
+    // The coordinated looks that already contain this piece. Same objects
+    // Discover's Mixed Collections row renders, so the product page's cards and
+    // the feed's cards open the same page.
+    looksWith: (product) =>
+      outfits
+        .filter((o) => o.items.some((p) => p.name === product.name))
+        .map((o) => ({
+          id: o.id,
+          name: o.name,
+          images: o.items.map((p) => p.image),
+          meta: outfitMeta(o.items),
+        })),
+    onOpenLook: (lookId) => {
+      setOpenProduct(null);
+      pushCollection(lookCollectionId(lookId));
+    },
   };
   // The Saved field filters in place: an empty field shows the whole list. A
   // collection is a name and its pieces, so the name is all there is to match.

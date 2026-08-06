@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
-import { safeTop } from '../theme';
+import { RAIL_CARD_W, safeTop } from '../theme';
 import { viewsOf, type Product } from '../data/products';
 import { categoryConfigs, getSubcategories } from '../data/categoryConfig';
 import HistoricalPrice from '../components/HistoricalPrice';
 import MIcon from '../components/MIcon';
 import NavIconButton from '../components/NavIconButton';
+import CollectionCard from '../components/CollectionCard';
 import ProductGallery from '../components/ProductGallery';
 import SaveToCollection from '../components/SaveToCollection';
 import { getPriceHistory } from '../data/priceHistory';
@@ -31,6 +32,16 @@ const NAV_H = 70;
  * because the page is opened from three places (the feed, a collection page and
  * a scan result) and all three forward the same thing.
  */
+/** A Discover look that contains this piece, flattened for the card. */
+export interface LookMatch {
+  id: string;
+  name: string;
+  /** The pieces' images, for the 2x2 cover. */
+  images: string[];
+  /** "N items · $total", computed upstream where the prices live. */
+  meta: string;
+}
+
 export interface CollectionPicker {
   /** Newest first, the order every surface listing collections uses. */
   collections: Collection[];
@@ -39,6 +50,10 @@ export interface CollectionPicker {
   onPick: (product: Product, collectionId: string) => void;
   /** Opens the create sheet, which files the piece into what it makes. */
   onCreate: (product: Product) => void;
+  /** The looks this piece already appears in. Empty for most of the catalogue. */
+  looksWith: (product: Product) => LookMatch[];
+  /** Opens a look's collection page, the same one Discover opens. */
+  onOpenLook: (lookId: string) => void;
 }
 
 interface ProductPageProps {
@@ -82,6 +97,9 @@ export default function ProductPage({
     product.gender === 'female' ? 'Women' : product.gender === 'male' ? 'Men' : 'Unisex';
 
   const tryOn = isClothing(product);
+
+  /** The coordinated looks this piece appears in. */
+  const looks = useMemo(() => picker.looksWith(product), [picker, product]);
 
   // Derived bullet list when the product has no explicit spec bullets.
   const bullets = useMemo(() => {
@@ -324,6 +342,54 @@ export default function ProductPage({
           ))}
           {/* No closing rule: the section band below already ends the table. */}
         </div>
+
+        {/* Section divider */}
+        <div style={{ height: 6, background: '#141414', marginTop: 24 }} />
+
+        {/* The looks this piece is already part of. Not the user's own
+            collections - those are the section below - but the coordinated ones
+            Discover shows, so the same card opens the same page. Absent when
+            the piece is in none, rather than showing an empty rail. */}
+        {looks.length > 0 && (
+          <>
+            <div style={{ height: 6, background: '#141414', marginTop: 24 }} />
+
+            <div style={{ padding: `20px 0 0` }}>
+              <h2
+                style={{
+                  padding: `0 ${PAGE}px`,
+                  margin: 0,
+                  fontSize: 16,
+                  fontWeight: 600,
+                  lineHeight: '24px',
+                  color: '#fff',
+                }}
+              >
+                Collections with this piece
+              </h2>
+
+              {/* Inset on the track, not the scroller - the shape every rail
+                  in the app uses. */}
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingTop: 16 }}>
+                <div style={{ display: 'flex', gap: 12, padding: `0 ${PAGE}px`, width: 'max-content' }}>
+                  {looks.map((look) => (
+                    <CollectionCard
+                      key={look.id}
+                      name={look.name}
+                      images={look.images}
+                      meta={look.meta}
+                      width={RAIL_CARD_W}
+                      // No heart and no menu: hearting here would file a whole
+                      // look while the section below is about filing this piece,
+                      // and two saves on one page is one too many.
+                      onOpen={() => picker.onOpenLook(look.id)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Section divider */}
         <div style={{ height: 6, background: '#141414', marginTop: 24 }} />

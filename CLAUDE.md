@@ -430,6 +430,16 @@ its prompt field. Do not put boutiques, stock or a map back on this page
 without being asked; the deleted version is in git history if it is ever wanted
 back.
 
+**Collections with this piece** is the section above it: the coordinated looks
+from Discover's Mixed Collections row that already contain this product, as the
+same `<CollectionCard>`, opening the same `look-<id>` collection page. **Not the
+user's own collections** - that is the section below. The cards carry **no heart
+and no menu** here: hearting one would file a whole look while the next section
+is about filing this piece, and two saves on one page is one too many. The
+section is **absent when the piece is in no look**, rather than showing an empty
+rail, which is most of the catalogue (`buildOutfits` makes five looks of four
+pieces).
+
 **Save to your collections** (`src/components/SaveToCollection.tsx`) is the
 product page's last section, in the space the stockist section used to hold. It
 has **two states, and only ever one of them**:

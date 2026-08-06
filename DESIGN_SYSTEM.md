@@ -780,6 +780,14 @@ text is near-white here, not the app's `#999`.
   {date}. Changes will appear here." (16/400).
 - Type scale: h4 18/22, h5 + body 16, secondary subtext 14/20, caption 12/16.
 
+### Collections with this piece
+The looks from Discover's **Mixed Collections** that contain the product, as the
+same `<CollectionCard>` at `RAIL_CARD_W`, inset on the track. No heart and no
+`...` on these cards - the section below is where saving happens. Tapping opens
+the look's collection page (`look-<id>`), previewed until it is saved, and
+closes the product page underneath so Back does not stack two pushes. Hidden
+entirely when the piece is in no look.
+
 ### Save to your collections (`src/components/SaveToCollection.tsx`)
 The product page's last section, in the space the stockist section used to hold.
 **Two states, and only ever one of them.** Heading only: no subtitle, no create
