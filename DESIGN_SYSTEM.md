@@ -692,8 +692,9 @@ Full-screen overlay opened by tapping any product card.
 - **Description**: paragraph + derived bullet list (category / type / gender).
 - **Spec table**: Brand / For / Category rows, label `#999` medium left, value
   `#f2f2f2` right, hairline dividers.
-- **Section divider**: 6px `#141414` band.
-- **Where to buy**: the stockist section, see below.
+The spec table is the last thing on the page. A **stockist section** (drawn map,
+store-card rail, a sheet per boutique) sat under it and was removed; where to buy
+is a question for the concierge field the page already pins.
 
 ### Product gallery (`src/components/ProductGallery.tsx`)
 The Product Page's hero, and the **only** place a piece's imagery is rendered
@@ -778,67 +779,13 @@ text is near-white here, not the app's `#999`.
   {date}. Changes will appear here." (16/400).
 - Type scale: h4 18/22, h5 + body 16, secondary subtext 14/20, caption 12/16.
 
-### Where to buy (`src/components/WhereToBuy.tsx`, `src/components/StoreMap.tsx`)
-The product page's stockist section and the full-screen map behind it. Adapted
-from the Chatoshi "nearby locations" list (node `178-62443`) and its map view
-(node `172-60775`), re-toned for the dark theme.
-
-**Boutiques stay not saveable** (no heart, unlike products): nothing in the app
-saves a store, so the card in the Figma carries a heart that is left off here
-rather than shipped dead. **No boutique has photography of its own**, so the
-card's image area is the VIP logotype placeholder, exactly as the first card in
-the design is drawn - not an invented storefront shot.
-
-- **Header**: "Available in stores" 16/600 + "N boutiques near you" 14/20 `#999`.
-- **Map preview**: 168px card, `radius 16`, `1px solid #282828`, showing a zoomed
-  band of the map around the user. A centred **glass pill** ("View on map",
-  `map` glyph, `rgba(18,18,18,.72)` + blur on a hairline white border) is the
-  affordance; the **whole card** is the tap target, so the pins here are inert.
-  The crop (`PREVIEW_REGION`) is framed so the user marker sits off-centre and
-  nothing hides under the pill.
-- **Store rail** (Figma node `977-7694`): a horizontal, snapping row of **store
-  cards**, 264px wide, `radius 16`, `1px solid #282828` on `#101111`, gap 16,
-  nearest first so the closest boutique is the card already on screen. Every
-  boutique gets a card; the rail does not filter, because the card shows
-  distance and nothing else there is to filter on.
-  - **Image**: 176px on `#141516`, carrying the 48px VIP logotype placeholder at
-    `.35` opacity, and a **glass distance tag** bottom-right ("N km from you",
-    26px pill, `rgba(18,18,18,.72)` + blur on a hairline white border) - the same
-    treatment as the map preview's pill.
-  - **Body** (padding 16, gap 8): name 18/22 `500` `#fff`, clipped to one line;
-    `kind` 16/22 `#999`; then `location_pin` + address and `phone` + number,
-    18px glyphs on 16/22 `#c8c8c8`, each clipped to one line.
-- **Store sheet** (Figma node `602-10054`), on tapping a card: the standard
-  `<Sheet>` with **no header title** (the header is just its close button) and
-  the name repeated in the body at 20/24 `600` + address 16/22 `#999`. Two
-  full-width 48px pills, gap 8: **Directions** filled `#f6f6f6`/`#121212` with
-  the `navigation` glyph, then the **phone number** soft-filled `#1f2022` with
-  the `phone` glyph. Directions opens the full-screen map focused on that
-  boutique - the real destination the app has, where a toast would be a dead
-  end - so hours, stock and email still have a home.
-- **Full-screen map** (`z 90`, inside the product page's `z 80` context, so
-  snackbars still land on top): the drawn map full-bleed, a floating back button
-  under a top scrim, and a **pinned detail card** (`radius 16` top corners,
-  `#0d0d0d`, grabber) that always describes one boutique. Pins select; the card
-  re-plays on change. Its actions stack full width: **Directions · N km** filled
-  `#f6f6f6`/`#121212` (here it IS the page's primary), then outlined **phone** and
-  **email** rows carrying the actual number and address, as in the reference.
-
-### Store map (drawn, not tiled)
-`StoreMap` renders a dark city plate as SVG - land, blocks, two parks, the river,
-a road grid broken by diagonals and curves, a plaza under the flagship, faint
-street labels - plus a teardrop **pin** per boutique and a blue **"you are here"**
-marker. No tiles, no API key, no network, and it can be themed with the app
-instead of fighting a light map surface.
-- Selected pin: `#f6f6f6` at `scale 1.15` with a `#121212` core. Others `#2b2e33`
-  under a `rgba(255,255,255,.45)` hairline. Pins draw farthest-first so the
-  nearest sits on top, and each has a 20px invisible hit circle.
-- Geometry lives in `src/data/mapCanvas.ts` (`360 x 780` plate, user position,
-  km scale, the two crop regions) and is shared with `src/data/boutiques.ts`,
-  which **derives each distance from its pin**. A pin can never disagree with the
-  "3.5 km" next to its name.
-- One canvas serves both surfaces; `region` crops it (`preserveAspectRatio
-  ="xMidYMid slice"`).
+### Where to buy (removed)
+The product page carried a stockist section - a drawn SVG map (`StoreMap`), a
+preview card, a rail of 264px store cards and a bottom sheet per boutique with
+Directions and a phone number - plus `boutiques.ts` / `mapCanvas.ts`, where a
+pin's coordinates produced its distance. All of it is gone: where to buy a piece
+is a question for the concierge field the page already pins. The last version is
+in git history if the pattern is ever wanted back.
 
 ### Prompt field
 Lives inside `<BottomDock>` (see **Bottom dock** above) - there is no standalone
@@ -885,10 +832,7 @@ Uniform VIP logotype (`/vip-logo.svg`) - never per-item icons. On dark: white lo
 - Collections sheets (select / create / add / note): `src/components/CollectionSheets.tsx`
 - Collection page (push over Saved): `src/screens/CollectionPage.tsx`
 - Scan overlay (capture / processing / results): `src/screens/ScanScreen.tsx`
-- Where to buy (section + full-screen map): `src/components/WhereToBuy.tsx`
-- Drawn map plate + pins: `src/components/StoreMap.tsx`, geometry in `src/data/mapCanvas.ts`
-- Boutique data (venues, hours, stock, coordinates): `src/data/boutiques.ts`
-- Floating nav icon button (product page + map): `src/components/NavIconButton.tsx`
+- Floating nav icon button (product page): `src/components/NavIconButton.tsx`
 - Scan tab glyph (design's own vector): `src/components/ScanIcon.tsx`
 - Swipe deck, thumb & icon buttons: `src/screens/RefineYourTaste.tsx`
 - Flow, nav, progress, onboarding %: `src/App.tsx`

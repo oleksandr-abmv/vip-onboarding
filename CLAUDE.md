@@ -422,21 +422,13 @@ outlined, full width** (`primaryActionStyle` / `outlinedActionStyle` in
 the natural primary is unavailable the next action takes the filled slot rather than
 leaving the page with none; it promotes Ask AI Concierge.
 
-**Where to buy** (`src/components/WhereToBuy.tsx`) is the product page's stockist
-section: a map preview, then a horizontal rail of store cards (Figma node
-977-7694), each opening that boutique's bottom sheet (node 602-10054) with the
-only two things you do next, Directions and call. Two invariants:
-
-- **Boutiques stay not saveable (no heart), and none has photography of its
-  own.** The design's card carries a heart, but nothing in the app saves a
-  store, so that control is left off rather than shipped dead - adding it means
-  building saved stores first. The card's image area is the **VIP logotype
-  placeholder**, as the first card in the design is drawn; do not invent
-  storefront shots.
-- **The map is drawn, not tiled** (`src/components/StoreMap.tsx`), and pins and
-  distances come from one set of coordinates in `src/data/mapCanvas.ts` /
-  `src/data/boutiques.ts` - a boutique's `x` / `y` **produces** its distance.
-  Move a pin and the row follows; never hardcode a distance next to a pin.
+**There is no stockist section.** The product page had one - a drawn map, a rail
+of store cards and a sheet per boutique - and it was removed along with
+`WhereToBuy.tsx`, `StoreMap.tsx`, `boutiques.ts` and `mapCanvas.ts`. Where to
+buy a piece is a question for the concierge, which the page already carries as
+its prompt field. Do not put boutiques, stock or a map back on this page
+without being asked; the deleted version is in git history if it is ever wanted
+back.
 
 ---
 

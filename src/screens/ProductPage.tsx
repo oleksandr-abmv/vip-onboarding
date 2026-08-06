@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { safeTop } from '../theme';
 import { viewsOf, type Product } from '../data/products';
 import { categoryConfigs, getSubcategories } from '../data/categoryConfig';
@@ -6,9 +6,7 @@ import HistoricalPrice from '../components/HistoricalPrice';
 import MIcon from '../components/MIcon';
 import NavIconButton from '../components/NavIconButton';
 import ProductGallery from '../components/ProductGallery';
-import WhereToBuy, { BoutiqueMapView } from '../components/WhereToBuy';
 import { getPriceHistory } from '../data/priceHistory';
-import { boutiquesFor } from '../data/boutiques';
 import { isClothing } from '../data/collections';
 import { shareContent, shareMessage } from '../data/share';
 import { outlinedActionStyle, primaryActionStyle } from './screenChrome';
@@ -82,11 +80,6 @@ export default function ProductPage({
     { label: 'For', value: genderLabel },
     { label: 'Category', value: categoryName },
   ];
-
-  // Where to buy. The list and the full-screen map share one dataset, and the
-  // map is opened focused on whichever boutique was tapped.
-  const boutiques = useMemo(() => boutiquesFor(product), [product]);
-  const [mapFocus, setMapFocus] = useState<string | null>(null);
 
   // Price history drives both the "general price" line and the chart. Computed
   // once here and shared so the displayed price always matches the chart's today.
@@ -313,12 +306,6 @@ export default function ProductPage({
           <div style={{ height: 1, background: '#282828' }} />
         </div>
 
-        {/* Section divider */}
-        <div style={{ height: 6, background: '#141414', marginTop: 24 }} />
-
-        {/* Where to buy */}
-        <WhereToBuy boutiques={boutiques} onOpenMap={setMapFocus} onNotice={onNotice} />
-
       </div>
 
       {/* The concierge, as a prompt field rather than a button - the same call the
@@ -346,17 +333,6 @@ export default function ProductPage({
               },
             })
           }
-        />
-      )}
-
-      {/* Full-screen map, over the page. Sits outside the scroll body so it is
-          pinned rather than scrolling with it. */}
-      {mapFocus !== null && (
-        <BoutiqueMapView
-          boutiques={boutiques}
-          initialId={mapFocus}
-          onClose={() => setMapFocus(null)}
-          onNotice={onNotice}
         />
       )}
 
