@@ -430,15 +430,22 @@ its prompt field. Do not put boutiques, stock or a map back on this page
 without being asked; the deleted version is in git history if it is ever wanted
 back.
 
-**Collections with this piece** is the section above it: the coordinated looks
-from Discover's Mixed Collections row that already contain this product, as the
-same `<CollectionCard>`, opening the same `look-<id>` collection page. **Not the
-user's own collections** - that is the section below. The cards carry **no heart
-and no menu** here: hearting one would file a whole look while the next section
-is about filing this piece, and two saves on one page is one too many. The
-section is **absent when the piece is in no look**, rather than showing an empty
-rail, which is most of the catalogue (`buildOutfits` makes five looks of four
-pieces).
+**Styled around this piece** is the section above it (`src/data/edits.ts`):
+**generated** looks, not stored ones. Five per piece, so every product has a
+rail rather than the handful that happen to sit in a hand-made look.
+
+- **The lens changes with the category.** A watch is styled for an occasion, a
+  chair for a room, a bottle for a moment, a car for a drive: `FAMILY_OF` maps
+  each category to `worn` / `lived` / `poured` / `driven`, and `SETTINGS` names
+  the sets from there. Two lenses close the rail for anything - **the house**
+  (other pieces by the same maker, only when it has two more) and **a price
+  tier** ("Under $50k together").
+- **An edit is rebuildable from its id**, because the collection page opens by
+  id and nothing is stored: `editById` regenerates it. Keep both functions pure
+  and keep the ids deterministic, or opening a look breaks.
+- The cards are the ordinary `<CollectionCard>` and the **heart files the whole
+  look**, exactly as Discover's do, under the edit's own id so the page it opens
+  is then the stored one.
 
 **Save to your collections** (`src/components/SaveToCollection.tsx`) is the
 product page's last section, in the space the stockist section used to hold. It

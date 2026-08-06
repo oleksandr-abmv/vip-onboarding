@@ -40,6 +40,8 @@ export interface LookMatch {
   images: string[];
   /** "N items · $total", computed upstream where the prices live. */
   meta: string;
+  /** Whether the whole look is already one of the user's collections. */
+  saved: boolean;
 }
 
 export interface CollectionPicker {
@@ -54,6 +56,8 @@ export interface CollectionPicker {
   looksWith: (product: Product) => LookMatch[];
   /** Opens a look's collection page, the same one Discover opens. */
   onOpenLook: (lookId: string) => void;
+  /** The card's heart: files the whole look, as Discover's look cards do. */
+  onToggleLookSaved: (lookId: string) => void;
 }
 
 interface ProductPageProps {
@@ -346,10 +350,10 @@ export default function ProductPage({
         {/* Section divider */}
         <div style={{ height: 6, background: '#141414', marginTop: 24 }} />
 
-        {/* The looks this piece is already part of. Not the user's own
-            collections - those are the section below - but the coordinated ones
-            Discover shows, so the same card opens the same page. Absent when
-            the piece is in none, rather than showing an empty rail. */}
+        {/* Looks built around the piece, not the user's own collections - those
+            are the section below. Each is a different lens on it (the occasion,
+            the room, the maker, the price), chosen by what kind of thing it is;
+            see `src/data/edits.ts`. Same card and same page as Discover's. */}
         {looks.length > 0 && (
           <>
             <div style={{ height: 6, background: '#141414', marginTop: 24 }} />
@@ -365,7 +369,7 @@ export default function ProductPage({
                   color: '#fff',
                 }}
               >
-                Collections with this piece
+                Styled around this piece
               </h2>
 
               {/* Inset on the track, not the scroller - the shape every rail
@@ -379,10 +383,17 @@ export default function ProductPage({
                       images={look.images}
                       meta={look.meta}
                       width={RAIL_CARD_W}
-                      // No heart and no menu: hearting here would file a whole
-                      // look while the section below is about filing this piece,
-                      // and two saves on one page is one too many.
                       onOpen={() => picker.onOpenLook(look.id)}
+                      // The heart keeps the whole look, exactly as it does on
+                      // Discover's look cards. The section below is about this
+                      // one piece; this is about the set it sits in.
+                      saved={look.saved}
+                      onToggleSave={() => picker.onToggleLookSaved(look.id)}
+                      savedLabel={
+                        look.saved
+                          ? `Remove ${look.name} from your collections`
+                          : `Save ${look.name} to your collections`
+                      }
                     />
                   ))}
                 </div>

@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef, useEffect } from 'react';
+import { editById, editsFor } from '../data/edits';
 import { createPortal } from 'react-dom';
 import PRODUCTS, { type Product } from '../data/products';
 import { categoryConfigs } from '../data/categoryConfig';
@@ -330,6 +331,32 @@ export default function FeedScreen({
     }
   };
 
+  /**
+   * The heart on a generated look (the product page's rail). Same contract as
+   * `toggleCollection`: filing a look moves its pieces here, and the collection
+   * keeps the edit's own id so the page it opens is the one already stored.
+   */
+  const toggleEditSaved = (editId: string) => {
+    const existing = collections.find((c) => c.id === editId);
+    if (existing) {
+      setCollections((prev) => prev.filter((c) => c.id !== editId));
+      showSnack('Removed from your collections', 'Undo', () => {
+        setCollections((prev) => (prev.some((c) => c.id === editId) ? prev : [...prev, existing]));
+        setSnack(null);
+      });
+      return;
+    }
+    const edit = editById(editId, catalogue);
+    if (!edit) return;
+    const items = edit.items.filter((n) => !!byName(n));
+    const col: Collection = { id: editId, name: edit.name, items, createdAt: Date.now() };
+    setCollections((prev) => exclusive([...prev, col], editId, items));
+    showSnack('Saved to your collections', 'View', () => {
+      setSnack(null);
+      goSaved();
+    });
+  };
+
   const toggleCollection = (look: FeedSection) => {
     const id = lookCollectionId(look.id);
     const existing = collections.find((c) => c.id === id);
@@ -553,19 +580,25 @@ export default function FeedScreen({
     // The coordinated looks that already contain this piece. Same objects
     // Discover's Mixed Collections row renders, so the product page's cards and
     // the feed's cards open the same page.
+    // Looks built around the piece rather than found: the catalogue only holds
+    // a handful of hand-made ones, so most pieces would show an empty rail.
+    // The lens is chosen by category upstream (see `src/data/edits.ts`).
     looksWith: (product) =>
-      outfits
-        .filter((o) => o.items.some((p) => p.name === product.name))
-        .map((o) => ({
-          id: o.id,
-          name: o.name,
-          images: o.items.map((p) => p.image),
-          meta: outfitMeta(o.items),
-        })),
-    onOpenLook: (lookId) => {
+      editsFor(product, catalogue).map((e) => {
+        const items = e.items.map(byName).filter(Boolean) as Product[];
+        return {
+          id: e.id,
+          name: e.name,
+          images: items.map((p) => p.image),
+          meta: outfitMeta(items),
+          saved: collections.some((c) => c.id === e.id),
+        };
+      }),
+    onOpenLook: (editId) => {
       setOpenProduct(null);
-      pushCollection(lookCollectionId(lookId));
+      pushCollection(editId);
     },
+    onToggleLookSaved: (editId) => toggleEditSaved(editId),
   };
   // The Saved field filters in place: an empty field shows the whole list. A
   // collection is a name and its pieces, so the name is all there is to match.
@@ -1386,6 +1419,17 @@ export default function FeedScreen({
         id: openCollectionId,
         name: outfit.name,
         items: outfit.items.filter((n) => !!byName(n)),
+        createdAt: 0,
+      } satisfies Collection;
+    }
+    // A look generated around a piece (the product page's rail). Rebuilt from
+    // its id rather than stored, which is why `editById` has to be pure.
+    const edit = editById(openCollectionId, catalogue);
+    if (edit) {
+      return {
+        id: openCollectionId,
+        name: edit.name,
+        items: edit.items.filter((n) => !!byName(n)),
         createdAt: 0,
       } satisfies Collection;
     }
