@@ -783,33 +783,39 @@ The product page's stockist section and the full-screen map behind it. Adapted
 from the Chatoshi "nearby locations" list (node `178-62443`) and its map view
 (node `172-60775`), re-toned for the dark theme.
 
-**Boutiques carry no photography.** A storefront photo said nothing about whether
-the piece is there today and doubled the height of every row, so everything that
-decides where you go is text. Boutiques stay informational - **not saveable**
-(no heart, unlike products).
+**Boutiques stay not saveable** (no heart, unlike products): nothing in the app
+saves a store, so the card in the Figma carries a heart that is left off here
+rather than shipped dead. **No boutique has photography of its own**, so the
+card's image area is the VIP logotype placeholder, exactly as the first card in
+the design is drawn - not an invented storefront shot.
 
-- **Header**: "Where to buy" 16/600 + "N boutiques near you" 14/20 `#999`.
+- **Header**: "Available in stores" 16/600 + "N boutiques near you" 14/20 `#999`.
 - **Map preview**: 168px card, `radius 16`, `1px solid #282828`, showing a zoomed
   band of the map around the user. A centred **glass pill** ("View on map",
   `map` glyph, `rgba(18,18,18,.72)` + blur on a hairline white border) is the
   affordance; the **whole card** is the tap target, so the pins here are inert.
   The crop (`PREVIEW_REGION`) is framed so the user marker sits off-centre and
   nothing hides under the pill.
-- **Filter chips** (MD3 filter chips, `height 34`, pill, `check` glyph when on):
-  **Nearest to me** (on by default) sorts by distance; **Open now** and **In
-  stock** filter. With Nearest off the list falls back to relevance - in stock,
-  then open, then distance - so the chip is never a no-op. Filtering everything
-  out gives a centred "No boutique matches these filters." + **Clear filters**.
-- **Row** (`radius 16`, `1px solid #282828` on `#0c0c0c`, padding 14): name 16/600
-  + a green **"Closest"** tag (`rgba(130,237,154,.12)` on `#82ed9a`) on the nearest
-  one only; `kind · address` 14/20 `#999`; `schedule` + hours + **Open now**
-  (`#82ed9a`) / **Closed** (`#dc8589`); `inventory_2` + **In stock** / **Available
-  to order**. Then a **button pair**: a soft-filled `near_me` + distance and an
-  outlined **Contacts** that expands phone + email rows in place. Tapping the row
-  body, or the distance button, opens the map focused on that boutique.
-  Both row buttons are deliberately quiet - the page spends its one filled button
-  on Virtual try-on / Ask AI Concierge.
-- **Show all N boutiques** / **Show less** (outlined, 44px) below three rows.
+- **Store rail** (Figma node `977-7694`): a horizontal, snapping row of **store
+  cards**, 264px wide, `radius 16`, `1px solid #282828` on `#101111`, gap 16,
+  nearest first so the closest boutique is the card already on screen. Every
+  boutique gets a card; the rail does not filter, because the card shows
+  distance and nothing else there is to filter on.
+  - **Image**: 176px on `#141516`, carrying the 48px VIP logotype placeholder at
+    `.35` opacity, and a **glass distance tag** bottom-right ("N km from you",
+    26px pill, `rgba(18,18,18,.72)` + blur on a hairline white border) - the same
+    treatment as the map preview's pill.
+  - **Body** (padding 16, gap 8): name 18/22 `500` `#fff`, clipped to one line;
+    `kind` 16/22 `#999`; then `location_pin` + address and `phone` + number,
+    18px glyphs on 16/22 `#c8c8c8`, each clipped to one line.
+- **Store sheet** (Figma node `602-10054`), on tapping a card: the standard
+  `<Sheet>` with **no header title** (the header is just its close button) and
+  the name repeated in the body at 20/24 `600` + address 16/22 `#999`. Two
+  full-width 48px pills, gap 8: **Directions** filled `#f6f6f6`/`#121212` with
+  the `navigation` glyph, then the **phone number** soft-filled `#1f2022` with
+  the `phone` glyph. Directions opens the full-screen map focused on that
+  boutique - the real destination the app has, where a toast would be a dead
+  end - so hours, stock and email still have a home.
 - **Full-screen map** (`z 90`, inside the product page's `z 80` context, so
   snackbars still land on top): the drawn map full-bleed, a floating back button
   under a top scrim, and a **pinned detail card** (`radius 16` top corners,

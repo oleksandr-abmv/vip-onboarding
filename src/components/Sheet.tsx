@@ -34,6 +34,7 @@ export const sheetIconButtonStyle: React.CSSProperties = {
 
 export default function Sheet({
   title,
+  ariaLabel,
   onClose,
   onBack,
   action,
@@ -42,6 +43,9 @@ export default function Sheet({
   children,
 }: {
   title: string;
+  /** Accessible name when the visible title is deliberately empty - the store
+      sheet draws its heading in the body, so the header slot stays blank. */
+  ariaLabel?: string;
   onClose: () => void;
   /** Renders a back control in the leading 32px slot. */
   onBack?: () => void;
@@ -72,7 +76,7 @@ export default function Sheet({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-label={ariaLabel || title}
         style={{
           position: 'absolute',
           left: 0,

@@ -261,7 +261,10 @@ export default function ProductPage({
               Virtual try-on
             </button>
           )}
-          <button style={tryOn ? outlinedActionStyle : primaryActionStyle}>
+          <button
+            onClick={() => onNotice?.(`Opening the ${product.brand} official site`)}
+            style={tryOn ? outlinedActionStyle : primaryActionStyle}
+          >
             Explore on Official Site
           </button>
         </div>

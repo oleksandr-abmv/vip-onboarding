@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import MIcon from './MIcon';
 import NavIconButton from './NavIconButton';
+import Sheet from './Sheet';
 import StoreMap from './StoreMap';
 import { formatDistance, type Boutique } from '../data/boutiques';
 import { FULL_REGION, PREVIEW_REGION } from '../data/mapCanvas';
@@ -10,14 +11,19 @@ import { safeBottom, safeTop, theme } from '../theme';
 //
 // The product page's stockist section, and the full-screen map behind it.
 //
-// Shape: a map preview, filter chips, then one row per boutique - name, address,
-// hours, stock and a distance / contacts pair. Boutiques carry NO photography:
-// a storefront picture said nothing about whether the piece is there today, and
-// it doubled the height of every row. Everything that decides where you go is
-// text.
+// Shape (Figma node 977-7694): a map preview, then a horizontal rail of store
+// cards - image, a distance tag, name, kind, address and phone. Tapping a card
+// opens that boutique's bottom sheet (node 602-10054), which carries the only
+// two things you do next: get directions, or call.
+//
+// No boutique has photography of its own, so the card's image area is the VIP
+// logotype placeholder the rest of the app uses for missing imagery, exactly as
+// the first card in the design is drawn. Boutiques stay **not saveable**: the
+// design's card carries a heart, but nothing in the app saves a store, so that
+// control is left off rather than shipped dead.
 //
 // Distances and pins come from the same coordinates (`src/data/boutiques.ts`),
-// so the list and the map always agree.
+// so the rail and the map always agree.
 
 const PAGE = 16;
 const OPEN_TONE = '#82ed9a';
@@ -40,12 +46,6 @@ const rowButtonBase: React.CSSProperties = {
   cursor: 'pointer',
   WebkitTapHighlightColor: 'transparent',
 };
-const softButtonStyle: React.CSSProperties = {
-  ...rowButtonBase,
-  background: '#1f2022',
-  border: '1px solid transparent',
-  color: '#f6f6f6',
-};
 const outlinedButtonStyle: React.CSSProperties = {
   ...rowButtonBase,
   background: 'transparent',
@@ -53,16 +53,25 @@ const outlinedButtonStyle: React.CSSProperties = {
   color: '#f6f6f6',
 };
 
-type FilterId = 'nearest' | 'open' | 'stock';
+/** Store card, per the design: a 264px card with a 176px image above its text. */
+const CARD_W = 264;
+const CARD_IMAGE_H = 176;
 
-const FILTERS: { id: FilterId; label: string }[] = [
-  { id: 'nearest', label: 'Nearest to me' },
-  { id: 'open', label: 'Open now' },
-  { id: 'stock', label: 'In stock' },
-];
-
-/** How many rows before "Show all". */
-const PREVIEW_COUNT = 3;
+/** The sheet's two actions: full width, 48px, and pills like every other button. */
+const sheetActionBase: React.CSSProperties = {
+  height: 48,
+  width: '100%',
+  borderRadius: theme.radii.button,
+  border: '1px solid transparent',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 8,
+  fontSize: 16,
+  fontWeight: 500,
+  cursor: 'pointer',
+  WebkitTapHighlightColor: 'transparent',
+};
 
 export default function WhereToBuy({
   boutiques,
@@ -74,41 +83,24 @@ export default function WhereToBuy({
   onOpenMap: (id: string) => void;
   onNotice?: (message: string) => void;
 }) {
-  // "Nearest to me" is a sort, the other two are filters. With it off the list
-  // falls back to relevance - in stock and open first - which is a different
-  // and useful order, so the chip is never a no-op.
-  const [active, setActive] = useState<FilterId[]>(['nearest']);
-  const [showAll, setShowAll] = useState(false);
-  const [contactsFor, setContactsFor] = useState<string | null>(null);
+  /** The boutique whose sheet is open. */
+  const [openId, setOpenId] = useState<string | null>(null);
 
-  const toggle = (id: FilterId) =>
-    setActive((prev) => (prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]));
-
-  const list = useMemo(() => {
-    const filtered = boutiques.filter(
-      (b) => (!active.includes('open') || b.openNow) && (!active.includes('stock') || b.inStock),
-    );
-    return [...filtered].sort((a, b) =>
-      active.includes('nearest')
-        ? a.distanceKm - b.distanceKm
-        : Number(b.inStock) - Number(a.inStock) ||
-          Number(b.openNow) - Number(a.openNow) ||
-          a.distanceKm - b.distanceKm,
-    );
-  }, [boutiques, active]);
-
-  const nearestId = useMemo(
-    () => [...boutiques].sort((a, b) => a.distanceKm - b.distanceKm)[0]?.id,
+  // Nearest first. The rail is read left to right, so the closest boutique is
+  // the card already on screen rather than one you have to scroll for.
+  const list = useMemo(
+    () => [...boutiques].sort((a, b) => a.distanceKm - b.distanceKm),
     [boutiques],
   );
 
-  const visible = showAll ? list : list.slice(0, PREVIEW_COUNT);
+  const nearestId = list[0]?.id;
+  const selected = list.find((b) => b.id === openId) || null;
 
   return (
     <div style={{ padding: `20px 0 8px` }}>
       <div style={{ padding: `0 ${PAGE}px`, display: 'flex', flexDirection: 'column', gap: 4 }}>
         <h2 style={{ fontSize: 16, fontWeight: 600, color: '#fff', margin: 0, lineHeight: '24px' }}>
-          Where to buy
+          Available in stores
         </h2>
         <p style={{ fontSize: 14, color: '#999', margin: 0, lineHeight: '20px' }}>
           {boutiques.length} boutiques near you
@@ -176,200 +168,205 @@ export default function WhereToBuy({
         </button>
       </div>
 
-      {/* Filter chips */}
+      {/* Store rail. Every boutique is a card; the section no longer filters,
+          because the card shows distance and nothing else to filter on. */}
       <div
         style={{
           display: 'flex',
-          gap: 8,
+          gap: 16,
           overflowX: 'auto',
+          scrollSnapType: 'x mandatory',
           padding: `16px ${PAGE}px 0`,
           WebkitOverflowScrolling: 'touch',
         }}
       >
-        {FILTERS.map((f) => {
-          const on = active.includes(f.id);
-          return (
-            <button
-              key={f.id}
-              onClick={() => toggle(f.id)}
-              aria-pressed={on}
-              style={{
-                flexShrink: 0,
-                height: 34,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: on ? '0 14px 0 10px' : '0 14px',
-                borderRadius: theme.radii.chip,
-                fontSize: 14,
-                fontWeight: 500,
-                cursor: 'pointer',
-                background: on ? '#2f2f31' : SURFACE,
-                border: on ? '1px solid transparent' : `1px solid #313131`,
-                color: on ? '#f8f8f8' : '#c8c8c8',
-                transition: 'background 200ms, border-color 200ms, color 200ms',
-                WebkitTapHighlightColor: 'transparent',
-              }}
-            >
-              {on && <MIcon name="check" size={16} color="#f8f8f8" weight={400} />}
-              {f.label}
-            </button>
-          );
-        })}
+        {list.map((b) => (
+          <StoreCard key={b.id} boutique={b} onOpen={() => setOpenId(b.id)} />
+        ))}
       </div>
 
-      {/* Rows */}
-      {list.length === 0 ? (
-        <div style={{ padding: `24px ${PAGE}px 8px`, textAlign: 'center' }}>
-          <p style={{ fontSize: 14, color: '#999', margin: '0 0 12px', lineHeight: '20px' }}>
-            No boutique matches these filters.
-          </p>
-          <button
-            onClick={() => setActive([])}
-            style={{ ...outlinedButtonStyle, flex: 'none', display: 'inline-flex', padding: '0 20px' }}
-          >
-            Clear filters
-          </button>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: `16px ${PAGE}px 0` }}>
-          {visible.map((b) => (
-            <BoutiqueRow
-              key={b.id}
-              boutique={b}
-              closest={b.id === nearestId}
-              contactsOpen={contactsFor === b.id}
-              onToggleContacts={() => setContactsFor((prev) => (prev === b.id ? null : b.id))}
-              onOpenMap={() => onOpenMap(b.id)}
-              onNotice={onNotice}
-            />
-          ))}
-        </div>
-      )}
-
-      {list.length > PREVIEW_COUNT && (
-        <div style={{ padding: `12px ${PAGE}px 0` }}>
-          <button onClick={() => setShowAll((v) => !v)} style={{ ...outlinedButtonStyle, width: '100%', height: 44 }}>
-            {showAll ? 'Show less' : `Show all ${list.length} boutiques`}
-          </button>
-        </div>
+      {/* One boutique, and the two things you do about it. */}
+      {selected && (
+        <StoreSheet
+          boutique={selected}
+          onClose={() => setOpenId(null)}
+          onDirections={() => {
+            setOpenId(null);
+            onOpenMap(selected.id);
+          }}
+          onNotice={onNotice}
+        />
       )}
     </div>
   );
 }
 
-// ─── One boutique ────────────────────────────────────────────────────────────
+// ─── Store card ──────────────────────────────────────────────────────────────
 
-function BoutiqueRow({
+function StoreCard({ boutique, onOpen }: { boutique: Boutique; onOpen: () => void }) {
+  return (
+    <button
+      onClick={onOpen}
+      style={{
+        flexShrink: 0,
+        width: CARD_W,
+        scrollSnapAlign: 'start',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: 0,
+        textAlign: 'left',
+        background: SURFACE,
+        border: `1px solid ${BORDER}`,
+        borderRadius: theme.radii.card,
+        overflow: 'hidden',
+        cursor: 'pointer',
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >
+      {/* Image. No boutique has a photograph of its own, so this is the app's
+          one placeholder for missing imagery rather than an invented shot. */}
+      <span
+        style={{
+          position: 'relative',
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          height: CARD_IMAGE_H,
+          background: '#141516',
+        }}
+      >
+        <img
+          src="/vip-logo.svg"
+          alt=""
+          aria-hidden
+          style={{ width: 48, height: 48, opacity: 0.35, display: 'block' }}
+        />
+        <span
+          style={{
+            position: 'absolute',
+            right: 8,
+            bottom: 8,
+            display: 'flex',
+            alignItems: 'center',
+            height: 26,
+            padding: '0 10px',
+            borderRadius: theme.radii.chip,
+            background: 'rgba(18,18,18,0.72)',
+            border: '1px solid rgba(255,255,255,0.18)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            fontSize: 14,
+            fontWeight: 500,
+            color: '#f6f6f6',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {formatDistance(boutique.distanceKm)} from you
+        </span>
+      </span>
+
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 16, minWidth: 0 }}>
+        <span
+          style={{
+            fontSize: 18,
+            fontWeight: 500,
+            lineHeight: '22px',
+            color: '#fff',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {boutique.name}
+        </span>
+        <span style={{ fontSize: 16, fontWeight: 400, lineHeight: '22px', color: '#999' }}>
+          {boutique.kind}
+        </span>
+        <CardLine icon="location_pin" text={boutique.address} />
+        <CardLine icon="phone" text={boutique.phone} />
+      </span>
+    </button>
+  );
+}
+
+/** An icon + one line of text on a store card, clipped rather than wrapped. */
+function CardLine({ icon, text }: { icon: string; text: string }) {
+  return (
+    <span style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+      <MIcon name={icon} size={18} color="#c8c8c8" />
+      <span
+        style={{
+          flex: 1,
+          minWidth: 0,
+          fontSize: 16,
+          fontWeight: 400,
+          lineHeight: '22px',
+          color: '#c8c8c8',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {text}
+      </span>
+    </span>
+  );
+}
+
+// ─── One boutique's sheet ────────────────────────────────────────────────────
+//
+// The header's title slot is deliberately empty (the design draws the name in
+// the body at heading size), so the dialog takes its accessible name from the
+// boutique instead.
+
+function StoreSheet({
   boutique,
-  closest,
-  contactsOpen,
-  onToggleContacts,
-  onOpenMap,
+  onClose,
+  onDirections,
   onNotice,
 }: {
   boutique: Boutique;
-  closest: boolean;
-  contactsOpen: boolean;
-  onToggleContacts: () => void;
-  onOpenMap: () => void;
+  onClose: () => void;
+  onDirections: () => void;
   onNotice?: (message: string) => void;
 }) {
   return (
-    <div
-      style={{
-        background: '#0c0c0c',
-        border: `1px solid ${BORDER}`,
-        borderRadius: theme.radii.card,
-        padding: 14,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-      }}
-    >
-      {/* Tapping the details opens the map on this boutique. */}
-      <button
-        onClick={onOpenMap}
-        style={{
-          all: 'unset',
-          boxSizing: 'border-box',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 6,
-          cursor: 'pointer',
-          WebkitTapHighlightColor: 'transparent',
-        }}
-      >
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span
-            style={{
-              flex: 1,
-              minWidth: 0,
-              fontSize: 16,
-              fontWeight: 600,
-              color: '#f7f7f7',
-              lineHeight: '22px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
+    <Sheet title="" ariaLabel={boutique.name} onClose={onClose}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: `0 ${PAGE}px 12px` }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600, lineHeight: '24px', color: '#fff' }}>
             {boutique.name}
-          </span>
-          {closest && <Tag label="Closest" tone="good" />}
-        </span>
-        <BoutiqueMeta boutique={boutique} />
-      </button>
-
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button
-          onClick={onOpenMap}
-          style={{ ...softButtonStyle, flex: 1, minWidth: 0 }}
-          aria-label={`${formatDistance(boutique.distanceKm)} away, view on map`}
-        >
-          <MIcon name="near_me" size={18} color="#f6f6f6" />
-          {formatDistance(boutique.distanceKm)}
-        </button>
-        <button
-          onClick={onToggleContacts}
-          aria-expanded={contactsOpen}
-          style={{ ...outlinedButtonStyle, flex: 1, minWidth: 0 }}
-        >
-          Contacts
-          <MIcon
-            name="keyboard_arrow_down"
-            size={18}
-            color="#f6f6f6"
-            style={{
-              transform: contactsOpen ? 'rotate(180deg)' : 'none',
-              transition: 'transform 200ms cubic-bezier(0.25, 0.1, 0.25, 1)',
-            }}
-          />
-        </button>
-      </div>
-
-      {contactsOpen && (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-            animation: 'fadeInUp 200ms cubic-bezier(0.25, 0.1, 0.25, 1) both',
-          }}
-        >
-          <ContactButton
-            icon="call"
-            label={boutique.phone}
-            onClick={() => onNotice?.(`Calling ${boutique.name}`)}
-          />
-          <ContactButton
-            icon="mail"
-            label={boutique.email}
-            onClick={() => onNotice?.(`Opening a message to ${boutique.name}`)}
-          />
+          </h3>
+          <p style={{ margin: 0, fontSize: 16, fontWeight: 400, lineHeight: '22px', color: '#999' }}>
+            {boutique.address}
+          </p>
         </div>
-      )}
-    </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {/* Directions opens the app's own map focused on this boutique, which
+              is the real destination we have; a toast would be a dead end. */}
+          <button
+            onClick={onDirections}
+            style={{ ...sheetActionBase, background: '#f6f6f6', color: '#121212' }}
+          >
+            <MIcon name="navigation" size={20} color="#121212" />
+            Directions
+          </button>
+          <button
+            onClick={() => {
+              onNotice?.(`Calling ${boutique.name}`);
+              onClose();
+            }}
+            style={{ ...sheetActionBase, background: '#1f2022', color: '#f6f6f6' }}
+          >
+            <MIcon name="phone" size={20} color="#f6f6f6" />
+            {boutique.phone}
+          </button>
+        </div>
+      </div>
+    </Sheet>
   );
 }
 

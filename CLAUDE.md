@@ -423,11 +423,16 @@ the natural primary is unavailable the next action takes the filled slot rather 
 leaving the page with none; it promotes Ask AI Concierge.
 
 **Where to buy** (`src/components/WhereToBuy.tsx`) is the product page's stockist
-section: map preview, filter chips, then one row per boutique. Two invariants:
+section: a map preview, then a horizontal rail of store cards (Figma node
+977-7694), each opening that boutique's bottom sheet (node 602-10054) with the
+only two things you do next, Directions and call. Two invariants:
 
-- **Boutiques carry no photography.** Name, address, hours and stock are what
-  decide where you go; a storefront photo said nothing and doubled every row.
-  Do not reintroduce store images. Boutiques stay **not saveable** (no heart).
+- **Boutiques stay not saveable (no heart), and none has photography of its
+  own.** The design's card carries a heart, but nothing in the app saves a
+  store, so that control is left off rather than shipped dead - adding it means
+  building saved stores first. The card's image area is the **VIP logotype
+  placeholder**, as the first card in the design is drawn; do not invent
+  storefront shots.
 - **The map is drawn, not tiled** (`src/components/StoreMap.tsx`), and pins and
   distances come from one set of coordinates in `src/data/mapCanvas.ts` /
   `src/data/boutiques.ts` - a boutique's `x` / `y` **produces** its distance.
