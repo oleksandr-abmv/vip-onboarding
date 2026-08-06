@@ -435,9 +435,9 @@ product page's last section, in the space the stockist section used to hold. It
 has **two states, and only ever one of them**:
 
 - **Unsaved**: a rail of every collection, newest first, bookended by two square
-  glyph-only cards on the same shell: a **plus**, straight to the create sheet,
-  and a **more_horiz**, which opens the Add to collection sheet (the same list,
-  with a search over the names). They carry their names in `aria-label` only.
+  cards on the same shell, glyph over label: **Create**, straight to the create
+  sheet, and **More**, which opens the Add to collection sheet (the same list,
+  with a search over the names).
 - **Saved**: the rail is **gone**, replaced by that same row at full width with
   a filled **Saved** pill, and New disappears with it. There is no second choice
   to offer once a piece is filed, because a piece lives in exactly one
@@ -455,7 +455,7 @@ at row size, four images are four thumbnails too small to read.
 
 Saving and unsaving both confirm in the snackbar with **Undo**, and both end in
 FeedScreen's `fileProduct`, the same function the heart's sheet ends in, so the
-two can never disagree. **The plus makes a collection while filing this piece**,
+two can never disagree. **Create makes a collection while filing this piece**,
 opening the shared `AddToCollectionFlow` on its create step (`startOnCreate`),
 rather than being a second way to make an empty collection.
 

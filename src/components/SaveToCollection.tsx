@@ -123,7 +123,7 @@ export default function SaveToCollection({
            the screen edge instead of on the page margin. */
         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingTop: 16 }}>
           <div style={{ display: 'flex', gap: 12, padding: `0 ${PAGE}px`, width: 'max-content' }}>
-            <CapCard icon="add_2" ariaLabel="Create a collection" onClick={onCreate} />
+            <CapCard icon="add_2" label="Create" ariaLabel="Create a collection" onClick={onCreate} />
 
             {collections.map((c) => (
               <button
@@ -138,6 +138,7 @@ export default function SaveToCollection({
 
             <CapCard
               icon="more_horiz"
+              label="More"
               onClick={onViewAll}
               ariaLabel={`View all ${collections.length} collections`}
             />
@@ -280,27 +281,42 @@ function PlusBadge() {
 }
 
 /**
- * The cards that bookend the rail: **create** at the head, **more** at the tail.
- * The glyph alone, on the same shell stretched to the row's height by the track
- * - a label under a plus said what the plus already said, and cost the rail a
- * card's width of collections to say it. The name lives in `aria-label`.
+ * The cards that bookend the rail: **Create** at the head, **More** at the tail.
+ * Square - their side is the row's height (the preview, the card's padding
+ * either side, and its hairline border), since `aspect-ratio` has no auto
+ * dimension to resolve against on a flex item whose width comes from its
+ * content - with the glyph stacked over its label, so neither ever reads as a
+ * collection you could file into.
  */
 function CapCard({
   icon,
+  label,
   onClick,
   ariaLabel,
 }: {
   icon: string;
+  label: string;
   onClick: () => void;
-  ariaLabel: string;
+  /** When the visible label is shorter than what the control actually does. */
+  ariaLabel?: string;
 }) {
   return (
     <button
       onClick={onClick}
       aria-label={ariaLabel}
-      style={{ ...cardShell, width: CAP_W, justifyContent: 'center', cursor: 'pointer' }}
+      style={{
+        ...cardShell,
+        width: CAP_W,
+        flexDirection: 'column',
+        justifyContent: 'center',
+        gap: 6,
+        cursor: 'pointer',
+      }}
     >
       <MIcon name={icon} size={24} color="#f6f6f6" />
+      <span style={{ fontSize: 14, fontWeight: 500, lineHeight: '18px', color: '#f7f7f7' }}>
+        {label}
+      </span>
     </button>
   );
 }
