@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import PRODUCTS, { matchesQuery, type Product } from '../data/products';
+import PRODUCTS, { type Product } from '../data/products';
 import { categoryConfigs } from '../data/categoryConfig';
 import ProductPage from './ProductPage';
 import MenuScreen from './MenuScreen';
@@ -9,19 +9,24 @@ import MemoryScreen from './MemoryScreen';
 import BottomDock, { type DockTab } from '../components/BottomDock';
 import MIcon from '../components/MIcon';
 import ScanIcon from '../components/ScanIcon';
-import SearchField, { SearchFieldAction } from '../components/SearchField';
-import SearchModal from '../components/SearchModal';
-import CenteredState from '../components/CenteredState';
-import AskConciergeOffer from '../components/AskConciergeOffer';
+import SearchField from '../components/SearchField';
+import CenteredState, { CenteredStateAction } from '../components/CenteredState';
 import ProductCard, { MenuRow } from '../components/ProductCard';
-import { theme } from '../theme';
+import CollectionCard from '../components/CollectionCard';
 import ScanScreen from './ScanScreen';
 import CollectionPage from './CollectionPage';
 import { OUTFITS, DECOR_SETS, outfitMetaLine, type Outfit } from '../data/outfits';
-import { AddToCollectionFlow, CollectionFan, CreateCollectionSheet } from '../components/CollectionSheets';
-import { SEED_MEMORY_FACTS, type MemoryFact } from '../data/memory';
+import { AddToCollectionFlow } from '../components/CollectionSheets';
+import { SEED_MEMORY_FACTS, relativeTime, type MemoryFact } from '../data/memory';
+import {
+  newestFirst,
+  seedNotifications,
+  unreadCount,
+  type AppNotification,
+} from '../data/notifications';
 import {
   collectionMeta,
+  collectionOf,
   formatPrice,
   makeCollection,
   priceOf,
@@ -29,6 +34,7 @@ import {
   type Collection,
 } from '../data/collections';
 import { screenStyle, bodyStyle, Header, iconButtonStyle } from './screenChrome';
+import { theme } from '../theme';
 
 const PAGE = 16; // horizontal page margin, matches Figma page/margins token
 // One width for every card in a Discover rail - product, collection, outfit and
@@ -60,7 +66,10 @@ type Detail =
   // every category rather than only the ones the user picked as interests.
   | { kind: 'outfits' }
   | { kind: 'decor' }
-  | { kind: 'categories' };
+  | { kind: 'categories' }
+  // What the nav bar's bell opens (Figma node 5570-55102). A push over Home
+  // rather than an overlay, so it keeps the dock and Back returns to Discover.
+  | { kind: 'notifications' };
 /** The four stateful dock tabs. Scan is the fourth dock item, but an overlay. */
 type Tab = 'home' | 'saved' | 'chat' | 'menu';
 // Transient toast shown after saving / removing a product.
@@ -154,12 +163,15 @@ export default function FeedScreen({
   // chat and auto-sends the prompt (with its attachment) when the tab opens.
   const [chatPrompt, setChatPrompt] = useState<ConciergePrompt | null>(null);
   const [detail, setDetail] = useState<Detail | null>(null);
-  // Search is its own full-screen experience (`<SearchModal>`), opened from the
-  // Discover field or the Saved header. The feed itself never shows results.
-  const [query, setQuery] = useState('');
-  const [searchScope, setSearchScope] = useState<'products' | null>(null);
-  // Saved's field is a plain filter over the grid, not a doorway into the modal,
-  // so it keeps its own query.
+  // **There is no catalog search.** Matching a typed string against tags only
+  // ever finds what the catalog is already labelled with, while the questions
+  // people have are not ("something for a wedding in Como, under 5k"), so the
+  // concierge does that job: the Chat tab, or the prompt field on a page that is
+  // already about one thing. Do not put a field back on Discover.
+  //
+  // The **Saved tab is the one exception**, and it is not the same thing: a
+  // filter over the handful of collections the user named themselves, where the
+  // name they chose is exactly what they would type. It runs in place.
   const [savedQuery, setSavedQuery] = useState('');
   const [snack, setSnack] = useState<Snack | null>(null);
   const [openProduct, setOpenProduct] = useState<Product | null>(null);
@@ -168,30 +180,31 @@ export default function FeedScreen({
   // ── Collections ───────────────────────────────────────────────────────────
   // User-curated groups of saved pieces. Owned here because Saved, the product
   // page, the scan results, and Discover's look cards all write to them.
-  const [collections, setCollections] = useState<Collection[]>(() => seedCollections(gender));
-  // Collections the user pinned, most recently pinned last. Pinned ones lift out
-  // of the Saved column into a horizontal rail at the top of the tab, the same
-  // shape Discover's Collections row uses, so the handful you are living in stay
-  // one swipe away while the rest of the list keeps growing underneath.
-  const [pinnedIds, setPinnedIds] = useState<string[]>([]);
-  const togglePin = (id: string) => {
-    const wasPinned = pinnedIds.includes(id);
-    // Undo restores the whole previous array rather than toggling back, so it
-    // returns the rail to the exact order it had, not just the membership.
-    const before = pinnedIds;
-    setPinnedIds(wasPinned ? before.filter((p) => p !== id) : [...before, id]);
-    showSnack(wasPinned ? 'Unpinned' : 'Pinned to the top', 'Undo', () => {
-      setPinnedIds(before);
-      setSnack(null);
-    });
-  };
+  const seededCollections = useMemo(() => seedCollections(gender), [gender]);
+  const [collections, setCollections] = useState<Collection[]>(seededCollections);
   // The collection page open over the Saved tab (survives tab switches, so
   // coming back from Chat lands on the same collection).
   const [openCollectionId, setOpenCollectionId] = useState<string | null>(null);
+  /**
+   * Which tab the pushes (collection page, product page) sit over. **Back always
+   * returns to where you came from**, so a push is recorded against the tab it
+   * was opened from rather than being forced onto Saved: open a collection from
+   * the concierge's reply and Back lands you back in that conversation, not on
+   * the Saved list you were never on.
+   *
+   * It also keeps a push out of the way when you leave: `askConcierge` parks it
+   * under Saved, so the chat is never covered and coming back to Saved still
+   * lands on the same collection.
+   */
+  const [pushHost, setPushHost] = useState<Exclude<Tab, 'menu'>>('saved');
   // The piece the "Add to collection" sheet flow is filing (null = closed).
   const [addTarget, setAddTarget] = useState<Product | null>(null);
-  // The standalone "New collection" sheet on the Saved tab.
-  const [showCreate, setShowCreate] = useState(false);
+  // Collections the concierge has **put together but not filed**. Asked for
+  // pieces like something, it assembles them and hands them over as a whole
+  // collection; keeping it is the user's call, so the proposal opens the
+  // collection page in `preview` and lives here until they save it. Keyed by
+  // the same `col-...` id the card and the chat attachment point at.
+  const [proposals, setProposals] = useState<Record<string, { name: string; items: string[] }>>({});
   // Which card's "..." menu is open (single source of truth so only one shows).
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
@@ -243,6 +256,17 @@ export default function FeedScreen({
     return map;
   }, [gender]);
 
+  // ── Notifications ─────────────────────────────────────────────────────────
+  // The bell in the Discover nav bar and the list behind it. Seeded from the
+  // user's own collections, so every row names a piece they actually filed and
+  // opens it. Lives here because opening one pushes the product / collection
+  // page, which is FeedScreen's job.
+  const [notifications, setNotifications] = useState<AppNotification[]>(() =>
+    seedNotifications(seededCollections, (name) => productByName[name]),
+  );
+  const unread = unreadCount(notifications);
+  const notificationList = useMemo(() => newestFirst(notifications), [notifications]);
+
   // Hearts manage collection membership app-wide: a heart is filled when the
   // piece sits in ANY collection, and tapping one opens the Add to collection
   // flow (with the piece's current collections pre-checked).
@@ -265,8 +289,20 @@ export default function FeedScreen({
   // ── Collections ───────────────────────────────────────────────────────────
   const byName = (name: string): Product | undefined => productByName[name];
   // Remounts the collection page when the snackbar's View targets the SAME
-  // collection, so its local overlays (product page, search, note sheet) reset.
+  // collection, so the overlays it opened itself (the product page) reset.
   const [collectionEpoch, setCollectionEpoch] = useState(0);
+
+  /**
+   * The one-collection rule, applied: `names` leave every collection except
+   * `keepId`. Filing a piece (or a whole look) somewhere moves it rather than
+   * copying it, so this runs on every write that adds items.
+   */
+  const exclusive = (list: Collection[], keepId: string, names: string[]): Collection[] => {
+    const taken = new Set(names);
+    return list.map((c) =>
+      c.id === keepId ? c : { ...c, items: c.items.filter((n) => !taken.has(n)) },
+    );
+  };
 
   /** Hearting a Discover look files it as a collection of its pieces. */
   const lookCollectionId = (id: string) => `look-${id}`;
@@ -279,18 +315,10 @@ export default function FeedScreen({
     const id = outfitCollectionId(outfit.id);
     const existing = collections.find((c) => c.id === id);
     if (!existing) {
-      setCollections((prev) => [
-        ...prev,
-        {
-          id,
-          name: outfit.name,
-          description: outfit.description,
-          items: outfit.items.filter((n) => !!byName(n)),
-          notes: {},
-          createdAt: Date.now(),
-          cover: outfit.image,
-        },
-      ]);
+      const items = outfit.items.filter((n) => !!byName(n));
+      const col: Collection = { id, name: outfit.name, items, createdAt: Date.now() };
+      // Filing a whole look moves its pieces here, the same as filing one.
+      setCollections((prev) => exclusive([...prev, col], id, items));
       showSnack('Saved to your collections', 'View', () => {
         setSnack(null);
         goSaved();
@@ -303,26 +331,14 @@ export default function FeedScreen({
       });
     }
   };
-
-  /** Set or clear a collection's cover picture. */
-  const setCollectionCover = (id: string, cover: string | null) =>
-    setCollections((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, cover: cover ?? undefined } : c)),
-    );
 
   const toggleCollection = (look: FeedSection) => {
     const id = lookCollectionId(look.id);
     const existing = collections.find((c) => c.id === id);
     if (!existing) {
-      const col: Collection = {
-        id,
-        name: look.name,
-        description: 'Saved from Discover.',
-        items: look.items.map((p) => p.name),
-        notes: {},
-        createdAt: Date.now(),
-      };
-      setCollections((prev) => [...prev, col]);
+      const items = look.items.map((p) => p.name);
+      const col: Collection = { id, name: look.name, items, createdAt: Date.now() };
+      setCollections((prev) => exclusive([...prev, col], id, items));
       showSnack('Saved to your collections', 'View', () => {
         setSnack(null);
         goSaved();
@@ -336,13 +352,13 @@ export default function FeedScreen({
     }
   };
 
-  const createCollection = (name: string, description: string): Collection => {
-    const col = makeCollection(name, description);
+  const createCollection = (name: string): Collection => {
+    const col = makeCollection(name);
     setCollections((prev) => [...prev, col]);
     return col;
   };
-  const renameCollection = (id: string, name: string, description: string) =>
-    setCollections((prev) => prev.map((c) => (c.id === id ? { ...c, name, description } : c)));
+  const renameCollection = (id: string, name: string) =>
+    setCollections((prev) => prev.map((c) => (c.id === id ? { ...c, name } : c)));
   const deleteCollection = (id: string) => {
     const col = collections.find((c) => c.id === id);
     if (!col) return;
@@ -353,29 +369,16 @@ export default function FeedScreen({
       setSnack(null);
     });
   };
-  /** One piece at a time, from the collection page's Add sheet. */
-  const addItemToCollection = (id: string, name: string) => {
-    setCollections((prev) =>
-      prev.map((c) =>
-        c.id === id && !c.items.includes(name) ? { ...c, items: [...c.items, name] } : c,
-      ),
-    );
-    notice('Added to collection');
-  };
   const removeFromCollection = (id: string, productName: string) => {
     const col = collections.find((c) => c.id === id);
     if (!col || !col.items.includes(productName)) return;
-    // Capture position + note so Undo restores the piece exactly as it was,
-    // and so a later re-add does not resurrect a stale note.
+    // Capture the position so Undo puts the piece back where it was rather than
+    // at the end of the list.
     const index = col.items.indexOf(productName);
-    const note = col.notes[productName];
     setCollections((prev) =>
-      prev.map((c) => {
-        if (c.id !== id) return c;
-        const notes = { ...c.notes };
-        delete notes[productName];
-        return { ...c, items: c.items.filter((n) => n !== productName), notes };
-      }),
+      prev.map((c) =>
+        c.id === id ? { ...c, items: c.items.filter((n) => n !== productName) } : c,
+      ),
     );
     showSnack('Removed from collection', 'Undo', () => {
       setCollections((prev) =>
@@ -383,67 +386,44 @@ export default function FeedScreen({
           if (c.id !== id || c.items.includes(productName)) return c;
           const items = [...c.items];
           items.splice(Math.min(index, items.length), 0, productName);
-          const notes = note ? { ...c.notes, [productName]: note } : c.notes;
-          return { ...c, items, notes };
+          return { ...c, items };
         }),
       );
       setSnack(null);
     });
   };
-  const setCollectionNote = (id: string, productName: string, note: string) =>
-    setCollections((prev) =>
-      prev.map((c) => {
-        if (c.id !== id) return c;
-        const notes = { ...c.notes };
-        if (note) notes[productName] = note;
-        else delete notes[productName];
-        return { ...c, notes };
-      }),
-    );
 
-  /** The heart's sheet flow finished: apply the membership diff, confirm. */
-  const finishAddFlow = (ids: string[], note: string) => {
+  /**
+   * The heart's sheet flow finished. A piece lives in one collection, so this is
+   * a move, not a diff: it lands in `collectionId` and leaves wherever it was.
+   * `null` takes it out of collections altogether.
+   */
+  const finishAddFlow = (collectionId: string | null) => {
     if (!addTarget) return;
     const name = addTarget.name;
     const before = collections;
-    const containing = collections.filter((c) => c.items.includes(name)).map((c) => c.id);
-    const additions = ids.filter((id) => !containing.includes(id));
-    const removals = containing.filter((id) => !ids.includes(id));
+    const target = collections.find((c) => c.id === collectionId);
     setCollections((prev) =>
       prev.map((c) => {
-        if (additions.includes(c.id)) {
-          const items = c.items.includes(name) ? c.items : [...c.items, name];
-          const notes = note ? { ...c.notes, [name]: note } : c.notes;
-          return { ...c, items, notes };
+        if (c.id === collectionId) {
+          return c.items.includes(name) ? c : { ...c, items: [...c.items, name] };
         }
-        if (removals.includes(c.id)) {
-          const notes = { ...c.notes };
-          delete notes[name];
-          return { ...c, items: c.items.filter((n) => n !== name), notes };
-        }
-        return c;
+        return c.items.includes(name) ? { ...c, items: c.items.filter((n) => n !== name) } : c;
       }),
     );
     setAddTarget(null);
-    if (additions.length > 0) {
-      const first = collections.find((c) => c.id === additions[0]);
-      const label =
-        removals.length > 0
-          ? 'Collections updated'
-          : additions.length === 1 && first
-            ? `Added to ${first.name}`
-            : `Added to ${additions.length} collections`;
-      showSnack(label, 'View', () => {
+    if (collectionId) {
+      showSnack(target ? `Added to ${target.name}` : 'Added to your collections', 'View', () => {
         setSnack(null);
         setShowScan(false);
         setOpenProduct(null);
         goSaved();
-        setOpenCollectionId(additions.length === 1 ? additions[0] : null);
+        pushCollection(collectionId, 'saved');
         // Remount the collection page even when it is already showing this
         // collection, so overlays it opened itself (product page, sheets) clear.
         setCollectionEpoch((e) => e + 1);
       });
-    } else if (removals.length > 0) {
+    } else {
       showSnack('Removed from your collections', 'Undo', () => {
         setCollections(before);
         setSnack(null);
@@ -455,9 +435,6 @@ export default function FeedScreen({
     setTab('home');
     setDetail(null);
     setShowMemory(false);
-    // Tapping Home while already on it clears the search, the same way tapping
-    // Saved while on Saved pops the open collection.
-    setQuery('');
   };
   /** Jump to the Saved tab from a snackbar / dock tap, closing any push. */
   const goSaved = () => {
@@ -467,50 +444,78 @@ export default function FeedScreen({
     setOpenCollectionId(null);
   };
 
+  /**
+   * Open a push over the tab we are on, so its Back returns there. The Menu tab
+   * has no list of its own to come back to, so pushes opened from it park on
+   * Saved. Pass `host` when the tab is being switched in the same tick, since
+   * `tab` is still the old one at that point.
+   */
+  const hostFor = (host?: Exclude<Tab, 'menu'>) => host ?? (tab === 'menu' ? 'saved' : tab);
+  const pushCollection = (id: string, host?: Exclude<Tab, 'menu'>) => {
+    const h = hostFor(host);
+    setPushHost(h);
+    // Belt and braces: a push only renders over its host, so land on it. Almost
+    // always a no-op (the host IS the tab we are on); it matters when the host
+    // was forced, as it is from Menu, which has no list to come back to.
+    setTab(h);
+    setOpenCollectionId(id);
+  };
+  const pushProduct = (product: Product, host?: Exclude<Tab, 'menu'>) => {
+    const h = hostFor(host);
+    setPushHost(h);
+    setTab(h);
+    setOpenProduct(product);
+  };
+
+  /**
+   * A notification opens what it names, over the list rather than instead of it,
+   * so Back returns to the other notifications. A piece that has since left the
+   * catalog, or a collection since deleted, stays inert - the same rule the
+   * chat's attachment cards follow.
+   */
+  const openNotification = (n: AppNotification) => {
+    const target = n.target;
+    setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+    if (target.kind === 'product') {
+      const product = byName(target.name);
+      if (product) pushProduct(product, 'home');
+      return;
+    }
+    if (collections.some((c) => c.id === target.id)) pushCollection(target.id, 'home');
+  };
+
+  // **Leaving the list is what marks it read**, not opening it: the dots have to
+  // stay put while the user is looking at them, or the thing they came to see
+  // disappears as they arrive.
+  const readingNotifications = detail?.kind === 'notifications';
+  useEffect(() => {
+    if (!readingNotifications) return;
+    return () =>
+      setNotifications((prev) =>
+        prev.some((n) => !n.read) ? prev.map((n) => (n.read ? n : { ...n, read: true })) : prev,
+      );
+  }, [readingNotifications]);
+
   // ── Scan + chat hand-off ──────────────────────────────────────────────────
-  // The catalog the scan can "capture" and Discover search covers: real imagery,
-  // user's gender. Deduped by name because names are the selection key everywhere
-  // (a few pieces exist in both gender variants under one name).
+  // The catalog the scan can "capture": real imagery, user's gender. Deduped by
+  // name because names are the selection key everywhere (a few pieces exist in
+  // both gender variants under one name).
   const catalogue = useMemo(
     () => dedupeByName(genderFilter(PRODUCTS.filter((p) => p.image !== '/vip-logo.svg'), gender)),
     [gender],
   );
-  // Discover search (shared `matchesQuery`: piece, brand or category), honouring
-  // "Do not recommend" the same way the feed groups do.
-  const trimmedQuery = query.trim();
-  const searchResults = useMemo(() => {
-    if (!trimmedQuery) return [];
-    return catalogue.filter((p) => !hidden.has(p.name) && matchesQuery(p, trimmedQuery));
-  }, [catalogue, trimmedQuery, hidden]);
-  /** Saved lists newest first, so the collection just saved leads the grid. */
+  /** Saved lists newest first, so the collection just saved leads the list. */
   const collectionsNewestFirst = useMemo(
     () => [...collections].sort((a, b) => b.createdAt - a.createdAt),
     [collections],
   );
-  // Saved search runs over collection names and descriptions, in place: an empty
-  // field shows the whole grid, the way the collection page's own search does.
+  // The Saved field filters in place: an empty field shows the whole list. A
+  // collection is a name and its pieces, so the name is all there is to match.
   const savedFiltered = useMemo(() => {
     const q = savedQuery.trim().toLowerCase();
     if (!q) return collectionsNewestFirst;
-    return collectionsNewestFirst.filter(
-      (c) => c.name.toLowerCase().includes(q) || (c.description ?? '').toLowerCase().includes(q),
-    );
+    return collectionsNewestFirst.filter((c) => c.name.toLowerCase().includes(q));
   }, [collectionsNewestFirst, savedQuery]);
-
-  // Pinned lift out of the column into the rail, in the order they were pinned.
-  // Derived by intersecting with the live list rather than pruned on delete, so
-  // deleting a pinned collection and hitting Undo brings the pin back with it.
-  const savedPinned = useMemo(
-    () =>
-      pinnedIds
-        .map((id) => savedFiltered.find((c) => c.id === id))
-        .filter((c): c is Collection => !!c),
-    [pinnedIds, savedFiltered],
-  );
-  const savedRest = useMemo(
-    () => savedFiltered.filter((c) => !pinnedIds.includes(c.id)),
-    [savedFiltered, pinnedIds],
-  );
 
   // The flat-lays are shot as menswear, so the section stays out of a women's
   // feed rather than offering a look that cannot be worn. Everyone else sees it.
@@ -521,84 +526,144 @@ export default function FeedScreen({
   const allStyledSets = useMemo(() => [...OUTFITS, ...DECOR_SETS], []);
 
   /**
-   * Idle-state chips for the catalog search: actual pieces, one per category so
-   * they spread across the catalog. Named pieces rather than departments, because
-   * a chip should show what a good query looks like, and every one of them is
-   * drawn from the catalogue the search covers, so none can come back empty.
+   * The concierge actually doing it: file two more pieces into a collection and
+   * hand back what changed, so the chat can answer "update this collection"
+   * with the collection's **new state** instead of a sentence promising to.
+   *
+   * Picks from the same categories the collection already leans on before
+   * reaching wider - a wall of paintings should grow by paintings - and only
+   * from pieces no collection holds, so the one-piece-one-collection rule holds
+   * without having to move anything out from under the user. `null` when the
+   * catalogue has nothing left to give.
    */
-  const searchSuggestions = useMemo(() => {
-    const seen = new Set<string>();
-    const out: string[] = [];
-    for (const p of catalogue) {
-      if (seen.has(p.category)) continue;
-      seen.add(p.category);
-      out.push(p.name);
-      if (out.length === 5) break;
-    }
-    return out;
-  }, [catalogue]);
+  const conciergeAddPieces = (id: string) => {
+    const col = collections.find((c) => c.id === id);
+    if (!col) return null;
+    const filed = new Set(collections.flatMap((c) => c.items));
+    const kinds = new Set(
+      col.items.map((n) => byName(n)?.category).filter(Boolean) as string[],
+    );
+    const free = catalogue.filter((p) => !filed.has(p.name));
+    const picks = [
+      ...free.filter((p) => kinds.has(p.category)),
+      ...free.filter((p) => !kinds.has(p.category)),
+    ].slice(0, 2);
+    if (picks.length === 0) return null;
 
-  const openSearch = (scope: 'products') => {
-    setQuery('');
-    setSearchScope(scope);
+    const next: Collection = { ...col, items: [...col.items, ...picks.map((p) => p.name)] };
+    setCollections((prev) => prev.map((c) => (c.id === id ? next : c)));
+    return {
+      added: picks.map((p) => `the ${p.brand} ${p.name}`),
+      attachment: {
+        title: next.name,
+        subtitle: collectionMeta(next, byName),
+        images: (next.items.map(byName).filter(Boolean) as Product[]).slice(0, 4).map((p) => p.image),
+        target: { kind: 'collection' as const, id },
+      },
+    };
   };
-  const closeSearch = () => {
-    setSearchScope(null);
-    setQuery('');
+
+  /**
+   * "Find me pieces like this one." The concierge picks a handful and hands them
+   * over **as a collection**, not as a list: a set of pieces chosen to go
+   * together is a collection already, and making the user file five hearts one
+   * at a time to end up with the same thing would be busywork.
+   *
+   * It is a **proposal**, not a save. Nothing is written to `collections` here -
+   * the user opens it, looks, and keeps it or does not. `seed` is the piece they
+   * asked to match; without one it picks across the catalogue.
+   */
+  const conciergeProposeCollection = (seed?: string, text?: string) => {
+    // The piece can arrive two ways and both have to work: attached (asked from
+    // the product page) or simply **named in the sentence** ("pieces like the
+    // Hermès Kelly Bag"). Longest match wins, so "Kelly Bag" beats "Bag".
+    const named = text
+      ? catalogue
+          .filter((p) => text.toLowerCase().includes(p.name.toLowerCase()))
+          .sort((a, b) => b.name.length - a.name.length)[0]
+      : undefined;
+    const anchor = (seed ? byName(seed) : undefined) ?? named;
+    const filed = new Set(collections.flatMap((c) => c.items));
+    const pool = catalogue.filter((p) => p.name !== anchor?.name && !filed.has(p.name));
+    // Same category first, so "like this bag" comes back as bags before it
+    // reaches for anything else.
+    const picks = anchor
+      ? [
+          ...pool.filter((p) => p.category === anchor.category),
+          ...pool.filter((p) => p.category !== anchor.category),
+        ].slice(0, 4)
+      : pool.slice(0, 4);
+    if (picks.length === 0) return null;
+
+    const name = anchor ? `Like the ${anchor.name}` : 'Picked for you';
+    const id = `col-proposal-${Date.now()}-${Object.keys(proposals).length + 1}`;
+    const items = picks.map((p) => p.name);
+    setProposals((prev) => ({ ...prev, [id]: { name, items } }));
+    return {
+      name,
+      anchor: anchor ? `${anchor.brand} ${anchor.name}` : null,
+      count: picks.length,
+      attachment: {
+        title: name,
+        subtitle: collectionMeta({ id, name, items, createdAt: 0 }, byName),
+        images: picks.map((p) => p.image),
+        target: { kind: 'collection' as const, id },
+      },
+    };
   };
+
   /** Starts a NEW concierge chat with the prompt's attachment and sends it. */
-  const askConcierge = (prompt: ConciergePrompt) => {
+  const askConcierge = (prompt: ConciergePrompt, opts?: { continueThread?: boolean }) => {
     setShowScan(false);
     setDetail(null);
     setShowMemory(false);
-    setChatMessages([]);
-    setChatRatings({});
+    // Reaching the concierge from somewhere else starts a NEW chat. The one
+    // exception is a page you opened FROM a conversation: asking about the
+    // collection you just tapped is the next turn of that conversation, and
+    // wiping the thread to ask it would throw away the context you came with.
+    if (!opts?.continueThread) {
+      setChatMessages([]);
+      setChatRatings({});
+    }
     setChatPrompt(prompt);
+    // Park whatever push we came from under Saved before switching. Two jobs: a
+    // page opened FROM the chat must not cover the chat it just handed off to,
+    // and a collection page left behind stays open so coming back to Saved lands
+    // on the same collection rather than on the bare list.
+    setPushHost('saved');
     setTab('chat');
   };
   /**
    * An attachment card in the chat, tapped. The chat carries only a descriptor,
-   * so resolving it back to a screen is this component's job: a collection opens
-   * over Saved, a piece opens its product page over Home. A collection that has
+   * so resolving it back to a screen is this component's job. Both open **over
+   * the chat**, so Back returns to the conversation they were opened from
+   * rather than dumping the user on a tab they were never on. A collection that has
    * since been deleted quietly does nothing rather than opening an empty page.
    */
   const openAttachment = (target: AttachmentTarget) => {
     if (target.kind === 'collection') {
-      if (!collections.some((c) => c.id === target.id)) return;
-      setTab('saved');
+      // Saved, or still just proposed - both open the same page, the proposal in
+      // `preview`. A collection since deleted opens nothing, and the card that
+      // named it stays inert rather than bouncing the user somewhere random.
+      const exists =
+        collections.some((c) => c.id === target.id) ||
+        !!proposals[target.id] ||
+        !!outfits.find((o) => lookCollectionId(o.id) === target.id) ||
+        !!allStyledSets.find((o) => outfitCollectionId(o.id) === target.id);
+      if (!exists) return;
       setDetail(null);
       setShowMemory(false);
       setOpenProduct(null);
-      setOpenCollectionId(target.id);
+      pushCollection(target.id);
       setCollectionEpoch((e) => e + 1);
       return;
     }
     const product = byName(target.name);
     if (!product) return;
     setShowMemory(false);
-    setOpenProduct(product);
+    pushProduct(product);
   };
 
-  /** Scan results "Search manually": browse the matched category on Home. */
-  const browseCategory = (category: string | null) => {
-    setShowScan(false);
-    setTab('home');
-    setShowMemory(false);
-    // Everything pushed over Home has to go, or the category list opens
-    // underneath it: the collection page is deliberately kept across tab
-    // switches, so landing on Home is not enough to reveal what we just opened.
-    setOpenCollectionId(null);
-    setOpenProduct(null);
-    if (category) {
-      const items = genderFilter(
-        PRODUCTS.filter((p) => p.category === category && p.image !== '/vip-logo.svg'),
-        gender,
-      );
-      setDetail({ kind: 'list', title: `All ${categoryConfigs[category]?.name || category}`, items });
-    } else {
-      setDetail(null);
-    }
-  };
   /** Toast. `action` overrides the default "Got it" dismiss. */
   const notice = (message: string, action?: { label: string; onAction: () => void }) =>
     action
@@ -684,6 +749,8 @@ export default function FeedScreen({
         initialPrompt={chatPrompt}
         onPromptConsumed={() => setChatPrompt(null)}
         onOpenAttachment={openAttachment}
+        onUpdateCollection={conciergeAddPieces}
+        onProposeCollection={conciergeProposeCollection}
       />
     );
   } else if (tab === 'menu') {
@@ -702,30 +769,27 @@ export default function FeedScreen({
       />
     );
   } else if (tab === 'saved') {
-    // ── Saved tab: collections only. Creating one is the `+` in the header's
-    // top-right corner, not a row in the list. ────────────────────────────────
+    // ── Saved tab: a field to narrow the list, and the list. No `+`, since
+    // collections are created while filing a piece ("Add to collection" >
+    // Create) and an empty collection is not a thing anyone wants. ───────────
     body = (
       <div style={screenStyle}>
-        <Header
-          title="Saved"
-          height={56}
-          right={
-            <button
-              onClick={() => setShowCreate(true)}
-              aria-label="New collection"
-              style={iconButtonStyle}
-            >
-              <MIcon name="add_2" size={24} color="#f6f6f6" />
-            </button>
-          }
-        />
-        <div ref={bodyRef} style={bodyStyle}>
-          {/* Saved is the one search that filters in place. The list is short,
-              already on screen and already scoped to this page, so a full-screen
-              modal to narrow it would cost a screen to say less. (The catalog
-              searches still push `<SearchModal>`: there the field is a doorway
-              into everything, not a filter over what you are looking at.) */}
-          <div style={{ padding: `${PAGE}px ${PAGE}px 4px` }}>
+        <Header title="Saved collections" height={56} />
+        <div
+          ref={bodyRef}
+          style={{
+            ...bodyStyle,
+            // An empty list has nothing to scroll, so the body becomes a column
+            // and the state takes the leftover height - centred in what is left
+            // rather than hanging under the field.
+            ...(savedFiltered.length === 0 ? { display: 'flex', flexDirection: 'column' } : null),
+          }}
+        >
+          {/* The app's only search field, and it filters in place rather than
+              pushing a screen: this list is short, already scoped and already
+              on screen, so a full-screen modal would cost a screen to say less.
+              It is not catalog search - see the note on `savedQuery`. */}
+          <div style={{ flexShrink: 0, padding: `${PAGE}px ${PAGE}px 4px` }}>
             <SearchField
               value={savedQuery}
               onChange={setSavedQuery}
@@ -733,97 +797,35 @@ export default function FeedScreen({
             />
           </div>
           {savedFiltered.length === 0 ? (
-            // Two different nothings. With a query this is a dead end - the
-            // filter only matches names and descriptions the user wrote, so the
-            // concierge is the way out, exactly as it is on the search modal's
-            // no-match state. With no query there is simply nothing saved yet,
-            // and "New Collection" is already sitting underneath, so the state
-            // says so and stays out of the way.
+            // Two different nothings: a query that matched none of the names the
+            // user wrote, and no collections at all. Only the first has a way
+            // out that lives on this screen, so only it carries an action.
             savedQuery.trim() !== '' ? (
               <CenteredState
-                title="No collections"
-                hint={`Nothing here for "${savedQuery.trim()}".`}
-                icon="search_off"
-                action={
-                  <AskConciergeOffer
-                    onClick={() =>
-                      askConcierge({
-                        text: `Help me put together a collection for "${savedQuery.trim()}"`,
-                      })
-                    }
-                  />
-                }
+                title="Nothing found"
+                hint="Check the spelling or try a different name."
+                icon="search"
+                action={<CenteredStateAction label="Clear Search" onClick={() => setSavedQuery('')} />}
               />
             ) : (
               <CenteredState
                 title="Nothing saved yet"
-                hint="Heart a piece anywhere in the app, or start a collection below."
+                hint="Heart a piece anywhere in the app and file it into a collection."
                 icon="favorite"
               />
             )
           ) : (
-            <>
-              {/* Pinned rail: the same horizontal carousel Discover's Collections
-                  row uses, so a pinned collection reads as the same object in a
-                  faster place rather than a new kind of thing. Cards keep the
-                  230px carousel width, which is what makes it scroll. */}
-              {savedPinned.length > 0 && (
-                <Section title="Pinned">
-                  {savedPinned.map((c) => (
-                    <CollectionCard
-                      key={c.id}
-                      name={c.name}
-                      count={c.items.length}
-                      items={c.items.map(byName).filter(Boolean) as Product[]}
-                      meta={collectionMeta(c, byName)}
-                      cover={c.cover}
-                      onOpen={() => setOpenCollectionId(c.id)}
-                      pinned
-                      onTogglePin={() => togglePin(c.id)}
-                    />
-                  ))}
-                  {/* One pinned card leaves the rail mostly gap and nothing to
-                      scroll, so the second slot is drawn empty. */}
-                  {savedPinned.length === 1 && <PinnedSlotCard />}
-                </Section>
-              )}
-              {savedRest.length > 0 && (
-                <>
-                  {/* Only titled once something sits above it, so an unpinned
-                      Saved tab stays the bare list it has always been. The rail
-                      only leaves 8px under itself, which is spacing inside a
-                      section rather than between two, so the heading takes its
-                      own break above. */}
-                  {savedPinned.length > 0 && (
-                    <div style={{ paddingTop: 16 }}>
-                      <SectionHeader title="All collections" />
-                    </div>
-                  )}
-                  <div style={savedColStyle}>
-                    {savedRest.map((c) => (
-                      <CollectionCard
-                        key={c.id}
-                        name={c.name}
-                        count={c.items.length}
-                        items={c.items.map(byName).filter(Boolean) as Product[]}
-                        meta={collectionMeta(c, byName)}
-                        cover={c.cover}
-                        width="100%"
-                        onOpen={() => setOpenCollectionId(c.id)}
-                        onTogglePin={() => togglePin(c.id)}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-            </>
-          )}
-          {/* Creator row closes the list - horizontal, so it reads as the action
-              at the end rather than another collection in the column. Hidden
-              while filtering, where it would read as a result. */}
-          {savedQuery.trim() === '' && (
-            <div style={{ padding: `0 ${PAGE}px ${PAGE}px` }}>
-              <NewCollectionCard onClick={() => setShowCreate(true)} />
+            <div style={savedColStyle}>
+              {savedFiltered.map((c) => (
+                <CollectionCard
+                  key={c.id}
+                  name={c.name}
+                  images={(c.items.map(byName).filter(Boolean) as Product[]).map((p) => p.image)}
+                  meta={collectionMeta(c, byName)}
+                  width="100%"
+                  onOpen={() => pushCollection(c.id)}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -843,7 +845,7 @@ export default function FeedScreen({
                 outfit={o}
                 meta={outfitMetaLine(o, byName)}
                 width="100%"
-                onOpen={() => setOpenCollectionId(outfitCollectionId(o.id))}
+                onOpen={() => pushCollection(outfitCollectionId(o.id))}
                 saved={isOutfitSaved(o.id)}
                 onToggleSave={() => toggleOutfitSaved(o)}
               />
@@ -865,7 +867,7 @@ export default function FeedScreen({
                 outfit={o}
                 meta={outfitMetaLine(o, byName)}
                 width="100%"
-                onOpen={() => setOpenCollectionId(outfitCollectionId(o.id))}
+                onOpen={() => pushCollection(outfitCollectionId(o.id))}
                 saved={isOutfitSaved(o.id)}
                 onToggleSave={() => toggleOutfitSaved(o)}
               />
@@ -907,6 +909,36 @@ export default function FeedScreen({
         <BottomDock tabs={dockTabs('home')} />
       </div>
     );
+  } else if (detail && detail.kind === 'notifications') {
+    // ── Notifications (the nav bar's bell) ──────────────────────────────────
+    // Newest first, and every row opens the piece or collection it names.
+    body = (
+      <div style={screenStyle}>
+        <Header title="Notifications" onBack={() => setDetail(null)} />
+        <div
+          ref={bodyRef}
+          style={{
+            ...bodyStyle,
+            ...(notificationList.length === 0 ? { display: 'flex', flexDirection: 'column' } : null),
+          }}
+        >
+          {notificationList.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: `12px ${PAGE}px ${PAGE}px` }}>
+              {notificationList.map((n) => (
+                <NotificationRow key={n.id} notification={n} onOpen={() => openNotification(n)} />
+              ))}
+            </div>
+          ) : (
+            <CenteredState
+              icon="notifications"
+              title="Nothing new"
+              hint="Price drops and arrivals on the pieces you save will land here."
+            />
+          )}
+        </div>
+        <BottomDock tabs={dockTabs('home')} />
+      </div>
+    );
   } else if (detail) {
     // ── "See all" detail view (per-category / titled list) ──────────────────
     const detailItems =
@@ -931,7 +963,7 @@ export default function FeedScreen({
                   product={product}
                   saved={isSaved(product.name)}
                   onToggleSave={() => setAddTarget(product)}
-                  onOpen={() => setOpenProduct(product)}
+                  onOpen={() => pushProduct(product)}
                   width="100%"
                 />
               ))}
@@ -982,12 +1014,43 @@ export default function FeedScreen({
   // Default branch: the Discover feed.
   if (body === undefined) body = (
     <div style={screenStyle}>
-      {/* Centered "Discover" title (top-level tab - no back button). */}
-      <Header title="Discover" />
+      {/* Centered "Discover" title (top-level tab - no back button), with the
+          bell in the trailing slot (Figma node 5570-55102): the same bordered
+          `buttonIcon` circle every other nav bar uses, carrying a dot while
+          there is something unread. */}
+      <Header
+        title="Discover"
+        right={
+          <button
+            onClick={() => setDetail({ kind: 'notifications' })}
+            aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
+            style={{ ...iconButtonStyle, position: 'relative' }}
+          >
+            <MIcon name="notifications" size={24} color="#fff" />
+            {unread > 0 && (
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  width: 8,
+                  height: 8,
+                  borderRadius: theme.radii.button,
+                  background: theme.colors.unread,
+                  // A ring of the button's own fill, so the dot reads as sitting
+                  // on top of the bell rather than merging with the glyph.
+                  boxShadow: '0 0 0 2px #101111',
+                }}
+              />
+            )}
+          </button>
+        }
+      />
 
       <div ref={bodyRef} style={bodyStyle}>
         {/* Onboarding-progress banner - permanent until onboarding hits 100%, and
-            pinned at the very top of the feed, above the search field. */}
+            pinned at the very top of the feed, above the first rail. */}
         {!onboardingComplete && (
           <div style={{ padding: `${PAGE}px ${PAGE}px 8px` }}>
             <div
@@ -1033,22 +1096,14 @@ export default function FeedScreen({
           </div>
         )}
 
-        {/* Search (Figma inputField 5433-34513). The field is the affordance, not
-            the input: tapping it opens the search modal. The scan brackets still
-            open the camera, same target as the Scan dock item. */}
-        <div style={{ padding: `${onboardingComplete ? PAGE : 8}px ${PAGE}px 4px` }}>
-          <SearchField
-            value=""
-            onChange={() => {}}
-            placeholder="Search for products"
-            onActivate={() => openSearch('products')}
-            trailing={
-              <SearchFieldAction label="Scan a piece" onClick={() => setShowScan(true)}>
-                <ScanIcon size={24} color="#f6f6f6" />
-              </SearchFieldAction>
-            }
-          />
-        </div>
+        {/* No search field. Discover is a feed you browse and the concierge is
+            how you look something up, so the page goes straight from the banner
+            into the rails; the Chat and Scan dock items are the two ways off it.
+
+            The field used to supply the feed's top margin, so the spacer takes
+            that over: a full page margin under the header when it is the first
+            thing on the page, and only 8 when the banner is already above it. */}
+        <div style={{ height: onboardingComplete ? PAGE : 8 }} />
 
         {sections.length > 0 ? (
           <>
@@ -1064,7 +1119,7 @@ export default function FeedScreen({
                     product={product}
                     saved={isSaved(product.name)}
                     onToggleSave={() => setAddTarget(product)}
-                    onOpen={() => setOpenProduct(product)}
+                    onOpen={() => pushProduct(product)}
                     onMoreLikeThis={moreLikeThis}
                     onHide={() => hideProduct(product.name)}
                     menuOpen={openMenuId === product.name}
@@ -1090,7 +1145,7 @@ export default function FeedScreen({
                     product={product}
                     saved={isSaved(product.name)}
                     onToggleSave={() => setAddTarget(product)}
-                    onOpen={() => setOpenProduct(product)}
+                    onOpen={() => pushProduct(product)}
                     onMoreLikeThis={moreLikeThis}
                     onHide={() => hideProduct(product.name)}
                     menuOpen={openMenuId === product.name}
@@ -1122,15 +1177,19 @@ export default function FeedScreen({
                   <CollectionCard
                     key={o.id}
                     name={o.name}
-                    count={o.items.length}
-                    items={o.items}
+                    images={o.items.map((p) => p.image)}
                     meta={outfitMeta(o.items)}
+                    width={RAIL_CARD_W}
                     // Opens the collection page, previewed until it is hearted.
-                    onOpen={() => setOpenCollectionId(lookCollectionId(o.id))}
+                    onOpen={() => pushCollection(lookCollectionId(o.id))}
                     saved={isCollectionSaved(o.id)}
                     onToggleSave={() => toggleCollection(o)}
-                    onMoreLikeThis={moreLikeThis}
-                    onHide={() => showSnack('Noted, fewer like this', 'Got it', () => setSnack(null))}
+                    menu={
+                      <OverflowMenu
+                        onMoreLikeThis={moreLikeThis}
+                        onHide={() => showSnack('Noted, fewer like this', 'Got it', () => setSnack(null))}
+                      />
+                    }
                   />
                 ))}
               </Section>
@@ -1149,7 +1208,7 @@ export default function FeedScreen({
                     key={o.id}
                     outfit={o}
                     meta={outfitMetaLine(o, byName)}
-                    onOpen={() => setOpenCollectionId(outfitCollectionId(o.id))}
+                    onOpen={() => pushCollection(outfitCollectionId(o.id))}
                     saved={isOutfitSaved(o.id)}
                     onToggleSave={() => toggleOutfitSaved(o)}
                     onMoreLikeThis={moreLikeThis}
@@ -1171,7 +1230,7 @@ export default function FeedScreen({
                     key={o.id}
                     outfit={o}
                     meta={outfitMetaLine(o, byName)}
-                    onOpen={() => setOpenCollectionId(outfitCollectionId(o.id))}
+                    onOpen={() => pushCollection(outfitCollectionId(o.id))}
                     saved={isOutfitSaved(o.id)}
                     onToggleSave={() => toggleOutfitSaved(o)}
                     onMoreLikeThis={moreLikeThis}
@@ -1256,9 +1315,7 @@ export default function FeedScreen({
       return {
         id: openCollectionId,
         name: look.name,
-        description: 'A look put together for you.',
         items: look.items.map((p) => p.name),
-        notes: {},
         createdAt: 0,
       } satisfies Collection;
     }
@@ -1270,15 +1327,23 @@ export default function FeedScreen({
       return {
         id: openCollectionId,
         name: outfit.name,
-        description: outfit.description,
         items: outfit.items.filter((n) => !!byName(n)),
-        notes: {},
         createdAt: 0,
-        cover: outfit.image,
+      } satisfies Collection;
+    }
+    // Something the concierge put together and the user has not kept yet. Same
+    // page, same preview treatment: it is a look until they say otherwise.
+    const proposed = proposals[openCollectionId];
+    if (proposed) {
+      return {
+        id: openCollectionId,
+        name: proposed.name,
+        items: proposed.items,
+        createdAt: 0,
       } satisfies Collection;
     }
     return null;
-  }, [openCollectionId, savedOpenCollection, outfits, byName, allStyledSets]);
+  }, [openCollectionId, savedOpenCollection, outfits, byName, allStyledSets, proposals]);
   const openCollection = savedOpenCollection ?? previewCollection;
   const isPreviewCollection = !savedOpenCollection && !!previewCollection;
   // Snackbar geometry: above whatever occupies the bottom of the screen. The
@@ -1309,34 +1374,35 @@ export default function FeedScreen({
 
       {/* Collection page: a push over the Saved tab (kept while visiting Chat,
           so "Ask AI Concierge" and back lands on the same collection). */}
-      {(tab === 'saved' || tab === 'home') && openCollection && (
+      {tab === pushHost && openCollection && (
         <CollectionPage
           // Keyed by id + epoch: switching collections OR following the add
-          // flow's View resets the page's local overlays (product page, search,
-          // note sheet) instead of reusing them across collections.
+          // flow's View resets the page's local overlays (the product page)
+          // instead of reusing them across collections.
           key={`${openCollection.id}:${collectionEpoch}`}
           collection={openCollection}
           byName={byName}
-          catalogue={catalogue}
           onBack={() => setOpenCollectionId(null)}
-          onRename={(name, description) => renameCollection(openCollection.id, name, description)}
+          onRename={(name) => renameCollection(openCollection.id, name)}
           onDelete={() => deleteCollection(openCollection.id)}
           onRemoveItem={(name) => removeFromCollection(openCollection.id, name)}
-          onSetNote={(name, note) => setCollectionNote(openCollection.id, name, note)}
-          onAddItem={(name) => addItemToCollection(openCollection.id, name)}
-          onScan={() => setShowScan(true)}
-          onAskConcierge={askConcierge}
+          // Opened from a conversation, its prompt field continues that
+          // conversation instead of starting a new one.
+          onAskConcierge={(p) => askConcierge(p, { continueThread: pushHost === 'chat' })}
           onNotice={(message) => notice(message)}
           gender={gender}
           isSaved={isSaved}
           onSave={(p) => setAddTarget(p)}
           preview={isPreviewCollection}
-          onSetCover={(cover) => setCollectionCover(openCollection.id, cover)}
           onSaveCollection={() => {
             setCollections((prev) =>
               prev.some((c) => c.id === openCollection.id)
                 ? prev
-                : [...prev, { ...openCollection, createdAt: Date.now() }],
+                : exclusive(
+                    [...prev, { ...openCollection, createdAt: Date.now() }],
+                    openCollection.id,
+                    openCollection.items,
+                  ),
             );
             showSnack('Saved to your collections', 'View', () => {
               setSnack(null);
@@ -1347,7 +1413,7 @@ export default function FeedScreen({
       )}
 
       {/* Product page over the Home / Saved lists. */}
-      {(tab === 'home' || tab === 'saved') && openProduct && (
+      {tab === pushHost && openProduct && (
         <ProductPage
           product={openProduct}
           saved={isSaved(openProduct.name)}
@@ -1355,7 +1421,7 @@ export default function FeedScreen({
           onClose={() => setOpenProduct(null)}
           gender={gender}
           onNotice={(message) => notice(message)}
-          onAskConcierge={askConcierge}
+          onAskConcierge={(p) => askConcierge(p, { continueThread: pushHost === 'chat' })}
         />
       )}
 
@@ -1369,79 +1435,24 @@ export default function FeedScreen({
           isSaved={isSaved}
           onSave={(p) => setAddTarget(p)}
           onAskConcierge={askConcierge}
-          onBrowseCategory={browseCategory}
           onNotice={(message) => notice(message)}
           onClose={() => setShowScan(false)}
         />
       )}
 
-      {/* Add to collection flow (select → create → note), heart-driven. */}
+      {/* Add to collection (pick one → save), heart-driven. A piece lives in one
+          collection, so the sheet opens on the one it is in, if any. */}
       {addTarget && (
         <AddToCollectionFlow
-          product={addTarget}
-          price={formatPrice(priceOf(addTarget))}
-          collections={collections}
+          // Newest first, the same order the Saved list uses: the collection
+          // just created in this very sheet has to be the one at the top
+          // (Figma node 5550-27212), not buried under the seeded ones.
+          collections={collectionsNewestFirst}
           byName={byName}
-          preselected={collections.filter((c) => c.items.includes(addTarget.name)).map((c) => c.id)}
+          current={collectionOf(collections, addTarget.name)?.id}
           onCreate={createCollection}
           onSave={finishAddFlow}
           onClose={() => setAddTarget(null)}
-        />
-      )}
-
-      {/* Search: a full screen over whatever opened it. Products from Discover's
-          field, collections from the Saved header. */}
-      {searchScope === 'products' && (
-        <SearchModal
-          placeholder="Search for products"
-          suggestions={searchSuggestions}
-          query={query}
-          onQueryChange={setQuery}
-          onClose={closeSearch}
-          resultCount={searchResults.length}
-          onAskConcierge={(q) => {
-            closeSearch();
-            // The offer also sits on the idle state, where there is no query to
-            // quote - "Help me find \"\"" is not a question.
-            askConcierge({
-              text: q ? `Help me find "${q}"` : 'Help me find a piece',
-            });
-          }}
-        >
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 12,
-              padding: `4px ${PAGE}px calc(16px + env(safe-area-inset-bottom, 0px))`,
-            }}
-          >
-            {searchResults.map((product) => (
-              <ProductCard
-                key={product.name}
-                product={product}
-                saved={isSaved(product.name)}
-                onToggleSave={() => setAddTarget(product)}
-                onOpen={() => {
-                  closeSearch();
-                  setOpenProduct(product);
-                }}
-                width="100%"
-              />
-            ))}
-          </div>
-        </SearchModal>
-      )}
-
-      {/* "New collection" from the Saved tab - opens the new collection. */}
-      {showCreate && (
-        <CreateCollectionSheet
-          onClose={() => setShowCreate(false)}
-          onSubmit={(name, description) => {
-            const col = createCollection(name, description);
-            setShowCreate(false);
-            setOpenCollectionId(col.id);
-          }}
         />
       )}
 
@@ -1631,188 +1642,6 @@ function OverflowMenu({ onMoreLikeThis, onHide }: { onMoreLikeThis: () => void; 
   );
 }
 
-// ── Collection card (regular product-card shell; image split into 4 tiles) ───
-function CollectionCard({
-  name,
-  count,
-  items,
-  onOpen,
-  saved = false,
-  onToggleSave,
-  onMoreLikeThis,
-  onHide,
-  width = RAIL_CARD_W,
-  unit = 'items',
-  meta,
-  pinned = false,
-  onTogglePin,
-  cover,
-}: {
-  name: string;
-  count: number;
-  items: Product[];
-  onOpen: () => void;
-  /** When provided, the card shows a favorite heart (save the whole look). */
-  saved?: boolean;
-  onToggleSave?: () => void;
-  /** When provided, the card shows a "..." menu (like a product card). */
-  onMoreLikeThis?: () => void;
-  onHide?: () => void;
-  width?: number | string;
-  unit?: string;
-  /** Overrides the "count unit" line (user collections show "N items · $total"). */
-  meta?: string;
-  /** When provided, the card shows a pin toggle beside its name. */
-  pinned?: boolean;
-  onTogglePin?: () => void;
-  /** Wins over the fan of pieces when the collection has one. */
-  cover?: string;
-}) {
-  const showMenu = !!(onMoreLikeThis && onHide);
-  return (
-    <div
-      onClick={onOpen}
-      style={{
-        position: 'relative',
-        width,
-        flexShrink: 0,
-        background: '#0c0c0c',
-        border: '1px solid #282828',
-        borderRadius: 16,
-        overflow: 'hidden',
-        cursor: 'pointer',
-        scrollSnapAlign: 'start',
-        WebkitTapHighlightColor: 'transparent',
-      }}
-    >
-      {onToggleSave && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onToggleSave(); }}
-          aria-label={saved ? 'Remove from saved' : 'Save to favorites'}
-          style={{
-            position: 'absolute',
-            top: 8,
-            right: showMenu ? 48 : 8,
-            width: 32,
-            height: 32,
-            borderRadius: 100,
-            background: 'rgba(20,20,20,0.72)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            padding: 0,
-            backdropFilter: 'blur(4px)',
-            WebkitBackdropFilter: 'blur(4px)',
-            WebkitTapHighlightColor: 'transparent',
-            zIndex: 3,
-          }}
-        >
-          <span
-            className="material-symbols-rounded"
-            style={{
-              fontSize: 18,
-              fontVariationSettings: saved ? "'wght' 500, 'FILL' 1" : "'wght' 400",
-              color: saved ? '#ef4d63' : '#e7e7e7',
-            }}
-            aria-hidden
-          >
-            favorite
-          </span>
-        </button>
-      )}
-      {showMenu && <OverflowMenu onMoreLikeThis={onMoreLikeThis!} onHide={onHide!} />}
-      {/* A cover, if the collection has one, otherwise the fan of its pieces.
-          The cover wins: it is the picture somebody chose for this collection,
-          where the fan is only what the app can assemble in its absence.
-
-          `contain` on white, as everywhere else covers appear: every one is a
-          4:3 flat-lay of cut-out pieces with its own safe margin, so nothing is
-          ever cropped. */}
-      {cover ? (
-        <div
-          style={{
-            width: '100%',
-            aspectRatio: '600 / 400',
-            background: '#fff',
-            overflow: 'hidden',
-          }}
-        >
-          <img
-            src={cover}
-            alt=""
-            aria-hidden
-            draggable={false}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
-              display: 'block',
-            }}
-          />
-        </div>
-      ) : (
-        <CollectionFan items={items} size="100%" radius={0} />
-      )}
-      <div style={{ padding: '12px 14px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p
-            style={{
-              fontSize: 15,
-              fontWeight: 600,
-              color: '#f7f7f7',
-              lineHeight: '20px',
-              margin: 0,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {name}
-          </p>
-          <span style={{ fontSize: 13, fontWeight: 400, color: '#999', lineHeight: '18px' }}>
-            {meta ?? `${count} ${unit}`}
-          </span>
-        </div>
-        {/* Pin sits with the name rather than over the cover: it is a property of
-            the collection, not an action on the imagery, and the cover's corners
-            are already spoken for by the heart and the "..." menu. Filled when
-            pinned, the same way the dock marks its active tab. */}
-        {onTogglePin && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onTogglePin(); }}
-            aria-label={pinned ? `Unpin ${name}` : `Pin ${name} to the top`}
-            aria-pressed={pinned}
-            style={{
-              width: 32,
-              height: 32,
-              flexShrink: 0,
-              borderRadius: theme.radii.button,
-              background: pinned ? 'rgba(246,246,246,0.12)' : 'transparent',
-              border: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              padding: 0,
-              WebkitTapHighlightColor: 'transparent',
-            }}
-          >
-            <MIcon
-              name="keep"
-              size={20}
-              weight={pinned ? 400 : 300}
-              fill={pinned ? 1 : 0}
-              color={pinned ? '#f6f6f6' : '#999'}
-            />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ── Outfit card (Discover > Outfits) ─────────────────────────────────────────
 //
 // The collection card's twin, and deliberately not identical to it: where that
@@ -1944,91 +1773,87 @@ function OutfitCard({
   );
 }
 
-// ── Empty pin slot (second card of a one-item Pinned rail) ───────────────────
-//
-// A rail holding exactly one card is mostly gap: the carousel does not scroll,
-// and the single card reads as a mistake rather than a shortlist. This fills the
-// second position with the shape of the card that is missing, so the row has the
-// rhythm of a rail and quietly says there is room for another.
-//
-// Same skeleton vocabulary as `GhostCards` (dark fills, dim bars, no shimmer -
-// this is not loading, it is empty), and the same tile geometry the real cover
-// uses, so the ghost tiles land exactly where products would.
-function PinnedSlotCard() {
-  const tile = (offset: number, rotate: number) => (
-    <div
-      key={rotate}
-      style={{
-        position: 'absolute',
-        left: '50%',
-        top: '54.39%',
-        width: '35.18cqw',
-        aspectRatio: '120.652 / 114.72',
-        transform: `translate(-50%, -50%) translateX(${offset}cqw) rotate(${rotate}deg)`,
-        background: '#151515',
-        border: '1px solid #232323',
-        borderRadius: '3.4cqw',
-      }}
-    />
-  );
+// ── Category row (compact list item: thumbnail + name + count) ───────────────
+/**
+ * One notification. A card, not a bare row, because the list is short and each
+ * one is a separate thing that happened rather than an entry in a register.
+ *
+ * The whole card is the button: there is exactly one thing to do with a
+ * notification, and it is to go and look at what it is about.
+ */
+function NotificationRow({
+  notification,
+  onOpen,
+}: {
+  notification: AppNotification;
+  onOpen: () => void;
+}) {
+  const { icon, title, body, createdAt, read } = notification;
   return (
     <div
-      aria-hidden
-      style={{
-        width: 230,
-        flexShrink: 0,
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px dashed #2c2c2c',
-        borderRadius: 16,
-        overflow: 'hidden',
+      onClick={onOpen}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen();
+        }
       }}
-    >
-      <div style={{ position: 'relative', width: '100%', aspectRatio: '600 / 400', containerType: 'inline-size' }}>
-        {tile(-11.66, -15)}
-        {tile(11.66, 15)}
-      </div>
-      <div style={{ padding: '12px 14px 14px' }}>
-        <div style={{ height: 9, borderRadius: 5, background: '#1e1e1e', width: '62%', marginBottom: 8 }} />
-        <div style={{ height: 8, borderRadius: 4, background: '#171717', width: '44%' }} />
-      </div>
-    </div>
-  );
-}
-
-// ── "New collection" creator tile (last cell of the Saved grid) ──────────────
-//
-// A dashed outline rather than the solid card border, so it reads as an empty
-// slot waiting to be filled instead of a collection that already exists. Fills
-// the grid cell, so it matches whatever height the row's real cards settle on.
-function NewCollectionCard({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      aria-label="New collection"
       style={{
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        width: '100%',
-        height: 64,
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px dashed #3a3a3a',
+        alignItems: 'flex-start',
+        gap: 12,
+        padding: 12,
+        // Unread lifts off the page slightly; read settles back into it.
+        background: read ? '#0c0c0c' : 'rgba(255,255,255,0.05)',
+        border: '1px solid #282828',
         borderRadius: theme.radii.card,
-        padding: '0 16px',
         cursor: 'pointer',
         WebkitTapHighlightColor: 'transparent',
       }}
     >
-      <MIcon name="add_2" size={22} color="#f6f6f6" />
-      <span style={{ fontSize: 15, fontWeight: 600, color: '#f7f7f7', lineHeight: '20px' }}>
-        New Collection
+      <span
+        aria-hidden
+        style={{
+          width: 40,
+          height: 40,
+          flexShrink: 0,
+          borderRadius: theme.radii.button,
+          background: '#2f2f31',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <MIcon name={icon} size={22} color="#f6f6f6" />
       </span>
-    </button>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <p style={{ margin: 0, fontSize: 16, fontWeight: 600, lineHeight: '22px', color: '#f6f6f6' }}>
+          {title}
+        </p>
+        <p style={{ margin: 0, fontSize: 14, lineHeight: '20px', color: '#999' }}>{body}</p>
+        <span style={{ fontSize: 12, lineHeight: '16px', color: '#666' }}>
+          {relativeTime(createdAt)}
+        </span>
+      </div>
+      {!read && (
+        <span
+          aria-hidden
+          style={{
+            width: 8,
+            height: 8,
+            marginTop: 8,
+            flexShrink: 0,
+            borderRadius: theme.radii.button,
+            background: theme.colors.unread,
+          }}
+        />
+      )}
+    </div>
   );
 }
 
-// ── Category row (compact list item: thumbnail + name + count) ───────────────
 function CategoryRow({
   name,
   count,

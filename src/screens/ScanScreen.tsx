@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import MIcon from '../components/MIcon';
-import BottomDock from '../components/BottomDock';
 import ProductPage from './ProductPage';
+import { Header, iconButtonStyle, screenStyle } from './screenChrome';
 import type { ConciergePrompt } from './ChatScreen';
 import type { Product } from '../data/products';
+import { categoryConfigs } from '../data/categoryConfig';
 import { formatPrice, priceOf } from '../data/collections';
-import { theme } from '../theme';
+import { theme, safeBottom, safeTop } from '../theme';
 
 // ─── Scan (dock tab, full-screen overlay) ────────────────────────────────────
 //
-// Point the camera at any piece and match it against the catalog. Three phases:
+// Point the camera at any piece and match it against the catalog. Three phases
+// (Figma node 5488-3358 "Scan a product"):
 //   capture     viewfinder chrome: close, flash, camera flip, upload, shutter
-//   processing  the taken photo under a sweep line, "Identifying piece..."
-//   results     photo recap + matching pieces + Ask AI Concierge / search manually
+//   processing  the taken photo under a sweep line, "Identifying the piece..."
+//   results     photo recap + matching pieces + None of these? Ask AI Concierge
 //
 // The camera is simulated (prototype): the shutter "captures" a piece from the
 // catalog, upload accepts a real image file. Matching is category-based.
@@ -20,6 +22,13 @@ import { theme } from '../theme';
 const PAGE = 16;
 const TEXT_PRIMARY = '#f6f6f6';
 const TEXT_SECONDARY = '#999';
+const BORDER = '#444547';
+const SURFACE = '#101111';
+const PAGE_BG = '#0A0A0A';
+/** The framing brackets, and the shutter's ring. */
+const BRACKET = '#d3d3d5';
+/** Gallery backdrop behind a contained product shot. */
+const PHOTO_BG = '#ececec';
 
 type Phase = 'capture' | 'processing' | 'results';
 type Captured = {
@@ -37,7 +46,6 @@ export default function ScanScreen({
   onSave,
   onAskConcierge,
   onNotice,
-  onBrowseCategory,
   onClose,
 }: {
   /** Catalog pool for capture + matching (gender-filtered, real imagery only). */
@@ -47,12 +55,10 @@ export default function ScanScreen({
       the Add to collection flow - hearts manage membership app-wide. */
   isSaved: (name: string) => boolean;
   onSave: (product: Product) => void;
-  /** Pinned CTA: starts a NEW concierge chat with the scan attached. */
+  /** "None of these?": starts a NEW concierge chat with the scan attached. */
   onAskConcierge: (prompt: ConciergePrompt) => void;
   /** Toast for the product page's actions that have no destination yet. */
   onNotice?: (message: string) => void;
-  /** "Search manually" - browse the matched category (or the whole catalog). */
-  onBrowseCategory: (category: string | null) => void;
   onClose: () => void;
 }) {
   const [phase, setPhase] = useState<Phase>('capture');
@@ -142,10 +148,10 @@ export default function ScanScreen({
         position: 'absolute',
         inset: 0,
         zIndex: 220,
-        background: '#050505',
+        background: PAGE_BG,
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden',
+        overflow: 'clip',
         animation: 'fadeIn 200ms ease both',
       }}
     >
@@ -174,8 +180,7 @@ export default function ScanScreen({
           onRetake={cancelProcessing}
           onOpen={setOpenProduct}
           onSave={onSave}
-          onAskConcierge={(text) => onAskConcierge({ ...conciergePrompt, text: text.trim() || conciergePrompt.text })}
-          onSearchManually={() => onBrowseCategory(captured.product?.category ?? null)}
+          onAskConcierge={() => onAskConcierge(conciergePrompt)}
           onClose={onClose}
         />
       )}
@@ -201,7 +206,44 @@ export default function ScanScreen({
 
 // ── Shared chrome ────────────────────────────────────────────────────────────
 
-/** Translucent circular control on camera chrome (the product-page nav style). */
+/**
+ * The camera surface: Figma's "Viewfinder glow" radial over the frame, plus the
+ * "Vignette" so chrome stays legible top and bottom.
+ *
+ * The design only draws these on the Processing frame - its Capture frame is an
+ * empty placeholder for a live feed - but both phases are the same viewfinder,
+ * and swapping the backdrop on the shutter press would read as a flicker. So
+ * capture wears it too.
+ */
+function Viewfinder({ flash, facing }: { flash: boolean; facing: 'back' | 'front' }) {
+  return (
+    <>
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          inset: 0,
+          transform: facing === 'front' ? 'scaleX(-1)' : 'none',
+          transition: `transform 320ms ${theme.animation.easing}`,
+          background:
+            'radial-gradient(41.7% 55.6% at 50% 50%, #232323 0%, #101010 55%, #060606 100%)',
+          filter: flash ? 'brightness(1.45)' : 'none',
+        }}
+      />
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background:
+            'linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 62%, rgba(0,0,0,0.65) 100%)',
+        }}
+      />
+    </>
+  );
+}
+
+/** Figma `buttonIcon` on camera chrome: the app's bordered 40px circle. */
 function CameraButton({
   label,
   onClick,
@@ -212,33 +254,33 @@ function CameraButton({
   children: React.ReactNode;
 }) {
   return (
-    <button
-      onClick={onClick}
-      aria-label={label}
-      style={{
-        width: 40,
-        height: 40,
-        borderRadius: theme.radii.button,
-        background: 'rgba(20,20,20,0.6)',
-        border: '1px solid rgba(255,255,255,0.14)',
-        backdropFilter: 'blur(4px)',
-        WebkitBackdropFilter: 'blur(4px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-        padding: 0,
-        flexShrink: 0,
-        WebkitTapHighlightColor: 'transparent',
-      }}
-    >
+    <button onClick={onClick} aria-label={label} style={iconButtonStyle}>
       {children}
     </button>
   );
 }
 
-/** Four corner brackets around the framing area. */
-function CornerBrackets({ color = 'rgba(255,255,255,0.65)' }: { color?: string }) {
+/** Figma `Button` on camera chrome: the same circle stretched around a label. */
+const cameraTextButtonStyle: React.CSSProperties = {
+  height: 40,
+  padding: '0 16px',
+  borderRadius: theme.radii.button,
+  background: SURFACE,
+  border: `1px solid ${BORDER}`,
+  color: TEXT_PRIMARY,
+  fontSize: 16,
+  fontWeight: 500,
+  lineHeight: '22px',
+  cursor: 'pointer',
+  flexShrink: 0,
+  WebkitTapHighlightColor: 'transparent',
+};
+
+/**
+ * Figma "Focus frame": four 34px brackets, 2.5px, 18px corner radius, around a
+ * 280 x 368 framing area. The same frame holds the photo while it processes.
+ */
+function FocusFrame({ children }: { children?: React.ReactNode }) {
   const corner = (pos: React.CSSProperties, borders: React.CSSProperties) => (
     <span
       aria-hidden
@@ -250,7 +292,7 @@ function CornerBrackets({ color = 'rgba(255,255,255,0.65)' }: { color?: string }
         borderWidth: 0,
         ...pos,
         ...borders,
-        borderColor: color,
+        borderColor: BRACKET,
         borderStyle: 'solid',
       }}
     />
@@ -258,12 +300,56 @@ function CornerBrackets({ color = 'rgba(255,255,255,0.65)' }: { color?: string }
   const w = 2.5;
   const r = 18;
   return (
-    <>
+    <div style={{ position: 'relative', width: 'min(76%, 280px)', aspectRatio: '280 / 368' }}>
       {corner({ top: 0, left: 0, borderTopLeftRadius: r }, { borderTopWidth: w, borderLeftWidth: w })}
       {corner({ top: 0, right: 0, borderTopRightRadius: r }, { borderTopWidth: w, borderRightWidth: w })}
       {corner({ bottom: 0, left: 0, borderBottomLeftRadius: r }, { borderBottomWidth: w, borderLeftWidth: w })}
       {corner({ bottom: 0, right: 0, borderBottomRightRadius: r }, { borderBottomWidth: w, borderRightWidth: w })}
-    </>
+      {children}
+    </div>
+  );
+}
+
+/**
+ * A scanned photo on its gallery backdrop. Catalog shots are cut-outs, so they
+ * sit contained on the backdrop; an uploaded photo is a real photo and fills.
+ */
+function ScanPhoto({
+  image,
+  contain,
+  radius,
+  children,
+}: {
+  image: string;
+  contain: boolean;
+  radius: number;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        borderRadius: radius,
+        overflow: 'hidden',
+        background: contain ? PHOTO_BG : '#111',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+      }}
+    >
+      <img
+        src={image}
+        alt="Your photo"
+        style={
+          contain
+            ? { maxWidth: '88%', maxHeight: '92%', objectFit: 'contain', display: 'block' }
+            : { width: '100%', height: '100%', objectFit: 'cover', display: 'block' }
+        }
+      />
+      {children}
+    </div>
   );
 }
 
@@ -288,122 +374,93 @@ function Capture({
 }) {
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
-      {/* Simulated feed: a soft-lit dark room, slightly brighter with flash on,
-          mirrored for the front camera - stands in for the live preview. */}
-      <div
-        aria-hidden
-        style={{
-          position: 'absolute',
-          inset: 0,
-          transform: facing === 'front' ? 'scaleX(-1)' : 'none',
-          transition: 'transform 320ms cubic-bezier(0.25, 0.1, 0.25, 1)',
-          background:
-            'radial-gradient(120% 90% at 30% 20%, #232323 0%, #101010 55%, #060606 100%)',
-          filter: flash ? 'brightness(1.45)' : 'none',
-        }}
-      />
-      {/* Vignette so the chrome reads over the "feed". */}
-      <div
-        aria-hidden
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background:
-            'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 62%, rgba(0,0,0,0.65) 100%)',
-        }}
-      />
+      <Viewfinder flash={flash} facing={facing} />
 
-      {/* Top chrome: close · flash + flip */}
+      {/* navBar: close · flash + flip */}
       <div
         style={{
           position: 'relative',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: `calc(env(safe-area-inset-top, 0px) + 12px) ${PAGE}px 0`,
+          padding: `${safeTop(8)} ${PAGE}px 0`,
         }}
       >
         <CameraButton label="Close scan" onClick={onClose}>
-          <MIcon name="close" size={22} color={TEXT_PRIMARY} />
+          <MIcon name="close" size={24} color={TEXT_PRIMARY} />
         </CameraButton>
         <div style={{ display: 'flex', gap: 8 }}>
           <CameraButton label={flash ? 'Flash on' : 'Flash off'} onClick={onFlash}>
             <MIcon
-              name={flash ? 'flash_on' : 'flash_off'}
-              size={22}
-              weight={400}
+              name={flash ? 'flashlight_on' : 'flashlight_off'}
+              size={24}
               fill={flash ? 1 : 0}
               color={flash ? '#ffe9a8' : TEXT_PRIMARY}
             />
           </CameraButton>
           <CameraButton label={facing === 'back' ? 'Switch to front camera' : 'Switch to back camera'} onClick={onFlip}>
-            <MIcon name="flip_camera_ios" size={22} weight={400} color={TEXT_PRIMARY} />
+            <MIcon name="flip_camera_ios" size={24} color={TEXT_PRIMARY} />
           </CameraButton>
         </div>
       </div>
 
       {/* Framing area */}
       <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ position: 'relative', width: 'min(72%, 290px)', aspectRatio: '3 / 4' }}>
-          <CornerBrackets />
-        </div>
+        <FocusFrame />
       </div>
 
-      {/* Bottom chrome: description · upload + shutter */}
+      {/* Capture controls: hint · upload + shutter */}
       <div
         style={{
           position: 'relative',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 20,
-          padding: `0 ${PAGE}px calc(28px + env(safe-area-inset-bottom, 0px))`,
+          gap: 24,
+          padding: `24px 0 ${safeBottom(24)}`,
         }}
       >
         <p
           style={{
             margin: 0,
-            fontSize: 14,
-            lineHeight: '20px',
-            color: '#d6d6d6',
+            fontSize: 16,
+            lineHeight: '22px',
+            color: TEXT_PRIMARY,
             textAlign: 'center',
-            maxWidth: 280,
+            padding: `0 ${PAGE}px`,
           }}
         >
-          Frame the piece, its label, or a detail. Your concierge matches it to the catalog.
+          Frame the piece, its label, or a detail
         </p>
+        {/* Upload and an equal-width spacer flank the shutter, so the shutter
+            stays centred on the screen rather than in the leftover space. */}
         <div
           style={{
             width: '100%',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
+            justifyContent: 'space-between',
+            padding: '0 24px',
+            boxSizing: 'border-box',
           }}
         >
-          <button
-            onClick={onUpload}
-            aria-label="Upload a photo"
+          <div
             style={{
-              position: 'absolute',
-              left: 12,
-              width: 48,
-              height: 48,
-              borderRadius: theme.radii.button,
-              background: 'rgba(20,20,20,0.6)',
-              border: '1px solid rgba(255,255,255,0.14)',
-              backdropFilter: 'blur(4px)',
-              WebkitBackdropFilter: 'blur(4px)',
+              width: 55,
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              padding: 0,
-              WebkitTapHighlightColor: 'transparent',
+              gap: 4,
+              flexShrink: 0,
             }}
           >
-            <MIcon name="imagesmode" size={24} color={TEXT_PRIMARY} />
-          </button>
+            <CameraButton label="Upload a photo" onClick={onUpload}>
+              <MIcon name="add_photo_alternate" size={24} color={TEXT_PRIMARY} />
+            </CameraButton>
+            <span style={{ fontSize: 12, fontWeight: 500, lineHeight: '16px', color: TEXT_PRIMARY }}>
+              Upload
+            </span>
+          </div>
           {/* Shutter: white core in a hairline ring. */}
           <button
             onClick={onShutter}
@@ -413,20 +470,22 @@ function Capture({
               height: 74,
               borderRadius: theme.radii.button,
               background: 'transparent',
-              border: '3px solid rgba(255,255,255,0.85)',
+              border: `2.5px solid ${BRACKET}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
               padding: 0,
+              flexShrink: 0,
               WebkitTapHighlightColor: 'transparent',
             }}
           >
             <span
               aria-hidden
-              style={{ width: 60, height: 60, borderRadius: theme.radii.button, background: '#f6f6f6', display: 'block' }}
+              style={{ width: 60, height: 60, borderRadius: theme.radii.button, background: TEXT_PRIMARY, display: 'block' }}
             />
           </button>
+          <span aria-hidden style={{ width: 55, height: 60, flexShrink: 0 }} />
         </div>
       </div>
     </div>
@@ -447,88 +506,58 @@ function Processing({
 }) {
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+      <Viewfinder flash={false} facing="back" />
+
       <div
         style={{
           position: 'relative',
           display: 'flex',
           alignItems: 'center',
-          padding: `calc(env(safe-area-inset-top, 0px) + 12px) ${PAGE}px 0`,
+          padding: `${safeTop(8)} ${PAGE}px 0`,
         }}
       >
-        <button
-          onClick={onCancel}
-          style={{
-            height: 40,
-            padding: '0 16px',
-            borderRadius: theme.radii.button,
-            background: 'rgba(20,20,20,0.6)',
-            border: '1px solid rgba(255,255,255,0.14)',
-            backdropFilter: 'blur(4px)',
-            WebkitBackdropFilter: 'blur(4px)',
-            color: TEXT_PRIMARY,
-            fontSize: 14,
-            fontWeight: 500,
-            cursor: 'pointer',
-            WebkitTapHighlightColor: 'transparent',
-          }}
-        >
+        <button onClick={onCancel} style={cameraTextButtonStyle}>
           Cancel
         </button>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 28, padding: PAGE }}>
-        <div
-          style={{
-            position: 'relative',
-            width: 'min(74%, 300px)',
-            aspectRatio: '3 / 4',
-            padding: 10,
-            boxSizing: 'border-box',
-          }}
-        >
-          <CornerBrackets />
-          <div
-            style={{
-              width: '100%',
-              height: '100%',
-              borderRadius: 12,
-              overflow: 'hidden',
-              background: contain ? '#ececec' : '#111',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-            }}
-          >
-            <img
-              src={image}
-              alt="Your photo"
-              style={
-                contain
-                  ? { maxWidth: '78%', maxHeight: '84%', objectFit: 'contain', display: 'block' }
-                  : { width: '100%', height: '100%', objectFit: 'cover', display: 'block' }
-              }
-            />
-            {/* Sweep line */}
-            <span
-              aria-hidden
-              style={{
-                position: 'absolute',
-                left: 8,
-                right: 8,
-                top: 0,
-                height: 2,
-                borderRadius: 2,
-                background:
-                  'linear-gradient(to right, rgba(246,246,246,0) 0%, rgba(246,246,246,0.9) 50%, rgba(246,246,246,0) 100%)',
-                boxShadow: '0 0 14px rgba(246,246,246,0.55)',
-                animation: 'scanSweep 1600ms ease-in-out infinite',
-              }}
-            />
+      {/* The photo lands inside the focus frame it was framed in, 8px in. */}
+      <div
+        style={{
+          position: 'relative',
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 24,
+          padding: `0 ${PAGE}px ${safeBottom(24)}`,
+        }}
+      >
+        <FocusFrame>
+          <div style={{ position: 'absolute', inset: 8 }}>
+            <ScanPhoto image={image} contain={contain} radius={12}>
+              {/* Sweep line */}
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  left: 8,
+                  right: 8,
+                  top: 0,
+                  height: 2,
+                  borderRadius: 2,
+                  background:
+                    'linear-gradient(to right, rgba(246,246,246,0) 0%, rgba(246,246,246,0.9) 50%, rgba(246,246,246,0) 100%)',
+                  boxShadow: '0 0 14px rgba(246,246,246,0.55)',
+                  animation: 'scanSweep 1600ms ease-in-out infinite',
+                }}
+              />
+            </ScanPhoto>
           </div>
-        </div>
-        <p role="status" style={{ margin: 0, fontSize: 16, fontWeight: 500, lineHeight: '22px', color: TEXT_PRIMARY }}>
-          Identifying piece...
+        </FocusFrame>
+        <p role="status" style={{ margin: 0, fontSize: 16, lineHeight: '22px', color: TEXT_PRIMARY }}>
+          Identifying the piece...
         </p>
       </div>
     </div>
@@ -546,7 +575,6 @@ function Results({
   onOpen,
   onSave,
   onAskConcierge,
-  onSearchManually,
   onClose,
 }: {
   image: string;
@@ -556,46 +584,25 @@ function Results({
   onRetake: () => void;
   onOpen: (p: Product) => void;
   onSave: (p: Product) => void;
-  /** Receives whatever was typed into the prompt field. */
-  onAskConcierge: (text: string) => void;
-  onSearchManually: () => void;
+  onAskConcierge: () => void;
   onClose: () => void;
 }) {
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
-      {/* Header: close · title · retake */}
-      <div
-        style={{
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 8,
-          padding: `calc(env(safe-area-inset-top, 0px) + 12px) ${PAGE}px 8px`,
-        }}
-      >
-        <CameraButton label="Close scan" onClick={onClose}>
-          <MIcon name="close" size={22} color={TEXT_PRIMARY} />
-        </CameraButton>
-        <span style={{ fontSize: 16, fontWeight: 600, color: '#fff' }}>Matches</span>
-        <button
-          onClick={onRetake}
-          style={{
-            height: 40,
-            padding: '0 16px',
-            borderRadius: theme.radii.button,
-            background: 'rgba(20,20,20,0.6)',
-            border: '1px solid rgba(255,255,255,0.14)',
-            color: TEXT_PRIMARY,
-            fontSize: 14,
-            fontWeight: 500,
-            cursor: 'pointer',
-            WebkitTapHighlightColor: 'transparent',
-          }}
-        >
-          Retake
-        </button>
-      </div>
+    <div style={{ ...screenStyle, background: PAGE_BG }}>
+      <Header
+        title="Matches"
+        height={56}
+        left={
+          <CameraButton label="Close scan" onClick={onClose}>
+            <MIcon name="close" size={24} color={TEXT_PRIMARY} />
+          </CameraButton>
+        }
+        right={
+          <button onClick={onRetake} style={cameraTextButtonStyle}>
+            Retake
+          </button>
+        }
+      />
 
       <div
         style={{
@@ -603,50 +610,27 @@ function Results({
           minHeight: 0,
           overflowY: 'auto',
           WebkitOverflowScrolling: 'touch',
-          paddingBottom: `calc(24px + env(safe-area-inset-bottom, 0px))`,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+          paddingTop: safeTop(56 + PAGE),
+          paddingLeft: PAGE,
+          paddingRight: PAGE,
+          paddingBottom: safeBottom(24),
         }}
       >
-        {/* Photo recap */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: `8px ${PAGE}px 12px` }}>
-          <div
-            style={{
-              width: 132,
-              aspectRatio: '3 / 4',
-              borderRadius: 14,
-              overflow: 'hidden',
-              background: contain ? '#ececec' : '#111',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '1px solid #282828',
-            }}
-          >
-            <img
-              src={image}
-              alt="Your photo"
-              style={
-                contain
-                  ? { maxWidth: '80%', maxHeight: '86%', objectFit: 'contain', display: 'block' }
-                  : { width: '100%', height: '100%', objectFit: 'cover', display: 'block' }
-              }
-            />
+        {/* Scan recap */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 120, height: 160, border: '1px solid #282828', borderRadius: 12 }}>
+            <ScanPhoto image={image} contain={contain} radius={11} />
           </div>
+          <p style={{ margin: 0, fontSize: 16, lineHeight: '22px', color: TEXT_SECONDARY, textAlign: 'center' }}>
+            Choose the piece that matches yours
+          </p>
         </div>
 
-        <p
-          style={{
-            margin: '0 0 12px',
-            textAlign: 'center',
-            fontSize: 14,
-            lineHeight: '20px',
-            color: TEXT_SECONDARY,
-          }}
-        >
-          Choose the piece that matches yours
-        </p>
-
         {/* Matching options */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: `0 ${PAGE}px` }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {matches.map((p) => (
             <div
               key={p.name}
@@ -655,10 +639,10 @@ function Results({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 12,
-                background: '#0c0c0c',
-                border: '1px solid #282828',
+                background: SURFACE,
+                border: `1px solid ${BORDER}`,
                 borderRadius: theme.radii.card,
-                padding: 10,
+                padding: 8,
                 cursor: 'pointer',
                 WebkitTapHighlightColor: 'transparent',
               }}
@@ -668,8 +652,8 @@ function Results({
                   width: 64,
                   height: 64,
                   flexShrink: 0,
-                  borderRadius: 10,
-                  background: '#ececec',
+                  borderRadius: 8,
+                  background: PHOTO_BG,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -684,23 +668,14 @@ function Results({
                   style={{ maxWidth: '80%', maxHeight: '84%', objectFit: 'contain', display: 'block' }}
                 />
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p
-                  style={{
-                    fontSize: 15,
-                    fontWeight: 600,
-                    color: '#f7f7f7',
-                    lineHeight: '20px',
-                    margin: 0,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
+              {/* The name wraps rather than truncating: which of four near-identical
+                  pieces this is often lives in the words a clamp would eat. */}
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <p style={{ margin: 0, fontSize: 16, fontWeight: 600, color: TEXT_PRIMARY, lineHeight: '22px' }}>
                   {p.brand} {p.name}
                 </p>
-                <span style={{ fontSize: 13, color: TEXT_SECONDARY, lineHeight: '18px' }}>
-                  {p.category} · {formatPrice(priceOf(p))}
+                <span style={{ fontSize: 13, lineHeight: '18px', color: TEXT_SECONDARY }}>
+                  {categoryConfigs[p.category]?.name || p.category} · {formatPrice(priceOf(p))}
                 </span>
               </div>
               <button
@@ -712,12 +687,13 @@ function Results({
                   isSaved(p.name) ? `Manage ${p.brand} ${p.name} in your collections` : `Save ${p.brand} ${p.name}`
                 }
                 style={{
-                  width: 36,
-                  height: 36,
+                  width: 40,
+                  height: 40,
                   flexShrink: 0,
+                  alignSelf: 'center',
                   borderRadius: theme.radii.button,
-                  background: '#101111',
-                  border: '1px solid #444547',
+                  background: '#2f2f31',
+                  border: 'none',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -728,57 +704,43 @@ function Results({
               >
                 <MIcon
                   name="favorite"
-                  size={18}
-                  weight={isSaved(p.name) ? 500 : 400}
+                  size={24}
                   fill={isSaved(p.name) ? 1 : 0}
-                  color={isSaved(p.name) ? '#ef4d63' : '#e7e7e7'}
+                  color={isSaved(p.name) ? '#ef4d63' : TEXT_PRIMARY}
                 />
               </button>
             </div>
           ))}
         </div>
 
-        {/* Browse the catalog yourself. The question is the label and stays
-            text; only the answer is the control, so the button says what pressing
-            it does rather than wrapping the whole sentence in a border. */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
-            marginTop: 16,
-          }}
-        >
-          <span style={{ fontSize: 14, lineHeight: '20px', color: '#999' }}>None of these?</span>
+        {/* No match. Searching only finds what the catalog is already tagged
+            with, so the way out of a bad match is the concierge, carrying the
+            photo: the question is the label and stays text, only the answer is
+            the control. */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+          <span style={{ fontSize: 16, lineHeight: '22px', color: TEXT_SECONDARY }}>None of these?</span>
           <button
-            onClick={onSearchManually}
+            onClick={onAskConcierge}
             style={{
-              height: 36,
+              height: 48,
               padding: '0 16px',
-              background: 'transparent',
-              border: '1px solid #313131',
+              background: '#222124',
+              border: 'none',
               borderRadius: theme.radii.button,
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: 500,
-              lineHeight: '20px',
-              color: '#f6f6f6',
+              lineHeight: '22px',
+              color: TEXT_PRIMARY,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
+              flexShrink: 0,
               WebkitTapHighlightColor: 'transparent',
             }}
           >
-            Search manually
+            Ask AI Concierge
           </button>
         </div>
       </div>
-
-      {/* Pinned: hand the scan to the concierge, as a prompt field rather than a
-          button - the same call the product and collection pages make. What you
-          want to ask about a scan is specific ("is this the 2023 model?"), so it
-          goes in one step instead of landing in an empty chat. Sending starts a
-          NEW chat with the photo attached; an empty send uses the canned line. */}
-      <BottomDock placeholder="Ask about this scan" showAttach={false} onSend={onAskConcierge} />
     </div>
   );
 }

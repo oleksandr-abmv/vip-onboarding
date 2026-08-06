@@ -212,6 +212,27 @@ const IMAGE_PATHS: string[] = [
   '/products/watches/women/women-watches-skeleton-2-millenary-audemars-piguet.webp',
 ];
 
+/**
+ * Extra views, keyed by the product's primary image path.
+ *
+ * The filename parser above reads one file as one product, so a second shot of
+ * the same piece cannot be auto-discovered - it would parse as a separate
+ * product. Extra views are therefore attached explicitly here: drop the files
+ * anywhere under /products/ and list them against the primary shot.
+ *
+ * Order is the order the Product Page gallery shows them in; the primary shot
+ * is prepended automatically, so do NOT repeat it here. A product with no entry
+ * has one image, and the gallery renders it as a plain static image with no
+ * counter.
+ */
+const EXTRA_VIEWS: Record<string, string[]> = {
+  // Example of the shape (no extra assets in the catalogue yet):
+  // '/products/bags/men/men-bags-briefcases-1-un-jour-briefcase-berluti.webp': [
+  //   '/products/bags/men/alt/un-jour-briefcase-berluti-2.webp',
+  //   '/products/bags/men/alt/un-jour-briefcase-berluti-3.webp',
+  // ],
+};
+
 // Known brand segments (longest first so multi-word brands match before single-word)
 const BRANDS: string[] = [
   'brunello-cucinelli', 'salvatore-ferragamo', 'bottega-veneta',
@@ -359,6 +380,7 @@ export function discoverProducts(): Product[] {
       brand,
       price: '',
       image: path,
+      images: [path, ...(EXTRA_VIEWS[path] || [])],
       description: DESCRIPTIONS[path] || '',
       category,
       subcategory,

@@ -59,6 +59,7 @@ copy tone, and the VIP-logo placeholder rule). Styling questions → this file.
 |---|---|---|
 | Saved heart (filled) | `#ef4d63` | Only for the saved/favorite heart |
 | Heart outline | `#e7e7e7` | Unsaved heart icon |
+| Unread dot | `theme.colors.unread` `#E53935` | The bell's badge and unread notification rows. The only red in the chrome, so a dot reads as "something happened" instead of as another white highlight. Both dots share the token, never a literal |
 | CTA primary bg / text | `#f6f6f6` / `#121212` | Enabled primary button |
 | CTA disabled bg / text | `#252525` / `#666` | Disabled primary button |
 | Progress track / fill | `#333` / `#f0f0f0` | Onboarding progress bar |
@@ -154,15 +155,16 @@ onboarding banner (while incomplete), then three groups:
   (`grid-auto-flow: column`, two rows). Each row is a list item: a 54px rounded
   thumbnail + category name + "N items". Tapping opens the category as a list.
 
-`CollectionCard` (used by **Collections**) is the shared `CollectionFan` **cover**
-(up to four tiles, outer ones rotated) + name + "N pieces", plus a
-**favorite heart** (saves the whole look to Saved > Collections) and a "..." menu
+`CollectionCard` (used by **Collections**) is the shared **`CollectionCover`
+2x2 grid** of the pieces inside + name **18/24/600** + meta **14/20 `#999`**, plus
+a **favorite heart** (saves the whole look to Saved > Collections) and a "..." menu
 (self-contained `OverflowMenu`, portaled like the product-card menu). Discover's
-**Mixed Collections** group stays a **horizontal carousel** (230px cards) but the
-cards read like the Saved tab's: same cover, and the same **"N items · $total"**
+**Mixed Collections** group stays a **horizontal carousel** but the cards read
+exactly like the Saved tab's: same cover, and the same **"N items · $total"**
 meta via `outfitMeta()` rather than a bare "N pieces". **Tapping one opens the
 collection page**, not a generic product list - previewed until the look is
-hearted (see **Collection page**).
+hearted (see **Collection page**). One card in both places, so a collection is
+always the same object.
 
 **Tailored Outfits** is the row underneath, and the only thing that separates it
 is the card. `OutfitCard` is the **styled flat-lay as shot**
@@ -178,21 +180,12 @@ it must not grow one.
 collection, outfit and category alike - so the rails line up down the page and
 the next card peeks by the same amount in each. Change it in one place.
 
-**Collection covers.** A collection may carry a `cover`: an outfit's flat-lay
-(copied in when the look is saved) or one **generated** from
-**"..." > Generate / Regenerate / Remove cover**. There is deliberately **no
-upload** - the app owns the picture, so every cover is the same shape and the
-same safe fit, and no collection ends up with a sideways phone photo across the
-top of it. Regenerating always lands on a different one
-(`nextCover`, `src/data/covers.ts`).
-
-It renders as an **inset 4:3 card** (page margins, radius 16) above the title -
-deliberately NOT the product page's full-bleed band, which left grey gutters
-either side of a 4:3 picture and read as a broken image. **A cover also replaces
-the fan on the collection's card**: it is the picture somebody chose, where the
-fan is only what the app can assemble without one. Fit comes from
-**`coverFillsBox()`**: a generated cover is edge-to-edge texture so it fills,
-and a flat-lay is contained so the look never loses a piece off the edge.
+**Collections have no cover picture.** There is no `cover` field, no upload and
+no "Generate cover" - the pieces inside *are* the cover, so the card is always
+truthful about what is in it and nothing has to be chosen, stored or regenerated.
+An outfit's flat-lay lives on the outfit card only; once the look is filed it
+becomes an ordinary collection and its card becomes the 2x2 mosaic. The inset 4:3
+cover hero on the collection page went with it.
 
 **Every horizontal rail keeps its inset on the inner track, and the track is
 `width: max-content`** - `Section`, and the Categories two-row grid. Put the
@@ -201,12 +194,9 @@ scrollable width, so the last card ends flush against the screen edge at scroll
 end and the margin only reappears at rest.
 
 Discover opens with the **onboarding-progress banner** (while onboarding is under
-100%) at the very top, then the **search field**: placeholder "Search for products",
-with the scan brackets inside it opening the same camera overlay as the Scan dock
-item. The field's top padding is 16 when the banner is absent and 8 when it is
-there, so the gap stays even either way. **The field is an affordance, not an
-input** - it carries `onActivate`, so tapping it opens the **search modal** (see
-below) rather than typing in place. The feed itself never shows results.
+100%) at the very top and then goes **straight into the rails**. There is no
+search field: see **No search** below. The camera the field used to carry is the
+**Scan dock item**, and looking something up is the **Chat dock item**.
 
 The Discover bottom is just the **tab bar**. Products are stably shuffled
 (deterministic) so every group mixes categories. Products **without real imagery**
@@ -215,204 +205,168 @@ recommend". "View all" / a collection opens a titled full-screen list.
 
 ### Saved view
 A **top-level tab** (heart in the bottom bar), so **no back button**. The dock
-label and the page header are both **"Saved"**. The page is
+label is **"Saved"**, the page header **"Saved collections"**. The page is
 **collections only** - no segment switcher, no saved-products list, and stores
-are not saveable anywhere. The header is the **56px navBar** (like the Chat tab's) so
-its action sits centred in the bar: **`add_2`** alone, the shared 40px bordered
-circle (`iconButtonStyle`). Search is a **`<SearchField>` on the page** that
-filters the list in place. The body is a **single column** (`savedColStyle`) of
-full-width `CollectionCard`s whose meta line is **"N items · $total"** (`meta` prop
-overrides the default "count unit"); tap opens the **collection page**.
-Collections are ordered **newest first** (`createdAt` descending), so the one just
-saved leads the list.
-
-**Pinning.** Each card carries a **pin toggle beside its name**, not over the
-cover: pinning is a property of the collection rather than an action on the
-imagery, and the cover's corners already belong to the heart and the "..." menu.
-A 32px circular button holding `keep` at 20px, `#999` outline when loose and
-**`#f6f6f6` filled on `rgba(246,246,246,0.12)`** when pinned, the same way the
-dock marks its active tab. Pinned collections lift into a **`<Section>` titled
-"Pinned"** at the top of the tab - the identical horizontal carousel Discover's
-Collections row uses, cards at the carousel's 230px so it actually scrolls - and
-the column below gains an **"All collections"** `SectionHeader`. With nothing
-pinned the tab stays exactly the bare list it was, no headings. **`NewCollectionCard` closes the list** as a **horizontal
-64px row** - `1px dashed #3a3a3a` on `rgba(255,255,255,0.02)`, `radius 16`, a 22px
-`add_2` beside "New Collection" 15/600. Horizontal and last, so it reads as the
-action at the end rather than another collection in the column; the dashed outline
-reads as an empty slot rather than something that already exists. It is hidden
-while the list is filtered, where it would read as a result.
+are not saveable anywhere. The header is the **56px navBar** carrying nothing but
+its title: **there is no `+`**, because collections are created inside the Add to
+collection flow and an empty collection is not a thing anyone wants. Under it
+sits **the app's only search field** - a `<SearchField>` that filters the list
+**in place**, matching the collection name. It is not catalog search (there is
+none; see **No search** below): it is a filter over a short list the user named
+themselves. The body is a **single column** (`savedColStyle`) of full-width
+`CollectionCard`s whose meta line is **"N items · $total"** (`meta` prop overrides
+the default "count unit"); tap opens the **collection page**. Collections are
+ordered **newest first** (`createdAt` descending), so the one just saved leads the
+list. **No pinning**, no "Pinned" rail, no "All collections" heading, no creator
+row.
 
 **Two empty states, both the shared `<CenteredState>`** (`src/components/CenteredState.tsx`:
 56px icon disc, title 20/600, one hint line, optional action). **Filtered to
-nothing** is a dead end - the filter only matches names and descriptions the user
-wrote themselves - so it takes `search_off`, "No collections" / `Nothing here for
-"q".`, and an **`<AskConciergeOffer>`** whose prompt is `Help me put together a
-collection for "q"`. That is the identical treatment the search modal's no-match
-state gets, because it is the same situation reached two ways. **Nothing saved at
-all** is not a dead end (the `NewCollectionCard` is right underneath), so it takes
-`favorite`, "Nothing saved yet", and no action. Category "See all" pages keep a
-back button + single-column large cards.
+nothing**: `search`, "Nothing found" / "Check the spelling or try a different
+name." - and **no action**, because the filter only ever failed to match a name
+the user wrote and the fix is to retype it. **Nothing saved at all**: `favorite`,
+"Nothing saved yet", and the line that says how that changes ("Heart a piece
+anywhere in the app and file it into a collection"), also with no action - that
+action is out in the app, on the pieces. Category "See all" pages keep a back
+button + single-column large cards.
 
 **Hearts manage collection membership everywhere.** A heart fills when the piece
-sits in any collection; tapping one (product card, product page nav, scan match
-row) opens the Add to collection flow with the piece's collections pre-checked -
-unchecking and saving removes it. There is no separate bookmark glyph.
+sits in a collection; tapping one (product card, product page nav, collection
+page, scan match row) opens the Add to collection flow with that collection
+already selected. There is no separate bookmark glyph.
 
 ### Collections (`src/data/collections.ts`, `src/components/CollectionSheets.tsx`, `src/screens/CollectionPage.tsx`)
-User-curated groups of saved pieces: `id`, `name`, `description`, ordered
-`items` (product names), and an optional **note per piece**. Owned by
-`FeedScreen` (like Data Memory) because Saved, the product page, the scan
-results, and Discover's look hearts all write to the same list. Prices come from
-the shared deterministic price history (`priceOf`), summed into the "N items ·
-$total" meta line (`collectionMeta`).
+User-curated groups of saved pieces: `id`, `name`, ordered `items` (product
+names), `createdAt`. **That is the whole model** - no description, no per-piece
+notes, no cover. Owned by `FeedScreen` (like Data Memory) because Saved, the
+product page, the scan results, and Discover's look hearts all write to the same
+list. Prices come from the shared deterministic price history (`priceOf`), summed
+into the "N items · $total" meta line (`collectionMeta`).
 
-**The card cover** is `CollectionFan` (Figma node 5442-23149) at
-`size="100%" aspect="600/400"`: up to four product tiles dropped on the surface
-like photos on a table, the outer ones kicked out so you can see what is inside
-without opening anything. Tiles are `#ececec`, **35.18% of the cover width**,
-aspect `120.652/114.72`, padding and corner both **9.67% of the tile**, centred
-on **54.39%** of the cover height. Rotation fans evenly from **-15deg to +15deg**
-(so two read `-15/+15` and three read `-15/0/+15`, as the file draws them), and
-paint order runs left to right, so the stack cascades to the right. Every
-measurement is in `cqw` off the cover's own width, so the fan holds its
-proportions at the 230px Discover width as well as full bleed.
+**A piece lives in exactly one collection.** `collectionOf()` answers which, and
+every write that adds items runs through FeedScreen's `exclusive()`, so filing a
+piece (or a whole look) *moves* it. `seedCollections` draws from a shared pool so
+the starter data is disjoint on first paint.
 
-Adjacent centres sit **23.32% of the cover width** apart until the run would
-leave the cover; past three the step tightens so the outermost tile keeps its
-margin and the extras slide in underneath. **Four is the ceiling**: it still
-shows 44% of every tile, where five drops to a third and the middle of the fan
-turns into slivers you cannot read. 0 items → the VIP logotype at **27.27% of
-the cover width**, `opacity 0.35`, bare on `#161616` with no tile behind it -
-there is no piece to sit on one.
+**The card cover** is `CollectionCover`, the **2x2 grid**, at
+`size="100%" aspect="600/400"` on a card and 56px square as a row thumb. 0 items →
+one full tile on `#161616` with the VIP logotype at `opacity 0.35`; 1-4 items →
+images fill in on the `#ececec` gallery backdrop and **empty cells take the same
+`#161616` surface** with the logotype at `opacity 0.22`. The light backdrop exists
+to sit a product on, so a slot with no product does not get it. 5+ items → **the
+first four, and nothing else**. The hairline between tiles is a **1px gap over
+`#101111`** - the page showing through, not a border; a lighter rule framed each
+piece.
 
-There are **no empty slots and no "+N"**: a two-piece collection is two tiles,
-not two tiles and two holes, and the card's own subtitle already reads
-"12 pieces · $48,000", so a badge would say it twice.
+**There is no "+N" overflow count.** The four tiles are a preview, not an
+inventory, and the card's own meta line already reads "6 items · $45,550" - the
+badge said it a second time and spent a whole tile doing it. Do not reintroduce
+one.
 
-**The 56px row thumb** (the add-to-collection sheet) stays `CollectionCover`, the
-**2x2 grid**: 0 items → one full tile on `#161616` with the VIP logotype at
-`opacity 0.35`; 1-4 items → images fill in on the `#ececec` gallery backdrop and
-**empty cells take the same `#161616` surface** with the logotype at
-`opacity 0.22`. The light backdrop exists to sit a product on, so a slot with no
-product does not get it. 5+ items → 3 previews and the 4th image under a
-`rgba(10,10,10,0.62)` overlay with a **"+N"** label (N = count - 3). A fan at
-that size would be three unreadable slivers, so the grid stays.
+The fanned cover (`CollectionFan`, tiles dropped on a table at -15/0/+15deg) was
+tried here and removed: at four pieces it showed less of each one than the grid.
 
 **Ways in** (all lead to the same sheet flow):
-- **Hearts** - product cards, the product page nav, scan match rows.
-- Hearting a **look** on Discover files the look as a collection.
-- **New collection** on the Saved tab (standalone create sheet).
-- The collection page's pinned **Add pieces** sheet (below).
+- **Hearts** - product cards, the product page nav, the collection page, scan
+  match rows.
+- Hearting a **look or outfit** on Discover files the whole look as a collection.
+- **Create**, inside the Add to collection sheet's header. That is the only place
+  a collection is born.
 
-**Add to collection flow** (`AddToCollectionFlow`): select → create → note.
-- *Select*: sheet header is **X · "Add to collection" · Create** (the sheet's
-  `action` slot). Rows: 56px `CollectionCover` + name + meta + **`CheckCircle`**
-  - a 24px multi-select circle, `1.5px solid #444547` empty, filled `#f6f6f6`
-  with a dark 16px `check` when selected. Collections already holding the piece
-  open **pre-checked**; the CTA reads **Next** when the selection adds
-  collections, **Save** when it only removes, and is disabled while unchanged.
-  No collections yet → opens on *create*.
-- *Create* (`CreateCollectionSheet`): Name input + Description textarea
-  (`#161616` on `1px solid #282828`, `radius 12`) + **Create Collection** CTA.
-  Reused for **Rename** with `title="Edit collection"`, `cta="Save Changes"`.
-- *Note*: the piece as a mini row (56px thumb + name + category · price), a Note
-  textarea, **Save**. Additions confirm with **"Added to {name}" / View** (View
-  opens the collection); pure removals confirm with **"Removed from your
-  collections" / Undo**.
+**Add to collection flow** (`AddToCollectionFlow`): select → save, with create as
+a detour.
+- *Select*: sheet header is **X · "Add to collection" · Create**, the X in the
+  **leading** slot (`Sheet`'s `closeLeading`) and Create a 32px bordered pill in
+  the `action` slot. Rows: **56px single-image thumb** (`radius 12`, the
+  collection's first piece - a 2x2 grid at that size is four thumbnails too small
+  to read) + name **16/22/600** + meta **14/20 `#999`** + **`RadioDot`**: a 24px
+  ring, `1.5px #444547` empty, `#f6f6f6` ring with a 12px `#f6f6f6` centre when
+  chosen. **Radio, not checkbox** - a piece has one home, so this is an answer to
+  change, not a set to edit. The collection currently holding the piece opens
+  selected; tapping it again clears it, which is how a piece leaves collections
+  altogether. **Save** is disabled while unchanged. No collections yet → opens on
+  *create*.
+- *Create* (`CreateCollectionSheet`): a **single "Collection name" field**
+  (`#161616` on `1px solid #282828`, `radius 12`, placeholder "e.g. Riviera
+  Summer", trailing `close` to clear) + **Create collection** CTA. Reused for
+  **Rename** with `title="Rename collection"`, `cta="Save"`.
+- Confirmation: **"Added to {name}" / View** (View opens the collection); clearing
+  the selection confirms with **"Removed from your collections" / Undo**.
 
-**Add pieces sheet** (`AddItemsSheet`, full-height): search and scan share one
-field - the shared **`<SearchField>`** (see below) autofocused, with a
-**`photo_camera` trailing action** that closes into the scan overlay. **Idle state** until the
-user types (centered "Search the catalog" + hint); results are mini rows where
-**one tap adds that piece** (trailing `add_2` → filled `check_circle` once in
-the collection; added rows are inert). No multi-select, no footer CTA.
-**Both empty states offer the concierge** (`<AskConciergeOffer>`), since the catalog
-only holds what is already tagged in it. It closes the sheet into a NEW chat,
-carrying the typed query when there was one.
+The old **Add pieces sheet** (`AddItemsSheet`: catalog search + scan inside the
+collection page) is gone with the collection page's action stack. Pieces arrive by
+being hearted where you find them.
 
-`<AskConciergeOffer>` is the shared block behind every one of these, and it is
-deliberately three elements: an "or" hairline rule, a **filled `Ask AI Concierge`
-pill** (48px, `<ConciergeMark onLight>` + label), and **one 13/18 `#999` line**
-under it - "Describe an occasion, a budget or a mood. It looks past the catalog."
-That line is the argument for asking rather than typing, and it earns one line: a
-headline plus a panel of worked examples was built here first and made an empty
-search screen feel like homework.
+**Collection page** (`CollectionPage`, Figma node 5539-20057; a z-200 push over the
+Saved tab, kept while visiting other tabs, entering with `screenSlideInRight`
+320ms). The whole page is: the nav bar, a **centered title block** - name
+**22/28/600**, then "N items · $total" **14/20 `#999`** - the pieces in a 2-col
+grid, and **one thing at the bottom**.
 
-**Collection page** (`CollectionPage`, a z-200 push over the Saved tab, kept
-while visiting other tabs, entering with `screenSlideInRight` 320ms): the header
-bar carries only back + `more_horiz`; the body opens with a **centered title
-block** - name **24/600**, "N items · $total", description 15/`#999` - then the
-**action stack** (below). Items are the app's `<ProductCard>` in a 2-col grid, with
-the note dropped into the card's `footer` slot: a **`#1c1c1c` strip on `1px solid
-#2a2a2a`, `radius 10`, `padding 6px 10px`**, holding the text **14/20 `#ededed`,
-italic**, clamped to **2 lines** ("Add Note" when empty; tapping opens `NoteSheet`).
-No label and no glyph in front of it - the box plus the italic is what says this is
-the user's own writing, without spending a line of a narrow card on the word
-"Note". Two lines, so a long note cannot stretch its card past the one beside it. There is **no per-item "..." menu** - it only ever duplicated the note
-strip and the heart, and **no pinned bottom bar**. The nav bar carries **search**
-then **`more_horiz`**.
-**`preview` mode** is the same page for a **Discover look the user has not saved
-yet** (opened by tapping a Collections card; there is no stored `Collection` behind
-it, so FeedScreen stands one up from the look). It stays fully usable: notes and
-hearts work, and the hearts carry their app-wide meaning - filled only when the
-piece sits in some collection, tapping opens Add to collection - rather than
-"remove from this collection". What changes is only what needs a stored collection:
-the primary action becomes **"Save Collection"** instead of Add pieces, and Rename /
-Delete drop out of the menu. **Writing a note files the look** in the same state
-update (`setCollectionNote`'s `fileIfMissing`), so the note always lands somewhere;
-saving either way flips the page into the real one.
+**Nav bar**: back on the left, then **`share`** and **`more_horiz`** on the right,
+both the 40px `iconButtonStyle` circle (Figma node 5555-53458). Share sits in the
+bar rather than inside the menu because handing a collection to someone is a
+large part of the point of making one, and because a **`preview` look has no menu
+at all** and still has to be shareable - so in preview the bar is back + share,
+and only once the collection is the user's does `more_horiz` appear beside it.
+Sharing goes through `collectionShare()` + the OS sheet (`navigator.share`),
+falling back to the clipboard; only the fallback and an outright failure say
+anything, since the OS sheet confirms itself.
 
-Under the title block sits the **action stack**: full-width buttons, one filled
-`primaryActionStyle` then outlined `outlinedActionStyle` (both from
-`screens/screenChrome.tsx`, shared with the product page), `gap 8`. **Virtual try-on
-leads** - it is what you came to a collection of clothes to do - and the
-collection's own action sits under it, the way Add to collection does elsewhere:
+Items are the app's `<ProductCard>` **verbatim**: `subtitle={brand}` +
+`price`, the heart filled `#ef4d63` (in a saved collection that means "in here",
+and tapping removes it). No `footer`, no note strip, no per-item "..." menu.
 
-| State | Primary | Outlined |
-| --- | --- | --- |
-| Has clothing, saved | Virtual try-on (`apparel`) | Add pieces |
-| Has clothing, preview | Virtual try-on (`apparel`) | Save Collection |
-| No clothing, saved | Add pieces (`add_2`) | - |
-| No clothing, preview | Save Collection (`favorite`) | - |
+**No cover hero, no description, no action stack, no try-on, no Add pieces, no
+search.** Every one of those was on this page and was taken off.
 
-A preview never offers Add pieces: there is no stored collection to add to yet.
+**The bottom has one job at a time, and `preview` picks which.**
 
-The concierge is **not a button here**. A prompt-only `<BottomDock>` is **pinned at
-the bottom of the page**, and sending starts a NEW chat with the typed text and the
-collection attached. Its **placeholder cycles**: a static `placeholderPrefix`
-**"Ask to"** with only the tail moving through "find you a piece", "add pieces" and
-"modify this collection". `placeholder` takes an array, the phrases are drawn in a
-span over a placeholder-less input (the attribute cannot animate) and swapped every
-**2800ms** on `placeholderCycle`, which rises each phrase in, holds it, and lifts
-it out as the next arrives. Cycling stops as soon as there is text. Keep the
-lead-in short and the tails under ~130px at 16px, or they truncate. The question is
-usually specific ("what shoes go with this?"), so asking it takes one step instead
-of landing in an empty chat and typing it there. The **product page** ("Ask about
-this piece") and the **scan results** ("Ask about this scan") pin the same field for
-the same reason; an empty send on the scan falls back to its canned line.
+- **Not yours yet** (a Discover look, an outfit, or a set the concierge just put
+  together - no stored `Collection`, so FeedScreen stands one up): a **full-width
+  "Save to my collections"** pill
+  (`primaryActionStyle` + `favorite` at 18 + a `0 8px 24px rgba(0,0,0,0.55)`
+  shadow) **floating** over the list. It is `position: absolute` at the bottom
+  inside a `pointer-events: none` container on a `to top, #0A0A0A 55%` gradient
+  fade, with `pointer-events: auto` back on the button itself, so the list still
+  scrolls under it and the last row fades out rather than being sliced. The body
+  takes `paddingBottom: 96` in this mode to clear it. Floating rather than
+  docked: it is one decision, not a fixture. Saving files the look (moving its
+  pieces out of any other collection), flips the page into the real one, and
+  confirms with the **"Saved to your collections" / View** snackbar.
+- **Already yours**: nothing is left to decide, so the slot goes to the
+  concierge - a `<BottomDock>` prompt field whose **placeholder cycles**: a
+  static `placeholderPrefix` **"Ask me"** with only the tail moving through
+  "to find you a piece", "what completes this" and "to restyle this". The field
+  does more than one job and a single static hint advertises one of them, but
+  rotating whole sentences was hard to read at a glance, so the lead-in stays put
+  and the tail changes under it. Keep tails to **~19 characters** or they truncate
+  against the attach and mic buttons. Sending starts a NEW chat with the typed
+  text and the collection attached; the question is usually specific ("what shoes
+  go with this?"), so asking it takes one step instead of landing in an empty chat
+  and typing it there. The **product page** ("Ask about this piece") pins the same
+  field with a plain static placeholder.
 
-The nav bar carries **`share`** then **`more_horiz`**. Share hands the collection
-over through the OS share sheet (`navigator.share`), falling back to the clipboard
-where there is none; it sits in the bar rather than the menu because handing a
-collection to someone is the point of building one, and because a **preview look
-has no menu at all** and still has to be shareable. **There is no search here** -
-a collection is a short list the user assembled and every piece is already on
-screen, so a field to find something inside it only added a step.
+Never both, and never neither. Mechanically the cycle is a `placeholder` array
+plus `placeholderPrefix`, drawn in a span over a placeholder-less input (the
+attribute cannot animate) and swapped every **2800ms** on `placeholderCycle`,
+which rises each phrase in, holds it, and lifts it out. Cycling stops as soon as
+there is text; a plain string stays a plain placeholder.
 
-The "..." menu carries only what the page does not already show: **Virtual try-on**
-**disabled** (`opacity 0.38`, inert via `MenuItem.disabled`) when no piece is
-Fashion and Apparel, so a collection with nothing wearable still names the feature,
-then **Rename** and destructive **Delete** (confirm `Dialog`, then "Collection
-deleted" / Undo). That can leave it **empty** - a Discover look you can try on has
-every action on screen already - so the header **drops the `more_horiz` button**
-rather than opening onto nothing.
+In `preview`, Rename / Delete also stay out of the "..." menu, which leaves it
+empty, so the header **drops the `more_horiz` button** rather than opening onto
+nothing.
 
-An **empty collection** drops the action stack entirely and fills the page below
-the title block with a centred empty state (`flex: 1`, `justify-content: center`,
-so it sits in the middle of what is left rather than under the title): the shared
-**`<GhostCards>`** illustration, "Nothing here yet" 18/24/600, the 14/20 `#999`
-hint, then an **Add pieces** pill. The stack goes because that pill is the only
-action an empty collection has, and two of them on one screen is one too many.
+The "..." menu carries exactly **Rename** and destructive **Delete collection**
+(confirm `Dialog`: "Delete this collection?" / "The pieces will be removed from
+this collection." / **Delete collection**, then "Collection deleted" / Undo).
+
+An **empty collection** fills the page below the title block with a centred empty
+state (`flex: 1`, `justify-content: center`, so it sits in the middle of what is
+left rather than under the title): the shared **`<GhostCards>`** illustration,
+"Nothing here yet" 18/24/600, and a 14/20 `#999` line pointing back out at the app
+("Heart a piece anywhere in the app to file it here, or ask your concierge below").
+No button - there is nothing here to add from.
 
 **`<GhostCards>`** (`src/components/GhostCards.tsx`) is the app's empty-state
 illustration: three 152px placeholder cards fanned at -9 / 0 / +9 degrees, the
@@ -421,29 +375,45 @@ outer two at `opacity 0.5`, on `#101010` with a `#242424` border. It draws the
 nothing. No shimmer - this is empty, not loading. Reuse it for any empty state
 that stands for an absent list.
 
-### Scan (`src/screens/ScanScreen.tsx`, z-220 overlay)
+### Scan (`src/screens/ScanScreen.tsx`, z-220 overlay, Figma node 5488-3358)
 The dock's fourth item; an overlay (Close returns to whatever was underneath),
 never an active tab. Three phases:
-- **Capture**: simulated viewfinder (radial `#232323 → #060606`, mirrored for the
-  front camera, brighter with flash on). Chrome: translucent 40px circles
-  (`rgba(20,20,20,0.6)` + `1px rgba(255,255,255,0.14)`, blur) - Close top-left,
-  flash (`flash_on`/`flash_off` at 22/wght 400, gold + filled when on) +
-  **`flip_camera_ios`** (22/wght 400) top-right; corner brackets (34px L-corners,
-  `2.5px rgba(255,255,255,0.65)`, `radius 18`) frame a 3:4 area; caption;
-  **Upload** (48px, `imagesmode`, real file picker) bottom-left and the
-  **shutter** - 74px ring (`3px rgba(255,255,255,0.85)`) around a 60px `#f6f6f6`
-  core. The shutter "captures" a catalog piece; Upload takes a real image.
-- **Processing**: Cancel pill top-left, the photo inside the corner brackets
-  (`radius 12`; catalog shots sit on `#ececec`, uploads fill), a **sweep line**
-  (`scanSweep` 1600ms, white gradient + glow) and "Identifying piece..." for
-  ~2.4s.
-- **Results**: header **X · Matches · Retake**; 132px photo recap; "Choose the
-  piece that matches yours"; match rows (card `radius 16`, 64px thumb, name,
-  category · price, a **heart** circle → the Add to collection flow; tapping the
-  row opens the product page inside the overlay); a centered **"None of these?
-  Search manually"** text button (opens the matched category's list on Home).
-  A **pinned bottom CTA** - a light primary pill with the VIP logo, **Ask
-  concierge** - starts a NEW chat with the scanned photo attached.
+- **Viewfinder backdrop** (capture + processing both): the file's *Viewfinder
+  glow*, `radial-gradient(41.7% 55.6% at 50% 50%, #232323 0%, #101010 55%,
+  #060606 100%)`, mirrored for the front camera and brighter with flash on, under
+  its *Vignette* (`180deg` black `0.55 → 0 → 0 → 0.65`). The design only draws
+  these on the Processing frame, but swapping the backdrop on the shutter press
+  reads as a flicker, so capture wears it too.
+- **Capture**: chrome is the app's standard `iconButtonStyle` 40px circle
+  (`#101111` on `1px #444547`) - Close top-left, flash
+  (**`flashlight_on`/`flashlight_off`**, gold + filled when on) +
+  **`flip_camera_ios`** top-right. Corner brackets (34px L-corners, `2.5px
+  #d3d3d5`, `radius 18`) frame a **280 x 368** area. Then the hint **"Frame the
+  piece, its label, or a detail"** 16/22 `#f6f6f6`, `gap 24`, and the controls
+  row: `justify-between` inside `24px`, an **Upload** group (40px circle,
+  `add_photo_alternate`, with a **"Upload" 12/16/500 label under it**) at one end,
+  an equal 55px **spacer** at the other so the shutter stays centred on the
+  screen, and the **shutter** between them - 74px ring (`2.5px #d3d3d5`) around a
+  60px `#f6f6f6` core. The shutter "captures" a catalog piece; Upload takes a real
+  image.
+- **Processing**: Cancel pill top-left (`#101111` on `1px #444547`, 40px tall,
+  16/22/500), the photo **8px inside the same corner brackets** it was framed in
+  (`radius 12`; catalog cut-outs sit contained on `#ececec`, uploads fill), a
+  **sweep line** (`scanSweep` 1600ms, white gradient + glow), then `gap 24` and
+  **"Identifying the piece..."** 16/22 `#f6f6f6`, for ~2.4s.
+- **Results**: the shared `<Header>` at 56 - **X · Matches · Retake** - over a
+  `padding 16 / gap 16` column: a **120 x 160** photo recap (`radius 12`,
+  `1px #282828`), "Choose the piece that matches yours" 16/22 `#999`, then the
+  match rows at `gap 8` (card `#101111` on `1px #444547`, `radius 16`,
+  `padding 8`, `gap 12`: 64px `radius 8` thumb, the piece **16/22/600 wrapping
+  rather than truncating**, category · price 13/18 `#999`, and a 40px `#2f2f31`
+  circle holding a 24px **heart** → the Add to collection flow; tapping the row
+  opens the product page inside the overlay). It closes on the **"None of these?"**
+  row: the question stays 16/22 `#999` text and only the answer is a control - a
+  filled **`Ask AI Concierge`** pill (`#222124`, 48px, 16/22/500 `#f6f6f6`) that
+  starts a NEW chat with the scanned photo attached. There is **no prompt field
+  and no "Search manually"** here: searching only finds what the catalog is
+  already tagged with, so the way out of a bad match is to hand the photo over.
 
 ### Product card
 `background #0c0c0c`, `border 1px solid #282828`, `borderRadius 16`, `overflow hidden`.
@@ -491,51 +461,36 @@ one surface**, not two. `#0d0d0d`, `radius 8px 8px 0 0`, `borderTop 1px solid
 - Three shapes from one component: **prompt + tabs** (Chat), **prompt only**
   (Manage Memory, Figma node 5381-8383), **tabs only** (Discover, Menu).
 
-### Search field (`src/components/SearchField.tsx`)
-Figma `inputField` (node 5433-34513) - **one component for every search box in the
-app**: Discover, the collection page, and the Add pieces sheet. Do not hand-roll
-another one. `height 48`, **`radius 12`** (radiusInput_Dropdown, the same rounded
-rectangle as the prompt field rather than a pill), `#161616` on `1px solid #282828`,
-`gap 8`. Left to right: `search` glyph 24px `#8b8b8b`, the input (16/22, `#f6f6f6`),
-a `cancel` clear that appears once there is text, then an optional trailing action.
-- Trailing actions go through `<SearchFieldAction>`: Discover passes `<ScanIcon>`,
-  the Add pieces sheet passes `photo_camera`, both 24px and both opening the scan
-  overlay. The buttons are 32x40 for a usable touch target while the design draws
-  bare 24px glyphs, so the field's right padding is **12 rather than 16** - that
-  puts the glyph centre 28px from the edge, exactly where Figma's `16 + 24/2` does.
-- Placeholders are `#8b8b8b` from a single global `input::placeholder` rule in
-  `index.css`, so the search field, the prompt field and the memory input match.
+### No search, except one field (`src/components/SearchField.tsx`)
+**The app has no catalog search.** No field on Discover, no search modal, no
+results grid, no suggestion chips, no `matchesQuery()`. Matching a typed string
+against tags only ever returns what the catalog has already been labelled with,
+while the questions people actually have are not ("something for a wedding in
+Como, under 5k") - so **the concierge is the search**: the Chat dock item, or the
+prompt field on a page that is already about one thing. `SearchModal` and
+`AskConciergeOffer` were deleted with the feature. Do not put a field back on
+Discover; if browsing needs a shortcut, it goes to the concierge.
 
-### Search modal (`src/components/SearchModal.tsx`)
-**The one search experience in the app.** Every search affordance opens this rather
-than filtering in place: Discover's field (`<SearchField>` with `onActivate`,
-sitting on the page so the way to search is visible without a tap to discover it),
-and the Add pieces sheet's. **Saved is the exception** - its field is a live
-filter over the grid, since that list is short, already on screen and already
-scoped. The **collection page has none**: searching happens where there is a
-catalog to search, not inside a result. Full screen at `z 320` over whatever
-opened it, entering with `sheetSlideUp` 260ms.
-- **`showAllWhenEmpty`** skips the idle state and renders `children` straight
-  away, for a caller whose list is short and known rather than a catalog to
-  wade into.
-- **Top row**: the shared `<SearchField>` (`flex 1`, autofocused) + a plain
-  **"Cancel"** text button 16/500. Cancelling clears the query.
-- **Three states**, driven by the query and the caller's `resultCount`:
-  - *Idle* (empty query): no headline - the field's placeholder already says what
-    this searches. A **single horizontally-scrolling row of suggestion chips**
-    (36px pills, `#161616` on `#282828`, `nowrap`, padding on the track so the
-    right inset survives at scroll end), then **`<AskConciergeOffer>`**. The chips
-    are **real rows from the data being searched** - pieces in the catalogue,
-    pieces in this collection - never a list of departments, so a chip is a
-    demonstration of a good query and can never come back empty.
-  - *Results*: whatever the caller passes as `children`, so each surface renders its
-    own row type (Discover a 2-col `ProductCard` grid, Saved `CollectionCard`s, a
-    collection its `ItemRow`s). The modal never knows about them.
-  - *Nothing found*: the shared **`<CenteredState>`** with `search_off`, "No
-    matches", and an **`<AskConciergeOffer>`**. It is the point of the state - a
-    dead end hands the query to the concierge instead of stranding the user. The
-    **Saved tab's filtered-to-nothing state uses the same component the same
-    way**; keep them in step, since they are one situation reached two ways.
+**The one exception is the Saved tab**, and it is a different job: a filter over
+the handful of collections the user named themselves, where the name they chose
+is exactly the word they would type to find it again. `<SearchField>` exists
+solely for that, and it filters **in place** - no modal, no pushed screen,
+because that list is short, already scoped and already on screen.
+
+Figma `inputField` (node 5433-34513): `height 48`, **`radius 12`**
+(radiusInput_Dropdown, the same rounded rectangle the prompt field is rather than
+a pill), `#161616` on `1px solid #282828`, padding `0 16`, `gap 8`. Left to right:
+`search` glyph 24px `#8b8b8b`, the input (16/22, `#f6f6f6`), and a `close` clear
+once there is text. The clear button is 32x40 for a usable touch target where the
+design draws a bare 24px glyph, so it carries a `-4px` horizontal margin:
+`16 - 4 + 32/2` puts the glyph centre 28px from the edge, exactly where Figma's
+`16 + 24/2` does. Placeholders are `#8b8b8b` from a single global
+`input::placeholder` rule in `index.css`, so this field, the prompt field and the
+memory input match.
+
+The field has **no `onActivate` and no `trailing` slot** any more - both existed
+for Discover, which no longer has a field. The scan camera that used to sit in it
+is the **Scan dock item**.
 
 ### Screen chrome (`src/screens/screenChrome.tsx`)
 `screenStyle`, `bodyStyle`, `Header`, and `iconButtonStyle` - the shell every
@@ -709,7 +664,8 @@ Full-screen overlay opened by tapping any product card.
   fill** (`rgba(20,20,20,.55)` + blur, `1px solid rgba(255,255,255,.14)`,
   `borderRadius 100`) so they stay legible over both the light hero and the dark
   body.
-- **Hero**: 300px, `background #ececec`, image `objectFit contain`. The **scroll
+- **Hero**: the `ProductGallery` (see its own entry below) - 300px,
+  `background #ececec`, image `objectFit contain`. The **scroll
   body** is inset by the nav height (`safeTop(70)`) so the hero **starts just below
   the nav** on the dark page background, as in Figma - the hero itself carries no
   top padding, so it scrolls straight up under the nav rather than leaving a slice
@@ -738,6 +694,35 @@ Full-screen overlay opened by tapping any product card.
   `#f2f2f2` right, hairline dividers.
 - **Section divider**: 6px `#141414` band.
 - **Where to buy**: the stockist section, see below.
+
+### Product gallery (`src/components/ProductGallery.tsx`)
+The Product Page's hero, and the **only** place a piece's imagery is rendered
+large. There is one details page, so restyling this restyles every route into it
+(Discover, a collection, a scan match).
+- **Views cross-fade, they never slide.** Each shot is a piece on its own
+  backdrop, not a frame of one continuous strip, so a slide read as dragging a
+  filmstrip past a window. A fade reads as the same object being re-lit, and it
+  keeps the piece centred throughout, which a slide cannot. `opacity` over
+  400ms on `theme.animation.easing`, stacked absolutely, no transform.
+- **Counter**: `n / total` pill, bottom-right, `rgba(18,18,18,.72)` + blur,
+  12/500, `theme.radii.pill`, tabular numerals so the width does not jitter as
+  the number changes. Bottom-right keeps it clear of the piece.
+- **One image is not a gallery.** A single view renders as a plain static image:
+  no counter, no fade, no swipe. Most of the catalogue is single-image today, so
+  this is the common case, not the edge case.
+- **Gesture**: horizontal pointer drag past 40px steps one view, clamped at both
+  ends (never wraps - "3 / 3" has to mean there is nothing after it). Arrow keys
+  do the same. `touchAction: pan-y` hands every vertical gesture to the page, so
+  swiping the hero can never hijack the scroll.
+- **Every view loads eagerly.** A fade cannot cover an image that has not
+  arrived; lazy-loading shows the bare backdrop for the whole transition and
+  pops the shot in at the end.
+- The image list comes from `viewsOf(product)` in `src/data/products.ts`, the
+  one function that answers "how many images does this have" - so the track and
+  the counter can never disagree. Extra shots are attached in `EXTRA_VIEWS`
+  (`src/data/productImages.ts`), keyed by the primary image path, because the
+  filename parser reads one file as one product and would otherwise treat a
+  second shot as a separate piece.
 
 ### Historical price (`src/components/HistoricalPrice.tsx`)
 Collapsible price-history card under the price on the Product Page. Built 1:1 from

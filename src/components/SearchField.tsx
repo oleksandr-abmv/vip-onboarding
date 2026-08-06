@@ -1,19 +1,23 @@
 // ─── Search field (Figma `inputField`, node 5433-34513) ──────────────────────
 //
-// The one canonical search input: the Discover feed, the collection page and the
-// Add pieces sheet all render this. Figma spec: `height 48`, **`radius 12`**
-// (radiusInput_Dropdown - a rounded rectangle, not a pill, same exception as the
-// prompt field), `#161616` on `1px solid #282828`, padding `0 16`, `gap 8`.
-// Leading `search` glyph 24px, the input (16/22), a `cancel` clear once there is
-// text, then an optional trailing action.
+// The app has **one** search field and it is the Saved tab's, over the user's own
+// collections (Figma node 5531-2750). There is deliberately no catalog search:
+// matching a typed string against tags only ever finds what has already been
+// labelled, so the concierge does that job. This is a different thing - a filter
+// over a short list you built yourself, where the name you gave a collection is
+// exactly the word you would type to find it again.
 //
-// The right padding is 12 rather than 16 because in-field buttons are 32px wide
-// for a usable touch target while the design draws bare 24px glyphs. 12 + 32/2
-// puts the glyph centre 28px from the edge, exactly where Figma's 16 + 24/2 does.
+// Figma spec: `height 48`, **`radius 12`** (radiusInput_Dropdown - a rounded
+// rectangle, not a pill, the same exception the prompt field makes), `#161616` on
+// `1px solid #282828`, padding `0 16`, `gap 8`. Leading `search` glyph 24px, the
+// input (16/22), and a clear once there is text.
+//
+// The clear button is 32px wide for a usable touch target where the design draws
+// a bare 24px glyph, so it carries a -4px margin: 16 - 4 + 32/2 puts the glyph
+// centre 28px from the edge, exactly where Figma's 16 + 24/2 does.
 
 import { theme } from '../theme';
 import MIcon from './MIcon';
-import { useAutoFocus } from '../hooks/useAutoFocus';
 
 const FIELD_BG = '#161616';
 const FIELD_BORDER = '#282828';
@@ -25,30 +29,15 @@ export default function SearchField({
   onChange,
   placeholder,
   ariaLabel,
-  trailing,
-  autoFocus = false,
-  onActivate,
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
   /** Defaults to `placeholder`; set it when the visible hint is not a good label. */
   ariaLabel?: string;
-  /** Action drawn at the end of the field - use `<SearchFieldAction>`. */
-  trailing?: React.ReactNode;
-  /** Focused on mount without scrolling to reveal it. See `useAutoFocus`. */
-  autoFocus?: boolean;
-  /**
-   * Turns the field into a button: it stops accepting text and opens something
-   * instead (Discover's field opens the search modal). The field still looks
-   * exactly the same, which is the point - it is the affordance, not the input.
-   */
-  onActivate?: () => void;
 }) {
-  const inputRef = useAutoFocus<HTMLInputElement>(autoFocus && !onActivate);
   return (
     <div
-      onClick={onActivate}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -58,21 +47,15 @@ export default function SearchField({
         background: FIELD_BG,
         border: `1px solid ${FIELD_BORDER}`,
         padding: '0 16px',
-        cursor: onActivate ? 'pointer' : undefined,
       }}
     >
       <MIcon name="search" size={24} color={ICON} />
       <input
-        ref={inputRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         aria-label={ariaLabel ?? placeholder}
-        // As a button, the field must not take a caret or the mobile keyboard.
-        readOnly={!!onActivate}
-        onFocus={onActivate ? (e) => { e.currentTarget.blur(); onActivate(); } : undefined}
         style={{
-          cursor: onActivate ? 'pointer' : undefined,
           flex: 1,
           minWidth: 0,
           background: 'none',
@@ -84,55 +67,28 @@ export default function SearchField({
         }}
       />
       {value !== '' && (
-        <SearchFieldAction label="Clear search" onClick={() => onChange('')}>
-          <MIcon name="cancel" size={20} color={ICON} />
-        </SearchFieldAction>
+        <button
+          onClick={() => onChange('')}
+          aria-label="Clear search"
+          style={{
+            width: 32,
+            height: 40,
+            margin: '0 -4px',
+            flexShrink: 0,
+            background: 'none',
+            border: 'none',
+            borderRadius: theme.radii.button,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            padding: 0,
+            WebkitTapHighlightColor: 'transparent',
+          }}
+        >
+          <MIcon name="close" size={20} color={ICON} />
+        </button>
       )}
-      {trailing}
     </div>
-  );
-}
-
-/**
- * An icon button living inside the field (the Discover field's scan brackets,
- * the Add pieces sheet's camera, the clear button).
- *
- * The design draws these as bare 24px glyphs. The button is widened to 32x40 for
- * a usable touch target and pulled back by the 4px it gains on each side, so the
- * glyph still lands exactly where Figma puts it.
- */
-export function SearchFieldAction({
-  label,
-  onClick,
-  children,
-}: {
-  label: string;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      // Stops the tap reaching the field itself, which may be an `onActivate`
-      // button (Discover's field opens the search modal).
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
-      aria-label={label}
-      style={{
-        width: 32,
-        height: 40,
-        margin: '0 -4px',
-        flexShrink: 0,
-        background: 'none',
-        border: 'none',
-        borderRadius: theme.radii.button,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-        padding: 0,
-        WebkitTapHighlightColor: 'transparent',
-      }}
-    >
-      {children}
-    </button>
   );
 }

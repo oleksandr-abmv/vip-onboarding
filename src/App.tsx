@@ -53,8 +53,20 @@ const FINISH_LATER_SCREENS: Screen[] = [
 // Screen order for reference
 // const SCREEN_ORDER: Screen[] = ['welcome', 'gender', 'interests', 'subcategory', 'products', 'tailoring'];
 
+/**
+ * Onboarding is hidden for now. Nothing was deleted: every screen, handler and
+ * the progress math are untouched, so flipping this back to `true` restores the
+ * flow exactly as it was.
+ *
+ * While it is false the app boots straight into the feed and reports onboarding
+ * as already complete, which is what takes the "Complete onboarding" card off
+ * Discover. The Welcome screen never runs, so `isGuest` stays false and Menu
+ * shows the profile card rather than the create-an-account prompt.
+ */
+const SHOW_ONBOARDING = false;
+
 function App() {
-  const [screen, setScreen] = useState<Screen>('welcome');
+  const [screen, setScreen] = useState<Screen>(SHOW_ONBOARDING ? 'welcome' : 'feed');
   const [exitingScreen, setExitingScreen] = useState<Screen | null>(null);
   // Snapshot of the exiting screen's JSX - keeps old state visible during transition
   const [exitingContent, setExitingContent] = useState<ReactNode>(null);
@@ -106,7 +118,9 @@ function App() {
     'products',
     'notifications',
   ];
-  const onboardingComplete = notificationsDone;
+  // With onboarding hidden there is nothing left to complete, so the feed's
+  // "Complete onboarding" card never appears.
+  const onboardingComplete = SHOW_ONBOARDING ? notificationsDone : true;
   // Pages completed = the ones before the screen the user left from.
   const completedPages = resumeScreen ? Math.max(0, onboardingPages.indexOf(resumeScreen)) : 0;
   const onboardingPct = onboardingComplete

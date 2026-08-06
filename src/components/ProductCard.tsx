@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Product } from '../data/products';
 
@@ -17,7 +17,6 @@ export default function ProductCard({
   aspect = '4 / 3',
   subtitle,
   price,
-  footer,
   savedLabel,
 }: {
   product: Product;
@@ -39,8 +38,6 @@ export default function ProductCard({
   subtitle?: string;
   /** Appended after the brand line as "· price". Defaults to the catalog price. */
   price?: string;
-  /** Extra content under the meta block (the collection page's note strip). */
-  footer?: ReactNode;
   /** Overrides the heart's label (a collection says "remove from this collection"). */
   savedLabel?: string;
 }) {
@@ -257,7 +254,6 @@ export default function ProductCard({
             </span>
           )}
         </div>
-        {footer && <div style={{ marginTop: 10 }}>{footer}</div>}
       </div>
     </div>
   );

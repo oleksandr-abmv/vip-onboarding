@@ -17,6 +17,11 @@ export const theme = {
     ctaPrimaryText: '#0A0A0A',
     heartDefault: '#444444',
     heartActive: '#E53935',
+    // Unread. The one red in an otherwise monochrome UI, so a dot reads as
+    // "something happened" rather than as another white highlight. Used by the
+    // bell's badge and the unread rows in the notifications list - the same
+    // signal in two places, so they share one token.
+    unread: '#E53935',
     progressBg: '#333333',
     progressFill: '#FFFFFF',
     tagBg: '#1E1E1E',

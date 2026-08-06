@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import MIcon from '../components/MIcon';
 import BottomDock, { type DockTab } from '../components/BottomDock';
+import CollectionCard from '../components/CollectionCard';
 import MemorySheet from '../components/MemorySheet';
 import TemporaryChatIcon from '../components/TemporaryChatIcon';
 import { screenStyle, bodyStyle, Header, iconButtonStyle } from './screenChrome';
@@ -44,13 +45,26 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   text: string;
-  /** User only: the attached collection / scan context. */
+  /**
+   * On a **user** message: the collection / scan context it was sent with.
+   * On an **assistant** message: what the concierge is handing back - the
+   * collection in its **new** state after it changed something, so "update this
+   * collection" answers with the collection rather than a sentence about it.
+   * Either way the card is tappable and opens what it names.
+   */
   attachment?: ChatAttachment;
   /** Assistant only: renders the "Memory updated" chip above the text. */
   memoryUpdated?: boolean;
 }
 
-// Figma "Chat Suggestions" rows (node 5268-8938).
+// Figma "Chat Suggestions" rows (node 5268-8938) - these four labels and glyphs
+// come straight from the file; keep them in step with it.
+//
+// "Find a piece" and "Search by color" are not a search feature returning: with
+// no search box anywhere, asking the concierge IS how you look something up, and
+// these rows are a menu of things to say to it. The prompts deliberately name no
+// specific piece, because the catalogue is gender-filtered and a hardcoded name
+// is absent for half the users.
 const SUGGESTIONS = [
   { icon: 'search', label: 'Find a piece & where to buy', prompt: 'Find me a piece and where to buy it' },
   { icon: 'apparel', label: 'Style a look & virtual try-on', prompt: 'Style a look for me' },
@@ -62,6 +76,26 @@ const SUGGESTIONS = [
 ];
 
 const RECALL = /\b(what do you (remember|know)|what'?s in (my )?memory|remind me what)\b/i;
+
+/**
+ * "update this collection with new products", "add a few pieces", "expand it".
+ * Deliberately loose: this only ever runs when the thread already carries a
+ * collection, so the verb plus something to act on is enough, and being asked
+ * to add to a collection you are already holding has one obvious meaning.
+ */
+const UPDATE_VERB = /\b(update|add|expand|refresh|complete|extend|fill|grow|build (out|up))\b/i;
+const UPDATE_OBJECT = /\b(collection|look|it|this|that|piece|pieces|product|products|item|items)\b/i;
+const wantsCollectionUpdate = (text: string) =>
+  UPDATE_VERB.test(text) && UPDATE_OBJECT.test(text);
+
+/**
+ * "Find me pieces like this", "something similar", "more like the Kelly Bag",
+ * "put together a collection". Checked **before** the update intent, because
+ * "find me more pieces like this" reads as both and the user is asking for new
+ * pieces, not for an existing collection to grow.
+ */
+const WANTS_SIMILAR =
+  /\b(similar|like (this|that|it|the)|more like|goes? with|match(es|ing)?|alongside|comparable|in the same vein|put together (a|me a)? ?(collection|set|edit)|pull together|curate)\b/i;
 
 /** The "Ask AI Concierge" hand-off payload (scan results / collection page). */
 export interface ConciergePrompt {
@@ -87,6 +121,8 @@ export default function ChatScreen({
   initialPrompt,
   onPromptConsumed,
   onOpenAttachment,
+  onUpdateCollection,
+  onProposeCollection,
 }: {
   memoryEnabled: boolean;
   onMemoryEnabledChange: (enabled: boolean) => void;
@@ -106,6 +142,26 @@ export default function ChatScreen({
   onPromptConsumed?: () => void;
   /** Opens what an attachment card names. Omit and the cards stay inert. */
   onOpenAttachment?: (target: AttachmentTarget) => void;
+  /**
+   * Actually put pieces into a collection, and hand back what changed. Asking
+   * the concierge to update a collection has to *update the collection* - a
+   * sentence promising to is the one answer that would be a lie - so this is
+   * the write, and the reply is built from what it returns. `null` when there
+   * is nothing left to add.
+   */
+  onUpdateCollection?: (id: string) => { added: string[]; attachment: ChatAttachment } | null;
+  /**
+   * Put together a set of pieces like `seed` (or across the catalogue without
+   * one) and hand it back as an **unsaved** collection - the user opens it and
+   * decides. `text` is the message itself, so a piece merely *named* in the
+   * sentence still anchors the picks. `null` when there is nothing left to pick.
+   */
+  onProposeCollection?: (seed?: string, text?: string) => {
+    name: string;
+    anchor: string | null;
+    count: number;
+    attachment: ChatAttachment;
+  } | null;
 }) {
   const [thinking, setThinking] = useState(false);
   // The Memory sheet, opened by tapping a "Memory updated" chip.
@@ -121,6 +177,34 @@ export default function ChatScreen({
   // than closing over the value from render time.
   const factsRef = useRef(facts);
   useEffect(() => { factsRef.current = facts; }, [facts]);
+  // Same for the thread: `send` reads it to work out which collection is in play.
+  const messagesRef = useRef(messages);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  /**
+   * Which collection this turn is about: the one just attached, or the last one
+   * attached earlier in the thread. Once you have handed a collection over, the
+   * rest of the conversation is still about it - "update it" three messages
+   * later means the same collection it meant at the top.
+   */
+  const collectionInPlay = (incoming?: ChatAttachment): string | null => {
+    if (incoming?.target?.kind === 'collection') return incoming.target.id;
+    for (let i = messagesRef.current.length - 1; i >= 0; i -= 1) {
+      const target = messagesRef.current[i].attachment?.target;
+      if (target?.kind === 'collection') return target.id;
+    }
+    return null;
+  };
+
+  /** The piece this turn is about, the same way `collectionInPlay` works. */
+  const pieceInPlay = (incoming?: ChatAttachment): string | null => {
+    if (incoming?.target?.kind === 'product') return incoming.target.name;
+    for (let i = messagesRef.current.length - 1; i >= 0; i -= 1) {
+      const target = messagesRef.current[i].attachment?.target;
+      if (target?.kind === 'product') return target.name;
+    }
+    return null;
+  };
 
   /** Pick the concierge's answer for a message. */
   const reply = (text: string, fact: string | null): { text: string; memoryUpdated?: boolean } => {
@@ -158,13 +242,84 @@ export default function ChatScreen({
   // The reply lands on a timer. If the user leaves the tab before it fires, hand
   // the answer over immediately rather than dropping the turn on the floor.
   const replyTimer = useRef<number | null>(null);
-  const pending = useRef<{ text: string; fact: string | null } | null>(null);
+  const pending = useRef<{
+    text: string;
+    fact: string | null;
+    updateCollectionId: string | null;
+    proposeFrom: { seed: string | null } | null;
+  } | null>(null);
 
   const deliver = () => {
     const p = pending.current;
     if (!p) return;
     pending.current = null;
     setThinking(false);
+
+    // Asked for pieces like something, the concierge picks a handful and hands
+    // them over as a collection - already assembled, not yet kept. The copy has
+    // one job beyond saying what it found: make clear the set is a thing you can
+    // keep, and that keeping it is still your call.
+    if (p.proposeFrom && onProposeCollection) {
+      const proposal = onProposeCollection(p.proposeFrom.seed ?? undefined, p.text);
+      if (proposal) {
+        const opener = proposal.anchor
+          ? `Here are ${proposal.count} pieces that sit alongside the ${proposal.anchor}.`
+          : `Here are ${proposal.count} pieces I would put together for you.`;
+        onMessagesChange((prev) => [
+          ...prev,
+          {
+            id: nextId(),
+            role: 'assistant',
+            text: `${opener} I have gathered them into "${proposal.name}". Open it to save it to your collections.`,
+            attachment: proposal.attachment,
+          },
+        ]);
+        return;
+      }
+      onMessagesChange((prev) => [
+        ...prev,
+        {
+          id: nextId(),
+          role: 'assistant',
+          text: 'Everything close to that is already in one of your collections. Tell me the occasion or the budget and I will look wider.',
+        },
+      ]);
+      return;
+    }
+
+    // Asked to change a collection it is already holding, the concierge changes
+    // it - the write happens here, at answer time, so the pause reads as work -
+    // and answers with the collection's new state rather than a promise.
+    if (p.updateCollectionId && onUpdateCollection) {
+      const result = onUpdateCollection(p.updateCollectionId);
+      if (result) {
+        const { added, attachment } = result;
+        const list =
+          added.length === 1
+            ? added[0]
+            : `${added.slice(0, -1).join(', ')} and ${added[added.length - 1]}`;
+        onMessagesChange((prev) => [
+          ...prev,
+          {
+            id: nextId(),
+            role: 'assistant',
+            text: `Done. I added ${list} to "${attachment.title}", which now holds ${attachment.subtitle}.`,
+            attachment,
+          },
+        ]);
+        return;
+      }
+      onMessagesChange((prev) => [
+        ...prev,
+        {
+          id: nextId(),
+          role: 'assistant',
+          text: 'That collection already has everything I would put in it. Tell me the occasion or the budget you have in mind and I will look wider.',
+        },
+      ]);
+      return;
+    }
+
     const answer = reply(p.text, p.fact);
     onMessagesChange((prev) => [...prev, { id: nextId(), role: 'assistant', ...answer }]);
     // The chip alone is easy to miss, so confirm the write with a snackbar that
@@ -199,6 +354,12 @@ export default function ChatScreen({
   }, []);
 
   const send = (text: string, attachment?: ChatAttachment) => {
+    // Both resolved before the message is appended, so "it" and "this" still
+    // refer to the last thing handed over rather than to this message.
+    // "Similar" wins over "update": "find me more pieces like this" reads as
+    // both, and what is being asked for is new pieces, not a bigger collection.
+    const propose = WANTS_SIMILAR.test(text) ? { seed: pieceInPlay(attachment) } : null;
+    const target = !propose && wantsCollectionUpdate(text) ? collectionInPlay(attachment) : null;
     onMessagesChange((prev) => [...prev, { id: nextId(), role: 'user', text, attachment }]);
     setThinking(true);
 
@@ -206,12 +367,15 @@ export default function ChatScreen({
     if (fact && memoryEnabled) onAddFact(makeFact(fact));
 
     if (replyTimer.current) clearTimeout(replyTimer.current);
-    pending.current = { text, fact };
+    pending.current = { text, fact, updateCollectionId: target, proposeFrom: propose };
     replyTimer.current = window.setTimeout(() => deliverRef.current(), 700);
   };
 
-  // "Ask AI Concierge" hand-off: a prompt from the scan results or a collection is
-  // sent as if the user typed it (with its attachment). Ref-guarded so a
+  // "Ask AI Concierge" hand-off: a prompt from the scan results or a collection
+  // is sent as if the user typed it (with its attachment). It appends, so it
+  // works the same whether the caller cleared the thread first (the usual "new
+  // chat" hand-off) or kept it (a page opened from this very conversation).
+  // Ref-guarded so a
   // StrictMode double effect (or a re-render before the parent clears the
   // prop) cannot send it twice.
   const lastPrompt = useRef<ConciergePrompt | null>(null);
@@ -335,6 +499,7 @@ export default function ChatScreen({
                   }
                   onOpenMemory={() => setMemorySheet(true)}
                   onNotice={onNotice}
+                  onOpenAttachment={onOpenAttachment}
                 />
               ),
             )}
@@ -437,10 +602,6 @@ function UserBubble({
   attachment?: ChatAttachment;
   onOpenAttachment?: (target: AttachmentTarget) => void;
 }) {
-  // The card is a button whenever the thing it names can still be opened, so
-  // "what goes with this?" is one tap away from the thing itself.
-  const target = attachment?.target;
-  const open = target && onOpenAttachment ? () => onOpenAttachment(target) : undefined;
   return (
     <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
       <div
@@ -456,56 +617,13 @@ function UserBubble({
         }}
       >
         {attachment && (
-          <div
-            onClick={open}
-            role={open ? 'button' : undefined}
-            tabIndex={open ? 0 : undefined}
-            aria-label={open ? `Open ${attachment.title}` : undefined}
-            onKeyDown={
-              open
-                ? (e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      open();
-                    }
-                  }
-                : undefined
-            }
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: 8,
-              marginBottom: 10,
-              background: 'rgba(255,255,255,0.06)',
-              borderRadius: 8,
-              cursor: open ? 'pointer' : undefined,
-              WebkitTapHighlightColor: 'transparent',
-            }}
-          >
-            <AttachmentCover images={attachment.images} />
-            <div style={{ minWidth: 0 }}>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  lineHeight: '18px',
-                  color: TEXT_PRIMARY,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {attachment.title}
-              </p>
-              {attachment.subtitle && (
-                <span style={{ fontSize: 12, lineHeight: '16px', color: '#999' }}>
-                  {attachment.subtitle}
-                </span>
-              )}
-            </div>
-          </div>
+          <AttachmentCard
+            attachment={attachment}
+            onOpenAttachment={onOpenAttachment}
+            // Inside a bubble the card has to read as a layer on top of it, so
+            // it takes a lighter fill than the bubble rather than the page's.
+            style={{ marginBottom: 8, background: 'rgba(255,255,255,0.06)' }}
+          />
         )}
         {text}
       </div>
@@ -513,15 +631,113 @@ function UserBubble({
   );
 }
 
-/** 44px tile: one image renders alone, several become a 2x2 mini cover. */
+/**
+ * The context card: what a message is *about*. On a user turn it is what they
+ * attached; on a concierge turn it is what it just changed, in its new state.
+ *
+ * It is a button whenever the thing it names can still be opened, so "what goes
+ * with this?" - and "here is your collection now" - are one tap from the thing
+ * itself. A scan with no confident match, or a collection since deleted, has no
+ * target and the card stays inert.
+ *
+ * Figma node 5558-54385 ("Your message" carrying a collection): the card is
+ * `radius 16` with a hairline border, 56 tall, a 40px `radius 8` tile, and the
+ * name / meta pair at 14/20 semibold over 12/16. It is **the same card on both
+ * sides of the thread** - only the fill changes, since on a user turn it sits
+ * inside a bubble and on a concierge turn it sits on the page.
+ */
+function AttachmentCard({
+  attachment,
+  onOpenAttachment,
+  style,
+}: {
+  attachment: ChatAttachment;
+  onOpenAttachment?: (target: AttachmentTarget) => void;
+  style?: React.CSSProperties;
+}) {
+  const target = attachment.target;
+  const open = target && onOpenAttachment ? () => onOpenAttachment(target) : undefined;
+  return (
+    <div
+      onClick={open}
+      role={open ? 'button' : undefined}
+      tabIndex={open ? 0 : undefined}
+      aria-label={open ? `Open ${attachment.title}` : undefined}
+      onKeyDown={
+        open
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                open();
+              }
+            }
+          : undefined
+      }
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        // 8 all round, 12 on the trailing edge so the text does not run into
+        // the corner radius.
+        padding: '8px 12px 8px 8px',
+        boxSizing: 'border-box',
+        height: 56,
+        // Wide enough that the name and meta line have room, so a bubble
+        // carrying one grows to fit the card rather than squeezing it.
+        minWidth: 200,
+        background: SURFACE,
+        border: '1px solid #313131',
+        borderRadius: theme.radii.card,
+        overflow: 'hidden',
+        cursor: open ? 'pointer' : undefined,
+        WebkitTapHighlightColor: 'transparent',
+        ...style,
+      }}
+    >
+      <AttachmentCover images={attachment.images} />
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 14,
+            fontWeight: 600,
+            lineHeight: '20px',
+            color: TEXT_PRIMARY,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {attachment.title}
+        </p>
+        {attachment.subtitle && (
+          <span
+            style={{
+              fontSize: 12,
+              lineHeight: '16px',
+              color: '#999',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {attachment.subtitle}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** 40px tile: one image renders alone, several become a 2x2 mini cover. */
 function AttachmentCover({ images }: { images: string[] }) {
   const many = images.length > 1;
   return (
     <div
       aria-hidden
       style={{
-        width: 44,
-        height: 44,
+        width: 40,
+        height: 40,
         flexShrink: 0,
         borderRadius: 8,
         overflow: 'hidden',
@@ -562,12 +778,14 @@ function AssistantTurn({
   onRate,
   onOpenMemory,
   onNotice,
+  onOpenAttachment,
 }: {
   message: ChatMessage;
   rating?: 'up' | 'down';
   onRate: (r: 'up' | 'down') => void;
   onOpenMemory: () => void;
   onNotice: (message: string) => void;
+  onOpenAttachment?: (target: AttachmentTarget) => void;
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -595,6 +813,28 @@ function AssistantTurn({
       <p style={{ margin: 0, fontSize: 16, lineHeight: '22px', color: TEXT_PRIMARY, whiteSpace: 'pre-wrap' }}>
         {message.text}
       </p>
+
+      {/* What it put together or changed, under the sentence describing it - so
+          the turn ends with the collection, not a promise about one.
+
+          Full card, not the small inline row: that row is a **mention** of
+          something a message is about, which is what a user bubble carries.
+          This is the collection itself, handed over, so it is the same card the
+          Saved tab and Discover show (Figma node 5555-52787). */}
+      {message.attachment &&
+        (message.attachment.target?.kind === 'collection' ? (
+          <CollectionCard
+            name={message.attachment.title}
+            meta={message.attachment.subtitle ?? ''}
+            images={message.attachment.images}
+            onOpen={() => {
+              const target = message.attachment?.target;
+              if (target) onOpenAttachment?.(target);
+            }}
+          />
+        ) : (
+          <AttachmentCard attachment={message.attachment} onOpenAttachment={onOpenAttachment} />
+        ))}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: -8 }}>
         <ActionButton

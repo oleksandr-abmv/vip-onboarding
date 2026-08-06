@@ -20,7 +20,8 @@ import { priceOf, formatPrice } from './collections';
 export interface Outfit {
   id: string;
   name: string;
-  description: string;
+  /** Unused by any surface today; the card subtitle comes from `outfitMetaLine()`. */
+  description?: string;
   /** The styled flat-lay. **Landscape 4:3**, cut out on white - it is shown as a
    * wide hero and a wide card, and a portrait crop left grey gutters in both. */
   image: string;

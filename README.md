@@ -13,22 +13,26 @@ Live: https://vip-ai-onboardingv51.vercel.app
 - **Onboarding** - gender → status → (kids) → lifestyle → interests →
   subcategories → swipe deck → notifications → tailoring. Skippable at the gate;
   resumable from the feed banner.
-- **Discover** - a search field over top picks, trending, coordinated looks, and
-  category groups built from the interests picked during onboarding. Searching
-  swaps the groups for a results grid in place.
+- **Discover** - top picks, trending, coordinated looks, styled outfits, decor
+  sets and category groups built from the interests picked during onboarding.
+  **There is no catalog search**: matching a typed string against tags only finds
+  what is already labelled, so the concierge does that job instead.
 - **Saved** - collections are the only kind of saving: hearts everywhere (cards,
-  product page, scan matches) manage which collections a piece belongs to.
-  Collections carry a name, description, price total, and an optional note per
-  piece; their covers show placeholders when sparse and a "+N" badge when full.
-  Per-collection: Ask AI Concierge (new chat with the collection attached), virtual
-  try-on (clothing only), rename, delete, and an add sheet that combines catalog
-  search and camera scan.
-- **Scan** - the dock's fourth item, also reachable from the Discover search
-  field's brackets and the Menu tab's "Scan product" button: viewfinder (flash,
-  camera flip, upload), a processing pass over the taken photo, then matching
-  pieces with a pinned ask-concierge CTA and a search-manually escape.
+  product page, scan matches) file a piece into one. **A piece lives in exactly
+  one collection**, so the picker is a radio list and filing moves rather than
+  copies. A collection is a name and the pieces in it - no description, notes,
+  cover, pinning or try-on - and its card is the 2x2 mosaic of what is
+  inside. The one search field left is the Saved tab's, filtering that list by
+  name. Per-collection: rename, delete, and the concierge as a prompt field;
+  a look you have not filed yet floats "Save to my collections" instead.
+- **Scan** - the dock's fourth item, also reachable from the Menu tab's "Scan
+  product" row: viewfinder (flash, camera flip, upload), a processing pass over
+  the taken photo, then matching pieces and a "None of these? Ask AI Concierge"
+  hand-off carrying the photo.
 - **Chat** - the VIP.ai concierge with **Data Memory**: facts the user shares are
   remembered (with a "Memory updated" chip), manageable from Menu > Data Memory.
+  Hand it a collection and ask it to update it and it **files new pieces for
+  real**, answering with the collection in its new state.
 
 ## Run it
 
@@ -52,7 +56,7 @@ src/
   App.tsx                   onboarding flow, navigation, progress
   screens/                  one file per screen; FeedScreen owns the post-
                             onboarding tabs and all shared state (memory,
-                            chat thread, collections, Discover search)
+                            chat thread, collections)
   components/               dock, sheets, dialogs, icons, collections sheets
   data/                     products (auto-discovered from /public/products),
                             categories, price history, memory, collections

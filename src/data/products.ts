@@ -2,7 +2,15 @@ export interface Product {
   name: string;
   brand: string;
   price: string;
+  /** The primary shot. Always present, and always `images[0]`. */
   image: string;
+  /**
+   * Every view of the piece, primary first. Absent or single-entry means there
+   * is only the one shot, which is most of the catalog today - the Product Page
+   * gallery degrades to a plain static image in that case. See
+   * `EXTRA_VIEWS` in productImages.ts for how extra shots are attached.
+   */
+  images?: string[];
   description: string;
   category: string;
   subcategory?: string;
@@ -19,31 +27,14 @@ import PLACEHOLDER_PRODUCTS from './placeholderProducts';
 
 const ALL_PRODUCTS: Product[] = [...discoverProducts(), ...PLACEHOLDER_PRODUCTS];
 
-export default ALL_PRODUCTS;
-
-import { categoryConfigs } from './categoryConfig';
-
 /**
- * Does a piece match a free-text search? Every search field in the app runs
- * through this so they all agree on what "piece, brand, or category" means.
- *
- * Matching the category **display name** as well as the id is load-bearing, not
- * belt-and-braces: several ids are internal and differ from the only label the
- * user ever sees (`Footwear` is shown as "Shoes", `Vehicles` as "Cars",
- * `Fashion and Apparel` as "Clothing", `Jewellery` as "Jewelry"). Matching the
- * id alone means typing "shoes" into the field directly above a tile labelled
- * "Shoes" returns nothing.
- *
- * Returns false for a blank query; callers decide what an empty field shows.
+ * Every view of a piece, primary first, with no empty entries. The one place
+ * that answers "how many images does this have", so the gallery, its counter
+ * and anything else that needs the count can never disagree.
  */
-export function matchesQuery(product: Product, query: string): boolean {
-  const q = query.trim().toLowerCase();
-  if (!q) return false;
-  const categoryName = categoryConfigs[product.category]?.name ?? '';
-  return (
-    product.name.toLowerCase().includes(q) ||
-    product.brand.toLowerCase().includes(q) ||
-    product.category.toLowerCase().includes(q) ||
-    categoryName.toLowerCase().includes(q)
-  );
+export function viewsOf(product: Product): string[] {
+  const views = product.images?.length ? product.images : [product.image];
+  return views.filter(Boolean);
 }
+
+export default ALL_PRODUCTS;

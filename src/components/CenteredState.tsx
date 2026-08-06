@@ -2,16 +2,17 @@ import type { ReactNode } from 'react';
 import MIcon from './MIcon';
 import { theme } from '../theme';
 
-// ─── Centred empty state ─────────────────────────────────────────────────────
+// ─── Centred empty state (Figma `State`, node 5539-18382) ────────────────────
 //
-// Icon disc, title, one line of hint, and an optional action underneath. Shared
-// so every "there is nothing here" in the app draws the same picture: the search
-// modal's no-match state and the Saved tab's, which are the same situation
-// reached two ways and should not look like two different products.
+// Icon disc, title, one line of hint, and an optional action. Shared so every
+// "there is nothing here" in the app draws the same picture rather than each
+// screen inventing its own.
 //
-// The `action` slot is usually `<AskConciergeOffer>`. Searching only finds what
-// the catalog has already been tagged with, so a no-match state that just says
-// "no matches" is a dead end; the offer is the way out of it.
+// It **takes the leftover height and centres in it** (`flex: 1` +
+// `justify-content: center`), so it sits in the middle of what is left rather
+// than hanging 72px under whatever is above it. That means the parent has to be
+// a flex column - see the Saved tab, which switches `bodyStyle` to a column
+// while its list is empty.
 
 const TEXT_PRIMARY = '#f6f6f6';
 const TEXT_SECONDARY = '#999';
@@ -30,37 +31,71 @@ export default function CenteredState({
   return (
     <div
       style={{
+        flex: 1,
+        minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 8,
-        padding: '72px 32px 0',
+        justifyContent: 'center',
+        gap: 12,
+        padding: 16,
         textAlign: 'center',
       }}
     >
       <span
         aria-hidden
         style={{
-          width: 56,
-          height: 56,
-          marginBottom: 4,
+          width: 40,
+          height: 40,
+          flexShrink: 0,
           borderRadius: theme.radii.button,
-          background: '#161616',
-          border: '1px solid #282828',
+          // The same neutral fill the heart buttons use, which is what the file's
+          // brand/brandSecondary resolves to in the dark theme.
+          background: '#2f2f31',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <MIcon name={icon} size={26} color="#8b8b8b" />
+        <MIcon name={icon} size={24} color={TEXT_PRIMARY} />
       </span>
-      <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, lineHeight: '26px', color: TEXT_PRIMARY }}>
-        {title}
-      </h2>
-      <p style={{ margin: 0, fontSize: 14, lineHeight: '20px', color: TEXT_SECONDARY, maxWidth: 280 }}>
-        {hint}
-      </p>
-      {action && <div style={{ marginTop: 12 }}>{action}</div>}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 300 }}>
+        <p style={{ margin: 0, fontSize: 18, fontWeight: 500, lineHeight: '22px', color: TEXT_PRIMARY }}>
+          {title}
+        </p>
+        <p style={{ margin: 0, fontSize: 16, lineHeight: '22px', color: TEXT_SECONDARY }}>{hint}</p>
+      </div>
+      {action}
     </div>
+  );
+}
+
+/**
+ * The state's own action (Figma `Actions` > `Button`): a neutral filled pill,
+ * 40 tall. Filled rather than outlined because it is the one thing to do from
+ * here, and neutral rather than white because the empty state is not the page's
+ * primary action - it is the way out of a corner.
+ */
+export function CenteredStateAction({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        height: 40,
+        padding: '0 16px',
+        background: '#2f2f31',
+        color: TEXT_PRIMARY,
+        border: 'none',
+        borderRadius: theme.radii.button,
+        fontSize: 16,
+        fontWeight: 500,
+        lineHeight: '22px',
+        cursor: 'pointer',
+        flexShrink: 0,
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >
+      {label}
+    </button>
   );
 }

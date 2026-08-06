@@ -80,7 +80,7 @@ every matching string.)
 - Defaults match the file's "Icons/Outlined/Large" style: 24px, `wght 300` (Light), `FILL 0`, `GRAD 0`. `weight` and `fill` are props - the active bottom-dock tab uses `weight={400} fill={1}`.
 - Set `decorative={false}` + `label="Something"` when the icon conveys meaning to screen readers.
 - The font is loaded in `index.html` with the full `opsz,wght,FILL,GRAD` axes, so any Material Symbols name works without adding assets.
-- **The one exception:** a few glyphs in the file are custom vectors rather than Material Symbols. Do not substitute the nearest Material name (a `crop_free` stand-in for the temporary-chat bubble read as four corner brackets and was wrong). Export the path from Figma and wrap it in a component next to `MIcon`, as `src/components/TemporaryChatIcon.tsx` (the chat nav bar's Incognito mode) and `src/components/ScanIcon.tsx` (the dock's Scan tab and the search field's trailing action) do. Note in the file that it is the design's own path, not a redraw. The dock supports these via `DockTab.renderIcon`.
+- **The one exception:** a few glyphs in the file are custom vectors rather than Material Symbols. Do not substitute the nearest Material name (a `crop_free` stand-in for the temporary-chat bubble read as four corner brackets and was wrong). Export the path from Figma and wrap it in a component next to `MIcon`, as `src/components/TemporaryChatIcon.tsx` (the chat nav bar's Incognito mode) and `src/components/ScanIcon.tsx` (the dock's Scan tab and the Menu tab's scan row) do. Note in the file that it is the design's own path, not a redraw. The dock supports these via `DockTab.renderIcon`.
 - **Legacy:** `src/components/Icon.tsx` + `src/icons/core/` (the CORE UI SVG library) are no longer used by any screen. Do not add icons there.
 
 ---
@@ -124,6 +124,13 @@ Any category or subcategory **without an image asset yet** uses the **VIP logoty
 - Products reference `category` (matches `CategoryConfig.id`) and optional `subcategory`.
 - Gender is `male` / `female` / `unisex`.
 - New categories without products yield an empty swipe deck - fine for now, fix when tagging.
+- A product's imagery is `image` (the primary shot) plus `images` (every view,
+  primary first). **Always read the list through `viewsOf(product)`**, never
+  `product.images` directly - it is the one function that answers "how many
+  images does this have", so the gallery and its counter cannot disagree.
+  Extra shots go in `EXTRA_VIEWS` in `productImages.ts`, keyed by the primary
+  image path: the filename parser reads one file as one product, so a second
+  shot dropped into the folder would parse as a separate piece.
 
 ---
 
@@ -211,27 +218,32 @@ tabs share. Anything two tabs both touch belongs here, not inside a tab:
   Menu** (Figma node 5410-6902); **Scan**, the fourth item, is an overlay
   (`showScan`), not a tab - Close returns to whatever was underneath, and the
   Scan item is never marked active.
-- `query: string` - **Discover search**. A non-empty query swaps the feed groups
-  for a results grid in place; it does not push a screen. Tapping the Home dock
-  item while on Home clears it. **Search is one experience, `<SearchModal>`**
-  (`src/components/SearchModal.tsx`): a full screen with an autofocused field, a
-  Cancel button, an idle state, live results supplied by the caller, and an **Ask
-  AI Concierge** offer on **both** its idle and no-match states.
-
-  Discover's field and the Add pieces sheet's both open it. **Saved is the
-  exception and filters in place**: its field sits on the page and narrows the
-  grid as you type, because that list is short, already on screen and already
-  scoped. **The collection page has no search at all**: a collection is a short
-  list the user assembled themselves and every piece is already on screen, so a
-  field to find something inside it only added a step. Searching happens where
-  there is a catalog to search, not inside a result. The field
-  itself is the shared `<SearchField>` (`src/components/SearchField.tsx`), which
-  also backs the Add pieces sheet. Do not hand-roll another one, and match with
-  **`matchesQuery()` from `src/data/products.ts`** rather than an inline predicate.
-  It tests the category's **display name as well as its id**, which is load-bearing:
-  several ids are internal and differ from the only label the user sees (`Footwear`
-  is "Shoes", `Vehicles` is "Cars", `Fashion and Apparel` is "Clothing", `Jewellery`
-  is "Jewelry"), so an id-only match makes "shoes" return nothing.
+- `notifications: AppNotification[]` - what the **bell in the Discover nav bar**
+  opens (Figma node 5570-55102). The bell is the standard bordered `buttonIcon`
+  in the header's trailing slot and carries a dot while anything is unread; the
+  list itself is a `detail` push over Home (`{kind: 'notifications'}`), so it
+  keeps the dock and Back returns to Discover. Two rules: **every notification
+  opens something** - it is seeded from the user's own collections so the piece
+  it names is one they filed, and a row with nowhere to go would be the dead end
+  the app refuses everywhere else - and **leaving the list is what marks it
+  read**, not opening it, so the dots are still there while you read them. See
+  `src/data/notifications.ts`.
+- **There is no catalog search.** No field on Discover, no search modal, no
+  results grid. Matching a typed string against tags only ever returns what the
+  catalog has already been labelled with, while the questions people actually
+  have are not ("something for a wedding in Como, under 5k") - so **the concierge
+  is the search**: the Chat dock tab, or the prompt field on a page that is
+  already about one thing. `SearchModal`, `AskConciergeOffer` and `matchesQuery()`
+  were deleted with the feature. Do not put a field back on Discover.
+- `savedQuery: string` - **the one search field left**, on the Saved tab, and it
+  is a different animal: a filter over the handful of collections the user named
+  themselves, where the name they chose is exactly what they would type. It runs
+  **in place** (no modal, no pushed screen), matches on the collection **name**
+  (the only text a collection has), and has two empty states - "Nothing found /
+  Check the spelling or try a different name." with a query, "Nothing saved yet"
+  without one. The field is `<SearchField>` (`src/components/SearchField.tsx`),
+  which now exists solely for this. **The collection page itself has no search**:
+  it is a short list the user assembled and every piece is already on screen.
 - `memoryEnabled: boolean`, `memoryFacts: MemoryFact[]` - **Data Memory**. The Menu
   tab edits them (Data Memory sheet, Manage Data Memory) and the Chat tab writes to them,
   so both must read the same store. See `src/data/memory.ts`.
@@ -242,34 +254,46 @@ tabs share. Anything two tabs both touch belongs here, not inside a tab:
   Incognito mode + History, and once there is a message it becomes New chat + More
   (Figma node 5410-6912). Keep both variants working when editing that header.
 - `collections: Collection[]` - **Collections**, the only kind of saving in the
-  app. The Saved tab (dock label and page header both **"Saved"**) lists
-  collections and nothing else - no segments, no saved-products list, and
-  boutiques/stores are NOT saveable. Creating one is the **`add_2` icon button in
-  the header's top-right corner**, not a row in the list. See
+  app (Figma node 5531-2750). The Saved tab (dock label **"Saved"**, page header
+  **"Saved collections"**) lists collections and nothing else - no segments, no
+  saved-products list, and boutiques/stores are NOT saveable. See
   `src/data/collections.ts`.
-- `pinnedIds: string[]` - **pinned collections**, most recently pinned last. A
-  pin toggle sits beside each card's name (`keep`, filled when pinned), and
-  pinned collections lift out of the Saved column into a **horizontal rail at
-  the top of the tab**, the same carousel Discover's Collections row uses, so a
-  pinned collection is the same object in a faster place rather than a new kind
-  of thing. The column below only gains its "All collections" heading once
-  something is pinned. Pinned ids are **derived against the live list, not
-  pruned on delete**, so deleting a pinned collection and hitting Undo brings
-  the pin back with it.
+
+  **A collection is a name and the pieces in it. Nothing else.** No description,
+  no per-piece notes, no cover picture, no pinning, no virtual
+  try-on. Each of those existed and was removed; do not reintroduce one without
+  being asked. Its card is the pieces themselves (the 2x2 `<CollectionCover>`),
+  which is why it never needs a cover of its own.
+
+  **A piece lives in exactly one collection.** `collectionOf()` answers "which
+  one", and every write that adds items runs through FeedScreen's `exclusive()`
+  so filing a piece (or a whole look) somewhere *moves* it. This is why the Add
+  to collection sheet is a radio list, and why `seedCollections` draws from a
+  shared pool - overlapping seeds would be an illegal state on first paint.
+
+  **Collections are created while filing a piece**, via "Add to collection" >
+  Create. The Saved header carries no `+` and the list no creator row: an empty
+  collection is not a thing anyone wants.
+
+  **Newest first, wherever collections are listed** (Figma nodes 5531-2751 and
+  5550-27212). `collectionsNewestFirst` is the one sort and both the Saved tab
+  and the Add to collection sheet render from it - the collection you just made
+  in that very sheet has to be the one at the top, not appended under the seeds.
+  A new surface listing collections takes the same list, never raw `collections`.
 - **Hearts manage collection membership everywhere.** A heart is filled when the
-  piece sits in any collection (`isSaved`), and tapping one - on a product card,
-  the product page, or a scan match - opens the Add to collection flow with the
-  piece's current collections pre-checked. Unchecking and saving removes it.
+  piece sits in a collection (`isSaved`), and tapping one - on a product card,
+  the product page, or a scan match - opens the Add to collection flow with that
+  collection already selected. Choosing a different one moves the piece; tapping
+  the selected one again clears it and saving takes the piece out altogether.
   There is no separate bookmark icon; do not add one.
 - **A Discover look opens the collection page, not a product list.** Looks carry a
   deterministic `look-<id>` collection id, so tapping one opens the same page a
   saved collection does. Until it is hearted there is no stored `Collection`, so
   FeedScreen builds one from the look and passes `preview`. The page stays fully
-  usable (notes and hearts work, hearts meaning what they mean everywhere else);
-  only what needs a stored collection changes - "Save Collection" replaces Add
-  pieces, and Rename / Delete leave the menu. **Writing a note files the look** in
-  the same state update, so a note is never dropped. Either way the page then
-  becomes the real one.
+  usable (hearts work, meaning what they mean everywhere else); only what needs a
+  stored collection changes - the page floats **"Save to my collections"** instead of
+  the concierge field, and Rename / Delete stay out of the menu. Either way the
+  page then becomes the real one.
 - `openCollectionId` - the collection page push over the Saved **or Home** tab
   (Home so a Discover look can open it). Deliberately
   kept when switching tabs so "Ask AI Concierge" and back lands on the same
@@ -285,10 +309,12 @@ tabs share. Anything two tabs both touch belongs here, not inside a tab:
     open an outfit; you decide about it inside.
   - Opening one **pushes the ordinary collection page** under the deterministic
     id `outfit-col-<id>`, exactly the way a Discover look pushes `look-<id>`.
-    FeedScreen builds the preview `Collection` from `OUTFITS`; "Save Collection"
-    then files it for real. A look is a look once you are inside it, so **do not
-    give outfits their own page** - that was tried and removed, along with a
-    cover image at the top of it.
+    FeedScreen builds the preview `Collection` from `OUTFITS`; "Save to
+    collection" then files it (moving its pieces out of any other one). A look
+    is a look once you are inside it, so **do not give outfits their own page** -
+    that was tried and removed, along with a cover image at the top of it. The
+    flat-lay stays on the card only: a filed outfit is an ordinary collection and
+    its card becomes the 2x2 mosaic of what is in it.
   - The imagery is **menswear**, so the row is hidden when `gender === 'female'`
     rather than offering a look that cannot be worn. New imagery, new branch.
   - **Furniture & Decor Ideas** is the same object for rooms instead of people
@@ -310,10 +336,10 @@ Memory, and tapping the "Memory updated" chip (or the snackbar's Manage action) 
 a chat. Both open the same `<MemorySheet>`.
 
 **Every way into Add to collection must keep working**: hearts (product cards,
-product page, scan match rows), hearting a Discover look (files the look as a
-collection), the collection page's pinned "Add pieces" sheet (combined search +
-scan, one piece per tap), and Saved > New collection. All of them run through
-the same `AddToCollectionFlow` / `AddItemsSheet` / `CreateCollectionSheet`.
+product page, collection page, scan match rows) and hearting a Discover look or
+outfit (files the whole look as a collection). Both run through the same
+`AddToCollectionFlow` / `CreateCollectionSheet`, and creating a collection only
+happens inside that flow ("Create" in the sheet header).
 
 **Reaching the concierge starts a NEW chat** (thread and ratings cleared) and
 auto-sends a prompt carrying an attachment card - the collection (cover + meta),
@@ -331,51 +357,70 @@ one is ours. The exception is the chat's own suggestion rows, where the glyph
 labels a kind of prompt rather than the concierge (whose name is in the label).
 
 **On a page about one thing, the concierge is a prompt field, not a button.** The
-collection page, the product page and the scan results each pin a prompt-only
-`<BottomDock>` (no attach) that sends whatever the user typed with that thing
-attached. **Where the field does more than one job its placeholder cycles**, with
-a **static lead-in and only the tail moving**: the collection page runs "Ask to
-find you a piece / add pieces / modify this collection". A single static hint only
-advertises one of the three and nobody would guess the rest, but rotating whole
-sentences is hard to read at a glance. Pass `placeholder` an array plus
-`placeholderPrefix`; a plain string stays a plain placeholder. Keep the lead-in
-short - spelling out "Ask AI Concierge to" ate the width the tails need. What you want to ask is specific
-("what shoes go with this?"), so it goes in one step instead of landing in an empty
-chat and typing it there. **On a page about nothing in particular** - the search
-modal's idle and no-match states, both empty states of the Add pieces sheet - it is
-the **"Ask AI Concierge"** offer instead (`src/components/AskConciergeOffer.tsx`),
-because there is nothing yet to ask about. Either way **no dead end just stops**:
-searching only finds what is already tagged in the catalog, so the concierge is
-always the way out. The action is called **"Ask AI Concierge"** everywhere.
+product page pins a `<BottomDock>` that sends whatever the user typed with that
+piece attached, and so does the collection page **once the collection is the
+user's own** ("Ask me to find you a piece"). What you want to ask is specific
+("what shoes go with this?"), so it goes in one step instead of landing in an
+empty chat and typing it there. Where a field ever needs to advertise more than
+one job, `<BottomDock>` takes a `placeholder` array plus a **static**
+`placeholderPrefix` and cycles only the tail; a plain string stays a plain
+placeholder.
 
-**The offer argues, in one line.** Most people assume a search box is all there
-is, so `<AskConciergeOffer>` carries a line under its CTA saying what the concierge
-does that search cannot ("Describe an occasion, a budget or a mood. It looks past
-the catalog."). One line, not a panel: a headline plus worked examples was tried
-here and made an empty search screen feel like homework.
+**The collection page's bottom has one job at a time, and `preview` picks it.**
+A look that is not the user's yet has exactly one decision attached to it, so the
+slot goes to a full-width **"Save to my collections"** pill (the `favorite` heart, the
+same glyph that saves a single piece) floating over the list on a gradient fade
+rather than docked - it is a decision, not a fixture, and the pieces stay visible
+underneath. Once the collection is theirs there is nothing left to decide and the
+slot goes to the concierge field. Never both.
 
-**Search suggestion chips are real rows from the data being searched**, never a
-list of departments: pieces from the catalogue on Discover, pieces in this
-collection on the collection page. A chip is a demonstration of a good query, so it
-must never come back empty. They sit in **one horizontally-scrolling row**, and the
-idle state carries no headline - the field's placeholder already says what this
-searches.
+**Asked for pieces like something, the concierge hands back a collection**
+(Figma node 5555-53458). A set of pieces chosen to go together *is* a collection,
+so it arrives as one rather than as a list the user then files five times over.
+The flow, and the copy that carries it:
 
-**Virtual try-on is clothing-only**, via `isClothing()` / `collectionHasClothing()`
-in `src/data/collections.ts`. Keep that gate if categories are renamed. On the
-**product page** the button is **omitted entirely** for a non-clothing piece (a car
-has nothing to try on, so a dead button is noise). On the **collection page** it is
-the **primary button** of the action stack when the collection has clothing, and
-otherwise a **disabled menu item** - the collection still exists, so the action stays
-named rather than vanishing.
+1. **Ask** - from the product page's field ("Ask me for pieces like this") or the
+   chat. `WANTS_SIMILAR` in `ChatScreen` catches it and wins over the
+   update-a-collection intent, since "more pieces like this" is a request for new
+   pieces, not for an existing collection to grow.
+2. **Propose** - `conciergeProposeCollection` picks four, same category first,
+   and only from pieces no collection already holds. The anchor piece can be
+   **attached or merely named in the sentence**; both must keep working.
+   Suggestion chips never name a piece, because the catalogue is gender-filtered
+   and a hardcoded name is absent for half the users.
+3. **Reply** - "Here are 4 pieces that sit alongside the {piece}. I have gathered
+   them into "{name}". Open it to save it to your collections." plus the
+   collection as a tappable attachment card. The copy has one job past naming
+   what it found: say the set is a thing you can keep, and that keeping it is
+   still your call.
+4. **Keep it** - the card opens the ordinary collection page in `preview`, whose
+   floating button reads **"Save to my collections"**, confirming with
+   **"Saved to your collections" / View**.
 
-**Both pages build their actions the same way: exactly one filled primary, the rest
+**A proposal is not a save.** It lives in FeedScreen's `proposals`, never in
+`collections`, until the user says so - so `openAttachment` and
+`previewCollection` both have to resolve proposals as well as stored collections
+and Discover looks.
+
+**Where a page has nothing to ask about, the concierge is a button.** The scan
+results carry one filled "Ask AI Concierge" on the "None of these?" row, because
+the answer to a bad match is to hand the photo over, not to type. **No dead end
+just stops**: the catalog only holds what is already tagged in it, so the
+concierge is always the way out. The action is called **"Ask AI Concierge"**
+everywhere.
+
+**Virtual try-on is the product page's, and clothing-only**, via `isClothing()`
+in `src/data/collections.ts`. Keep that gate if categories are renamed. The button
+is **omitted entirely** for a non-clothing piece (a car has nothing to try on, so a
+dead button is noise). **The collection page has no try-on** - and no action stack
+at all: its only button is the floating "Save to my collections", and only while it is
+a `preview` look the user has not filed yet.
+
+**The product page builds its actions as exactly one filled primary, the rest
 outlined, full width** (`primaryActionStyle` / `outlinedActionStyle` in
 `src/screens/screenChrome.tsx` - use those, don't restyle a button in place). When
 the natural primary is unavailable the next action takes the filled slot rather than
-leaving the page with none. The collection page's priority is **Save Collection →
-Virtual try-on → Add pieces** (a preview look never offers Add pieces, having no
-stored collection to add to); the product page promotes Ask AI Concierge.
+leaving the page with none; it promotes Ask AI Concierge.
 
 **Where to buy** (`src/components/WhereToBuy.tsx`) is the product page's stockist
 section: map preview, filter chips, then one row per boutique. Two invariants:

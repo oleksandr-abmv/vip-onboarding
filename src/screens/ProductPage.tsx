@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import { safeTop } from '../theme';
-import { type Product } from '../data/products';
+import { viewsOf, type Product } from '../data/products';
 import { categoryConfigs, getSubcategories } from '../data/categoryConfig';
 import HistoricalPrice from '../components/HistoricalPrice';
 import MIcon from '../components/MIcon';
 import NavIconButton from '../components/NavIconButton';
+import ProductGallery from '../components/ProductGallery';
 import WhereToBuy, { BoutiqueMapView } from '../components/WhereToBuy';
 import { getPriceHistory } from '../data/priceHistory';
 import { boutiquesFor } from '../data/boutiques';
@@ -15,6 +16,13 @@ import BottomDock from '../components/BottomDock';
 import type { ConciergePrompt } from './ChatScreen';
 
 const PAGE = 16;
+
+/**
+ * The historical-price card is hidden for now. Nothing was deleted: the
+ * component, its data and the price line it feeds are all still here, so
+ * flipping this to `true` restores the chart exactly as it was.
+ */
+const SHOW_HISTORICAL_PRICE = false;
 
 /** Nav height below the safe area: 10 top pad + 40 button + 20 bottom pad. */
 const NAV_H = 70;
@@ -42,6 +50,8 @@ export default function ProductPage({
   onAskConcierge,
 }: ProductPageProps) {
   const isPlaceholder = product.image === '/vip-logo.svg';
+  /** Every view of the piece. One entry means the hero is a static image. */
+  const views = useMemo(() => viewsOf(product), [product]);
   const categoryName = categoryConfigs[product.category]?.name || product.category;
 
   const subLabel = useMemo(() => {
@@ -202,35 +212,16 @@ export default function ProductPage({
           paddingBottom: 28,
         }}
       >
-        {/* Hero image. Not pinned: it scrolls straight up under the nav, so no
-            slice of the light backdrop is left stranded behind the fade. */}
-        <div
-          style={{
-            width: '100%',
-            height: 300,
-            boxSizing: 'border-box',
-            background: '#ececec',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
-          }}
-        >
-          {isPlaceholder ? (
-            <img
-              src="/vip-logo.svg"
-              alt=""
-              aria-hidden
-              style={{ width: 88, height: 88, opacity: 0.3, filter: 'brightness(0)', display: 'block' }}
-            />
-          ) : (
-            <img
-              src={product.image}
-              alt={product.name}
-              style={{ maxWidth: '78%', maxHeight: '86%', objectFit: 'contain', display: 'block' }}
-            />
-          )}
-        </div>
+        {/* Hero gallery. Not pinned: it scrolls straight up under the nav, so no
+            slice of the light backdrop is left stranded behind the fade.
+            Keyed by product so swiping to view 3 and opening another piece
+            never lands mid-track. */}
+        <ProductGallery
+          key={product.image}
+          images={views}
+          alt={product.name}
+          placeholder={isPlaceholder}
+        />
 
         {/* Title + general price */}
         <div style={{ padding: `24px ${PAGE}px 0`, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -244,10 +235,17 @@ export default function ProductPage({
 
         {/* Historical price (interactive chart, sits under the price). Starts
             collapsed; tapping its header row expands it.
-            Keyed by product so it resets per item. */}
-        <div style={{ padding: `16px ${PAGE}px 0` }}>
-          <HistoricalPrice key={`${product.brand}-${product.name}`} product={product} history={history} />
-        </div>
+            Keyed by product so it resets per item.
+
+            HIDDEN FOR NOW. The component and its data are kept intact
+            (src/components/HistoricalPrice.tsx, src/data/priceHistory.ts) - flip
+            SHOW_HISTORICAL_PRICE back to true to bring the card back. The price
+            line above still reads from the same history, so nothing else moves. */}
+        {SHOW_HISTORICAL_PRICE && (
+          <div style={{ padding: `16px ${PAGE}px 0` }}>
+            <HistoricalPrice key={`${product.brand}-${product.name}`} product={product} history={history} />
+          </div>
+        )}
 
         {/* Actions: Virtual try-on (clothing only), then official retail. Exactly
             one filled primary - a car has nothing to try on, so that button is
@@ -326,11 +324,17 @@ export default function ProductPage({
           in an empty chat. Sending starts a NEW chat with the piece attached. */}
       {onAskConcierge && (
         <BottomDock
-          placeholder="Ask about this piece"
+          // Leads with the thing the concierge does that browsing cannot: hand
+          // back a whole set of pieces that go with this one. An empty send
+          // asks for exactly that, since it is the likeliest reason to open the
+          // field without knowing what to type.
+          placeholderPrefix="Ask me"
+          placeholder={['for pieces like this', 'where to buy it', 'about this piece']}
+          ariaLabel="Ask AI Concierge"
           showAttach={false}
           onSend={(text) =>
             onAskConcierge({
-              text,
+              text: text.trim() || 'Find me pieces like this one',
               attachment: {
                 title: `${product.brand} ${product.name}`,
                 subtitle: priceLabel,

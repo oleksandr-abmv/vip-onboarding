@@ -37,6 +37,7 @@ export default function Sheet({
   onClose,
   onBack,
   action,
+  closeLeading = false,
   full = false,
   children,
 }: {
@@ -48,10 +49,14 @@ export default function Sheet({
       close button moves to the leading slot - the Figma "X · title · action"
       header - unless `onBack` already claims it. */
   action?: ReactNode;
+  /** Keep close on the left even with no trailing action, so the collection
+      sheets read the same whether or not they carry a "Create". */
+  closeLeading?: boolean;
   /** Fill the screen below the status bar (the Memory sheet's height). */
   full?: boolean;
   children: ReactNode;
 }) {
+  const leadingClose = !onBack && (closeLeading || !!action);
   return (
     <>
       <div
@@ -97,7 +102,7 @@ export default function Sheet({
               <button onClick={onBack} aria-label="Back" style={sheetIconButtonStyle}>
                 <MIcon name="arrow_left_alt" size={20} color={TEXT_PRIMARY} />
               </button>
-            ) : action ? (
+            ) : leadingClose ? (
               <button onClick={onClose} aria-label="Close" style={sheetIconButtonStyle}>
                 <MIcon name="close" size={20} color={TEXT_PRIMARY} />
               </button>
@@ -121,6 +126,9 @@ export default function Sheet({
             <span style={{ minWidth: 32, flexShrink: 0, display: 'flex', justifyContent: 'flex-end' }}>
               {action}
             </span>
+          ) : leadingClose ? (
+            // Balances the leading close so the title stays optically centred.
+            <span aria-hidden style={{ width: 32, flexShrink: 0 }} />
           ) : (
             <button onClick={onClose} aria-label="Close" style={sheetIconButtonStyle}>
               <MIcon name="close" size={20} color={TEXT_PRIMARY} />
