@@ -124,11 +124,12 @@ export default function ProductPage({
   /** The reference table behind the Details row. */
   const specs = useMemo(() => getSpecs(product), [product]);
 
-  /** Details expand in place rather than opening a sheet: it is reference you
-      read against the piece, not a decision you leave the page to make. */
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  /** Which story inside them is unfolded, by name. One at a time. */
-  const [openStory, setOpenStory] = useState<string | null>(null);
+  /** Which reference section is unfolded, one at a time. They expand in place
+      rather than opening a sheet: this is reference you read against the piece,
+      not a decision you leave the page to make. */
+  const [openSection, setOpenSection] = useState<'spec' | 'house' | 'people' | null>(null);
+  const toggleSection = (id: 'spec' | 'house' | 'people') =>
+    setOpenSection((cur) => (cur === id ? null : id));
   const people = useMemo(() => peopleFor(product.brand), [product.brand]);
   const house = useMemo(() => houseFor(product.brand), [product.brand]);
 
@@ -350,112 +351,89 @@ export default function ProductPage({
           )}
         </div>
 
-        {/* Details, as a dropdown rather than a sheet: this is reference you
-            read against the piece in front of you, so leaving the page for it
-            was a step too many. The row keeps its place and the panel unfolds
-            underneath. */}
+        {/* The reference, as its own sections rather than one Details drawer:
+            the specification, the company, and the people are three different
+            questions, and stacking them behind one label made the user open a
+            thing to find out what was in it. Each unfolds in place. */}
         <div style={{ padding: `24px ${PAGE}px 0` }}>
-          <button
-            onClick={() => setDetailsOpen((v) => !v)}
-            aria-expanded={detailsOpen}
-            style={{
-              width: '100%',
-              height: 52,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 12,
-              padding: 0,
-              background: 'transparent',
-              border: 'none',
-              borderTop: '1px solid #282828',
-              borderBottom: detailsOpen ? 'none' : '1px solid #282828',
-              color: '#f6f6f6',
-              fontSize: 16,
-              fontWeight: 500,
-              cursor: 'pointer',
-              WebkitTapHighlightColor: 'transparent',
-            }}
+          <DetailSection
+            title="Specification"
+            open={openSection === 'spec'}
+            onToggle={() => toggleSection('spec')}
+            first
           >
-            Details
-            <Chevron open={detailsOpen} />
-          </button>
-
-          {detailsOpen && (
-            <div style={{ paddingBottom: 20, borderBottom: '1px solid #282828' }}>
-              {/* Authored spec bullets lead when a piece has them. */}
-              {product.details?.length ? (
-                <ul style={{ margin: '0 0 4px', paddingLeft: 22, listStyleType: 'disc' }}>
-                  {product.details.map((d) => (
-                    <li key={d} style={{ fontSize: 16, lineHeight: '22px', color: '#c8c8c8', marginBottom: 8 }}>
-                      {d}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-
-              <BlockTitle>Specification</BlockTitle>
-              {/* Rows follow the category: a watch has a movement, a bottle has
-                  a vintage, a car has an engine. See `src/data/specs.ts`. */}
-              <div
-                style={{
-                  padding: `2px ${PAGE}px`,
-                  background: '#101111',
-                  border: '1px solid #282828',
-                  borderRadius: theme.radii.card,
-                }}
-              >
-                {specs.map((row, i) => (
-                  <div key={row.label}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'baseline',
-                        justifyContent: 'space-between',
-                        gap: 16,
-                        padding: '12px 0',
-                      }}
-                    >
-                      <span style={{ fontSize: 16, fontWeight: 500, color: '#999', lineHeight: '22px', flexShrink: 0 }}>
-                        {row.label}
-                      </span>
-                      <span style={{ fontSize: 16, fontWeight: 400, color: '#f2f2f2', lineHeight: '22px', textAlign: 'right' }}>
-                        {row.value}
-                      </span>
-                    </div>
-                    {i < specs.length - 1 && <div style={{ height: 1, background: '#1c1c1c' }} />}
+            {/* Authored spec bullets lead when a piece has them. */}
+            {product.details?.length ? (
+              <ul style={{ margin: '0 0 12px', paddingLeft: 22, listStyleType: 'disc' }}>
+                {product.details.map((d) => (
+                  <li key={d} style={{ fontSize: 16, lineHeight: '22px', color: '#c8c8c8', marginBottom: 8 }}>
+                    {d}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {/* Rows follow the category: a watch has a movement, a bottle has a
+                vintage, a car has an engine. See `src/data/specs.ts`. */}
+            <div
+              style={{
+                padding: `2px ${PAGE}px`,
+                background: '#101111',
+                border: '1px solid #282828',
+                borderRadius: theme.radii.card,
+              }}
+            >
+              {specs.map((row, i) => (
+                <div key={row.label}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'baseline',
+                      justifyContent: 'space-between',
+                      gap: 16,
+                      padding: '12px 0',
+                    }}
+                  >
+                    <span style={{ fontSize: 16, fontWeight: 500, color: '#999', lineHeight: '22px', flexShrink: 0 }}>
+                      {row.label}
+                    </span>
+                    <span style={{ fontSize: 16, fontWeight: 400, color: '#f2f2f2', lineHeight: '22px', textAlign: 'right' }}>
+                      {row.value}
+                    </span>
                   </div>
-                ))}
-              </div>
-
-              {/* The company, then the people. Both unfold in place. Only what is
-                  on public record, and never a generated portrait: these are real
-                  houses and several of the names are living people. */}
-              <BlockTitle>The house</BlockTitle>
-              <StoryCard
-                title={house.name}
-                subtitle={house.origin}
-                story={house.story}
-                open={openStory === house.name}
-                onToggle={() => setOpenStory((k) => (k === house.name ? null : house.name))}
-              />
-
-              <BlockTitle>People</BlockTitle>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {people.map((person) => (
-                  <StoryCard
-                    key={person.name}
-                    title={person.name}
-                    subtitle={person.role}
-                    story={person.story}
-                    image={person.image}
-                    open={openStory === person.name}
-                    onToggle={() => setOpenStory((k) => (k === person.name ? null : person.name))}
-                  />
-                ))}
-              </div>
+                  {i < specs.length - 1 && <div style={{ height: 1, background: '#1c1c1c' }} />}
+                </div>
+              ))}
             </div>
-          )}
+          </DetailSection>
+
+          {/* The company, then the people. Only what is on public record, and
+              never a generated portrait: these are real houses and several of
+              the names are living people. */}
+          <DetailSection
+            title="The house"
+            open={openSection === 'house'}
+            onToggle={() => toggleSection('house')}
+          >
+            <StoryCard title={house.name} subtitle={house.origin} story={house.story} />
+          </DetailSection>
+
+          <DetailSection
+            title="People"
+            open={openSection === 'people'}
+            onToggle={() => toggleSection('people')}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {people.map((person) => (
+                <StoryCard
+                  key={person.name}
+                  title={person.name}
+                  subtitle={person.role}
+                  story={person.story}
+                  image={person.image}
+                />
+              ))}
+            </div>
+          </DetailSection>
         </div>
 
         {/* Similar pieces: individual products of the same kind, nearest in
@@ -606,33 +584,6 @@ export default function ProductPage({
   );
 }
 
-/** A titled block inside the Details sheet. */
-function BlockTitle({ children }: { children: ReactNode }) {
-  return (
-    <h3
-      style={{
-        margin: '24px 0 12px',
-        fontSize: 16,
-        fontWeight: 600,
-        lineHeight: '22px',
-        color: '#f6f6f6',
-      }}
-    >
-      {children}
-    </h3>
-  );
-}
-
-/** "Thierry Hermes" -> "TH". Drops the articles a house fallback carries. */
-function initialsOf(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter((w) => !['the', 'of', 'and'].includes(w.toLowerCase()))
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? '')
-    .join('');
-}
-
 /** The disclosure arrow, pointing down and turning over when open. */
 function Chevron({ open }: { open: boolean }) {
   return (
@@ -650,24 +601,68 @@ function Chevron({ open }: { open: boolean }) {
 }
 
 /**
- * A house or a person: the mark, the name, a line under it, and the story
- * unfolding inside the card. `image` is a licensed photograph when there is
- * one; there is never a generated likeness, so the mark falls back to initials.
+ * One section of the reference: a row that unfolds its own content. The row is
+ * the label, so the user knows what is behind it before opening it.
+ */
+function DetailSection({
+  title,
+  open,
+  onToggle,
+  first = false,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  first?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div style={{ borderTop: first ? '1px solid #282828' : 'none', borderBottom: '1px solid #282828' }}>
+      <button
+        onClick={onToggle}
+        aria-expanded={open}
+        style={{
+          width: '100%',
+          height: 52,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          padding: 0,
+          background: 'transparent',
+          border: 'none',
+          color: '#f6f6f6',
+          fontSize: 16,
+          fontWeight: 500,
+          cursor: 'pointer',
+          WebkitTapHighlightColor: 'transparent',
+        }}
+      >
+        {title}
+        <Chevron open={open} />
+      </button>
+      {open && <div style={{ paddingBottom: 20 }}>{children}</div>}
+    </div>
+  );
+}
+
+/**
+ * A house or a person: the mark, the name, a line under it, and the story. The
+ * section above is the disclosure, so the card does not hide anything itself.
+ * `image` is a licensed photograph when there is one; there is never a generated
+ * likeness, so the mark falls back to initials.
  */
 function StoryCard({
   title,
   subtitle,
   story,
   image,
-  open,
-  onToggle,
 }: {
   title: string;
   subtitle: string;
   story: string;
   image?: string;
-  open: boolean;
-  onToggle: () => void;
 }) {
   return (
     <div
@@ -675,25 +670,10 @@ function StoryCard({
         background: '#101111',
         border: '1px solid #282828',
         borderRadius: theme.radii.card,
-        overflow: 'hidden',
+        padding: `14px ${PAGE}px 16px`,
       }}
     >
-      <button
-        onClick={onToggle}
-        aria-expanded={open}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          width: '100%',
-          padding: `14px ${PAGE}px`,
-          background: 'transparent',
-          border: 'none',
-          textAlign: 'left',
-          cursor: 'pointer',
-          WebkitTapHighlightColor: 'transparent',
-        }}
-      >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <span
           aria-hidden
           style={{
@@ -723,13 +703,18 @@ function StoryCard({
           </span>
           <span style={{ display: 'block', fontSize: 14, lineHeight: '20px', color: '#999' }}>{subtitle}</span>
         </span>
-        <Chevron open={open} />
-      </button>
-      {open && (
-        <p style={{ margin: 0, padding: `0 ${PAGE}px 16px`, fontSize: 16, lineHeight: '24px', color: '#c8c8c8' }}>
-          {story}
-        </p>
-      )}
+      </div>
+      <p style={{ margin: '12px 0 0', fontSize: 16, lineHeight: '24px', color: '#c8c8c8' }}>{story}</p>
     </div>
   );
+}
+
+/** "Thierry Hermes" -> "TH". Drops the articles a house fallback carries. */
+function initialsOf(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter((w) => !['the', 'of', 'and'].includes(w.toLowerCase()))
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('');
 }

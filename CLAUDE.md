@@ -435,12 +435,13 @@ of the same category, nearest in price, gender taken from the anchor. Tapping
 one **swaps the page and Back walks the trail** rather than closing - the trail
 lives in ProductPage, so all three hosts get it without wiring anything.
 
-**The Details row is a dropdown, not a sheet** - it is reference you read against
-the piece in front of you, so leaving the page for it was a step too many. It
-unfolds three blocks in place: **Specification** (`src/data/specs.ts`, rows
-following the category - a watch has a movement, a bottle has a vintage), **The
-house**, and **People** (both `src/data/people.ts`). The house and each person
-are `StoryCard`s that unfold their own story inside the card, one at a time.
+**The reference is three sections, not one Details drawer**: **Specification**
+(`src/data/specs.ts`, rows following the category - a watch has a movement, a
+bottle has a vintage), **The house**, and **People** (both
+`src/data/people.ts`). Each is a row that unfolds in place, one open at a time.
+They are separate because they answer three different questions, and stacking
+them behind a single "Details" made the user open a thing to find out what was
+in it. The section is the disclosure, so the cards inside hide nothing further.
 
 Two rules hold there: **only what is on public record** (these are real
 companies, so an invented name attached to one is a fabricated person; brands
