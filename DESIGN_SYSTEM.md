@@ -794,11 +794,13 @@ characters and the meta wrapping. The preview is **one piece, not the 2x2 cover*
 the same call `CollectionThumb` makes in the sheet.
 
 - **Unsaved**: a rail at `RAIL_CARD_W`, the track carrying the `16px` inset
-  (never the scroller, or the first card sits flush at x=0). Four collections,
-  each ending in a `32px` outlined plus (`1px solid #444547`, transparent - a
-  span, not a button, since the whole card is already the target), then an `84px`
-  vertical **View all** card (`more_horiz` badge over a `14/18` label) that opens
-  the Add to collection sheet.
+  (never the scroller, or the first card sits flush at x=0). Every collection,
+  each ending in a `32px` outlined plus (`1px solid #444547`, transparent; a
+  span, not a button, since the whole card is already the target), bookended by
+  two `160px` cards - **Create** (`add_2`) at the head and **More**
+  (`more_horiz`) at the tail. Those two take the same shell stretched to the
+  row's height, with a bare glyph and a `16/22/600` label centred, and no
+  preview tile behind the glyph.
 - **Saved**: the rail is gone, replaced by the same row at full width, ending in
   a filled **Saved** pill (`#f6f6f6`/`#121212`, 40px) that takes the piece back
   out. Refiling is unsave, then save again.

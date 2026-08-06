@@ -337,7 +337,7 @@ export default function ProductPage({
           currentId={collectionOf(picker.collections, product.name)?.id}
           onPick={(id) => picker.onPick(product, id)}
           onCreate={() => picker.onCreate(product)}
-          // The heart's own sheet: the full list, a search, and Create.
+          // The heart's own sheet: the full list, with a search.
           onViewAll={onToggleSave}
         />
 

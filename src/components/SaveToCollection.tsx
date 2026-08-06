@@ -27,8 +27,8 @@ import type { Product } from '../data/products';
 // empties a slot in a collection the user had already built.
 //
 // **The rail is capped and bookended.** Four collections (the newest, so the
-// likeliest answer leads) between two narrow vertical cards: **Add new** at the
-// head, straight to the create sheet, and **View all** at the tail, which opens
+// likeliest answer leads) between two narrower cards of the same horizontal
+// shape: **Add new** at the head, straight to the create sheet, and **View all** at the tail, which opens
 // the Add to collection sheet with every collection and a search over their
 // names. Add new is still not a way to make an empty collection: it creates one
 // *while filing this piece*, which is the only way collections are ever made.
@@ -46,10 +46,9 @@ const PHOTO_BG = '#ececec';
 /** The app's one rail width, so this row lines up with every Discover rail. */
 const CARD_W = RAIL_CARD_W;
 const PREVIEW = 64;
-/** The narrow vertical cards that bookend the rail. */
-const CAP_W = 96;
-/** How many collections the rail shows before "All" takes over. */
-const MAX_VISIBLE = 4;
+/** The rail's bookend cards. Narrower than a collection row: they carry a
+    label, not a name, a meta line and a control. Height comes from the row. */
+const CAP_W = 160;
 
 export default function SaveToCollection({
   collections,
@@ -68,7 +67,7 @@ export default function SaveToCollection({
   onPick: (collectionId: string) => void;
   /** Straight to the create sheet, which files this piece into what it makes. */
   onCreate: () => void;
-  /** Opens the Add to collection sheet: every collection, a search, and Create. */
+  /** The Add to collection sheet: every collection, a search over their names. */
   onViewAll: () => void;
 }) {
   const current = collections.find((c) => c.id === currentId);
@@ -120,9 +119,9 @@ export default function SaveToCollection({
            the screen edge instead of on the page margin. */
         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingTop: 16 }}>
           <div style={{ display: 'flex', gap: 12, padding: `0 ${PAGE}px`, width: 'max-content' }}>
-            <CapCard icon="add_2" label="Add new" onClick={onCreate} />
+            <CapCard icon="add_2" label="Create" onClick={onCreate} />
 
-            {collections.slice(0, MAX_VISIBLE).map((c) => (
+            {collections.map((c) => (
               <button
                 key={c.id}
                 onClick={() => onPick(c.id)}
@@ -135,7 +134,7 @@ export default function SaveToCollection({
 
             <CapCard
               icon="more_horiz"
-              label="View all"
+              label="More"
               onClick={onViewAll}
               ariaLabel={`View all ${collections.length} collections`}
             />
@@ -278,9 +277,10 @@ function PlusBadge() {
 }
 
 /**
- * The narrow vertical cards that bookend the rail: **Add new** at the head,
- * **View all** at the tail. Deliberately not the shape of a collection row, so
- * neither ever reads as a collection you could file into.
+ * The cards that bookend the rail: **Create** at the head, **More** at the
+ * tail. Laid out like a collection row and stretched to its height by the
+ * track, but narrower, with a bare glyph where the preview goes and no meta
+ * line, so neither ever reads as a collection you could file into.
  */
 function CapCard({
   icon,
@@ -291,36 +291,21 @@ function CapCard({
   icon: string;
   label: string;
   onClick: () => void;
+  /** When the visible label is shorter than what the control actually does. */
   ariaLabel?: string;
 }) {
   return (
     <button
       onClick={onClick}
       aria-label={ariaLabel}
-      style={{
-        ...cardShell,
-        width: CAP_W,
-        flexDirection: 'column',
-        justifyContent: 'center',
-        gap: 8,
-        cursor: 'pointer',
-      }}
+      // Centred, unlike a collection row: there is no preview to anchor a left
+      // edge to, so the pair sits in the middle of the card.
+      style={{ ...cardShell, width: CAP_W, justifyContent: 'center', cursor: 'pointer' }}
     >
-      <span
-        aria-hidden
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: theme.radii.button,
-          background: '#1f2022',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <MIcon name={icon} size={20} color="#f6f6f6" />
-      </span>
-      <span style={{ fontSize: 14, fontWeight: 500, lineHeight: '18px', color: '#f7f7f7' }}>
+      {/* The glyph, bare. A filled tile where the collections show a piece read
+          as a preview of nothing. */}
+      <MIcon name={icon} size={24} color="#f6f6f6" />
+      <span style={{ fontSize: 16, fontWeight: 600, lineHeight: '22px', color: '#f7f7f7' }}>
         {label}
       </span>
     </button>
