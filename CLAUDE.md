@@ -437,25 +437,16 @@ lives in ProductPage, so all three hosts get it without wiring anything.
 
 **The Details row** opens a `full` `<Sheet>` (content scrolling inside it, or a
 content-height sheet grows past the top of the frame and takes its own close
-button with it) holding two blocks: **Specification** (`src/data/specs.ts`, rows
-following the category - a watch has a movement, a bottle has a vintage) and
-**Brand** (`src/data/people.ts`), which carries the house and, under it, the key
-people - they belong together, because the people are the story of the house.
+button with it). Inside: the **specification** (`src/data/specs.ts`, rows
+following the category - a watch has a movement, a bottle has a vintage) and one
+outlined **Ask AI Concierge** carrying the piece.
 
-Two rules there: **only what is on public record** (these are real companies, so
-an invented name attached to one is a fabricated person; brands with no entry get
-a fallback that names nobody), and **nothing is generated** - a synthesised logo
-is an imitation of a real trademark and a synthesised portrait is a fabricated
-picture of a real person, several of whom are living. `image` on a house or a
-person is for a **licensed** file; with none, the mark is the initials set in the
-app's own type.
-
-Two rules hold there: **only what is on public record** (these are real
-companies, so an invented name attached to one is a fabricated person; brands
-with no entry get a fallback that names nobody), and **never a generated
-portrait** - `Person.image` is for a licensed photograph, and the card draws
-initials when there is none. The `HistoricalPrice` chart stays **off** the page;
-it is intact but deliberately unused.
+**Everything past the table is a question, so the concierge answers it.** A
+written block on the house, its founders and the provenance was built and
+removed: the copy is not written for this piece, it goes stale, and for a real
+company it means either licensing portraits and logotypes or fabricating them.
+The concierge already knows how to be asked. (`src/data/people.ts` held that
+copy; it is in git history if the pattern is ever wanted back.)
 
 **Collections with this piece** is the section above the save rail
 (`src/data/edits.ts`):

@@ -5,13 +5,13 @@ import { categoryConfigs, getSubcategories } from '../data/categoryConfig';
 import MIcon from '../components/MIcon';
 import NavIconButton from '../components/NavIconButton';
 import CollectionCard from '../components/CollectionCard';
+import ConciergeMark from '../components/ConciergeMark';
 import ProductCard from '../components/ProductCard';
 import ProductGallery from '../components/ProductGallery';
 import SaveToCollection from '../components/SaveToCollection';
 import Sheet from '../components/Sheet';
 import { getPriceHistory } from '../data/priceHistory';
 import { getSpecs } from '../data/specs';
-import { houseFor, peopleFor } from '../data/people';
 import { collectionOf, isClothing, type Collection } from '../data/collections';
 import { shareContent, shareMessage } from '../data/share';
 import { outlinedActionStyle, primaryActionStyle } from './screenChrome';
@@ -128,8 +128,6 @@ export default function ProductPage({
 
   /** The reference, in a sheet: two blocks that are too long for the page. */
   const [showDetails, setShowDetails] = useState(false);
-  const people = useMemo(() => peopleFor(product.brand), [product.brand]);
-  const house = useMemo(() => houseFor(product.brand), [product.brand]);
 
   /** The coordinated looks this piece appears in. */
   const looks = useMemo(() => picker.looksWith(product), [picker, product]);
@@ -521,7 +519,6 @@ export default function ProductPage({
               </ul>
             ) : null}
 
-            <BlockTitle>Specification</BlockTitle>
             {/* Rows follow the category: a watch has a movement, a bottle has a
                 vintage, a car has an engine. See `src/data/specs.ts`. */}
             <div
@@ -555,17 +552,29 @@ export default function ProductPage({
               ))}
             </div>
 
-            {/* The brand, and the people who made it what it is - they belong
-                together, because the people are the story of the house. Only
-                what is on public record, and never a generated mark: the
-                initials are typographic, not an imitation of a trademark. */}
-            <BlockTitle>Brand</BlockTitle>
-            <StoryCard
-              title={house.name}
-              subtitle={house.origin}
-              story={house.story}
-              people={people}
-            />
+            {/* Everything past the table is a question, and the concierge
+                answers questions better than a block of copy nobody wrote for
+                this piece. The house, the maker, the provenance: one ask. */}
+            {onAskConcierge && (
+              <button
+                onClick={() => {
+                  setShowDetails(false);
+                  onAskConcierge({
+                    text: `Tell me more about the ${product.brand} ${product.name}.`,
+                    attachment: {
+                      title: `${product.brand} ${product.name}`,
+                      subtitle: priceLabel,
+                      images: [product.image],
+                      target: { kind: 'product', name: product.name },
+                    },
+                  });
+                }}
+                style={{ ...outlinedActionStyle, marginTop: 20 }}
+              >
+                <ConciergeMark size={20} />
+                Ask AI Concierge
+              </button>
+            )}
           </div>
         </Sheet>
       )}
@@ -600,142 +609,4 @@ export default function ProductPage({
 
     </div>
   );
-}
-
-/** A titled block inside the Details sheet. */
-function BlockTitle({ children }: { children: ReactNode }) {
-  return (
-    <h3 style={{ margin: '24px 0 12px', fontSize: 16, fontWeight: 600, lineHeight: '22px', color: '#f6f6f6' }}>
-      {children}
-    </h3>
-  );
-}
-
-/**
- * The brand: its mark, its name, where it started, what it is, and the people
- * who made it that. The section above is the disclosure, so the card hides
- * nothing further.
- *
- * `image` is a **licensed** logotype when the house supplied one. Nothing here
- * is generated: a synthesised logo is an imitation of a real company's
- * trademark, and a synthesised portrait is a fabricated picture of a real
- * person. With no file, the mark is the initials set in the app's own type.
- */
-function StoryCard({
-  title,
-  subtitle,
-  story,
-  image,
-  people = [],
-}: {
-  title: string;
-  subtitle: string;
-  story: string;
-  image?: string;
-  people?: { name: string; role: string; story: string; image?: string }[];
-}) {
-  return (
-    <div
-      style={{
-        background: '#101111',
-        border: '1px solid #282828',
-        borderRadius: theme.radii.card,
-        padding: `14px ${PAGE}px 16px`,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span
-          aria-hidden
-          style={{
-            width: 40,
-            height: 40,
-            flexShrink: 0,
-            borderRadius: theme.radii.button,
-            background: '#1f2022',
-            overflow: 'hidden',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 14,
-            fontWeight: 600,
-            color: '#c8c8c8',
-          }}
-        >
-          {image ? (
-            <img src={image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-          ) : (
-            initialsOf(title)
-          )}
-        </span>
-        <span style={{ flex: 1, minWidth: 0, display: 'block' }}>
-          <span style={{ display: 'block', fontSize: 16, fontWeight: 600, lineHeight: '22px', color: '#f7f7f7' }}>
-            {title}
-          </span>
-          <span style={{ display: 'block', fontSize: 14, lineHeight: '20px', color: '#999' }}>{subtitle}</span>
-        </span>
-      </div>
-      <p style={{ margin: '12px 0 0', fontSize: 16, lineHeight: '24px', color: '#c8c8c8' }}>{story}</p>
-
-      {people.length > 0 && (
-        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #1c1c1c' }}>
-          <p style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 600, lineHeight: '20px', color: '#999' }}>
-            Key people
-          </p>
-          {people.map((person, i) => (
-            <div key={person.name} style={{ marginTop: i ? 16 : 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                {/* Their photograph when the house licensed one, their initials
-                    when it did not. Never a generated likeness: a real, named
-                    person, and several of these names are living. */}
-                <span
-                  aria-hidden
-                  style={{
-                    width: 36,
-                    height: 36,
-                    flexShrink: 0,
-                    borderRadius: theme.radii.button,
-                    background: '#1f2022',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: '#c8c8c8',
-                  }}
-                >
-                  {person.image ? (
-                    <img
-                      src={person.image}
-                      alt=""
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                    />
-                  ) : (
-                    initialsOf(person.name)
-                  )}
-                </span>
-                <span style={{ minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: 16, fontWeight: 600, lineHeight: '22px', color: '#f7f7f7' }}>
-                    {person.name}
-                  </p>
-                  <p style={{ margin: 0, fontSize: 14, lineHeight: '20px', color: '#999' }}>{person.role}</p>
-                </span>
-              </div>
-              <p style={{ margin: '8px 0 0', fontSize: 16, lineHeight: '24px', color: '#c8c8c8' }}>{person.story}</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** "Thierry Hermes" -> "TH". Drops the articles a house fallback carries. */
-function initialsOf(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter((w) => !['the', 'of', 'and'].includes(w.toLowerCase()))
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? '')
-    .join('');
 }
