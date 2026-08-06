@@ -430,7 +430,23 @@ its prompt field. Do not put boutiques, stock or a map back on this page
 without being asked; the deleted version is in git history if it is ever wanted
 back.
 
-**Collections with this piece** is the section above it (`src/data/edits.ts`):
+**Similar pieces** sits above both (`src/data/similar.ts`): individual products
+of the same category, nearest in price, gender taken from the anchor. Tapping
+one **swaps the page and Back walks the trail** rather than closing - the trail
+lives in ProductPage, so all three hosts get it without wiring anything.
+
+**The Details row** opens a `full` `<Sheet>` with two blocks: **Specification**
+(`src/data/specs.ts`, rows following the category - a watch has a movement, a
+bottle has a vintage) and **People** (`src/data/people.ts`), whose cards open a
+story with Back. Two rules there: **only people on public record** (these are
+real houses, so an invented name attached to one is a fabricated person, and
+brands without an entry get a fallback that names nobody), and **never a
+generated portrait** - `Person.image` is for a licensed photograph, and the card
+draws initials when there is none. The `HistoricalPrice` chart stays **off** the
+page and out of the sheet; it is intact but deliberately unused.
+
+**Collections with this piece** is the section above the save rail
+(`src/data/edits.ts`):
 **generated** looks, not stored ones. Five per piece, so every product has a
 rail rather than the handful that happen to sit in a hand-made look.
 

@@ -74,7 +74,7 @@ const familyOf = (product: Product): Family => FAMILY_OF[product.category] ?? 'm
  * anchor declares the gender of the look, and the feed's own filter only runs
  * when a preference was given. Unisex pieces go with anything.
  */
-function compatible(anchor: Product, p: Product): boolean {
+export function compatible(anchor: Product, p: Product): boolean {
   if (anchor.gender !== 'male' && anchor.gender !== 'female') return true;
   return !p.gender || p.gender === 'unisex' || p.gender === anchor.gender;
 }

@@ -1,15 +1,17 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { RAIL_CARD_W, safeBottom, safeTop } from '../theme';
+import { RAIL_CARD_W, safeBottom, safeTop, theme } from '../theme';
 import { viewsOf, type Product } from '../data/products';
 import { categoryConfigs, getSubcategories } from '../data/categoryConfig';
-import HistoricalPrice from '../components/HistoricalPrice';
 import MIcon from '../components/MIcon';
 import NavIconButton from '../components/NavIconButton';
 import CollectionCard from '../components/CollectionCard';
+import ProductCard from '../components/ProductCard';
 import ProductGallery from '../components/ProductGallery';
 import SaveToCollection from '../components/SaveToCollection';
 import Sheet from '../components/Sheet';
 import { getPriceHistory } from '../data/priceHistory';
+import { getSpecs } from '../data/specs';
+import { peopleFor, type Person } from '../data/people';
 import { collectionOf, isClothing, type Collection } from '../data/collections';
 import { shareContent, shareMessage } from '../data/share';
 import { outlinedActionStyle, primaryActionStyle } from './screenChrome';
@@ -48,6 +50,12 @@ export interface CollectionPicker {
   onCreate: (product: Product) => void;
   /** The looks this piece already appears in. Empty for most of the catalogue. */
   looksWith: (product: Product) => LookMatch[];
+  /** Individual pieces of the same kind, nearest in price first. */
+  similarTo: (product: Product) => Product[];
+  /** Whether a piece is in any collection, for its card's heart. */
+  isSaved: (product: Product) => boolean;
+  /** The heart on a piece's card: the same sheet flow the page's own heart uses. */
+  onToggleSaved: (product: Product) => void;
   /** Opens a look's collection page, the same one Discover opens. */
   onOpenLook: (lookId: string) => void;
   /** The card's heart: files the whole look, as Discover's look cards do. */
@@ -72,15 +80,31 @@ interface ProductPageProps {
 }
 
 export default function ProductPage({
-  product,
   saved,
   onToggleSave,
   onClose,
   gender,
   onNotice,
   onAskConcierge,
+  product: anchor,
   picker,
 }: ProductPageProps) {
+  /**
+   * Pieces opened from the "Similar pieces" rail, newest last. The page swaps to
+   * the piece you tapped and **Back walks the trail** rather than closing: you
+   * arrived at the fifth belt through four others, and losing all of them to one
+   * tap is the thing that makes people stop tapping.
+   */
+  // The anchor is stored with the trail rather than watched by an effect: a new
+  // piece from the host (a different card on the feed) simply makes the stored
+  // trail stale, and a stale trail reads as empty.
+  const [stack, setStack] = useState<{ anchor: Product; items: Product[] }>({ anchor, items: [] });
+  const trail = stack.anchor === anchor ? stack.items : [];
+  const product = trail.length ? trail[trail.length - 1] : anchor;
+  const pushPiece = (p: Product) => setStack({ anchor, items: [...trail, p] });
+  const goBack = () =>
+    trail.length ? setStack({ anchor, items: trail.slice(0, -1) }) : onClose();
+
   const isPlaceholder = product.image === '/vip-logo.svg';
   /** Every view of the piece. One entry means the hero is a static image. */
   const views = useMemo(() => viewsOf(product), [product]);
@@ -98,11 +122,23 @@ export default function ProductPage({
 
   const tryOn = isClothing(product);
 
+  /** The reference table behind the Details row. */
+  const specs = useMemo(() => getSpecs(product), [product]);
+
   /** The details sheet: depth the page does not need to be long to carry. */
   const [showDetails, setShowDetails] = useState(false);
+  /** Inside it, one person's story. Back returns to the sheet, as the
+      collection sheets step between select and create. */
+  const [openPerson, setOpenPerson] = useState<Person | null>(null);
+  const people = useMemo(() => peopleFor(product.brand), [product.brand]);
 
   /** The coordinated looks this piece appears in. */
   const looks = useMemo(() => picker.looksWith(product), [picker, product]);
+
+  /** Individual pieces of the same kind. */
+  const similar = useMemo(() => picker.similarTo(product), [picker, product]);
+  /** Only one card's "..." is open at a time, as on Discover. */
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   /**
    * Real spec bullets only. There used to be a derived fallback here - category,
@@ -117,8 +153,10 @@ export default function ProductPage({
       minus the brand, which the title already says. */
   const metaLine = [categoryName, subLabel, genderLabel].filter(Boolean).join('  ·  ');
 
-  // Price history drives both the "general price" line and the chart. Computed
-  // once here and shared so the displayed price always matches the chart's today.
+  // Price history is what the displayed price is derived from, so the number on
+  // the page is the same "today" the history ends on. The `HistoricalPrice`
+  // chart itself stays off the product page deliberately: it is taller than the
+  // frame and this page is long enough. Component and data are intact.
   const history = useMemo(() => getPriceHistory(product), [product]);
   const priceLabel = useMemo(
     () => '$' + history.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
@@ -185,7 +223,7 @@ export default function ProductPage({
           }}
         />
 
-        <NavIconButton label="Back" onClick={onClose}>
+        <NavIconButton label="Back" onClick={goBack}>
           <span className="material-symbols-rounded" style={{ fontSize: 22, fontVariationSettings: "'wght' 300", color: '#f2f2f2' }} aria-hidden>
             arrow_left_alt
           </span>
@@ -260,7 +298,7 @@ export default function ProductPage({
           <p style={{ fontSize: 20, fontWeight: 500, color: '#ededed', lineHeight: '26px', margin: 0 }}>
             {priceLabel}
           </p>
-          <p style={{ fontSize: 14, fontWeight: 400, color: '#999', lineHeight: '20px', margin: 0 }}>
+          <p style={{ fontSize: 16, fontWeight: 400, color: '#999', lineHeight: '22px', margin: 0 }}>
             {metaLine}
           </p>
         </div>
@@ -314,9 +352,10 @@ export default function ProductPage({
 
         {/* Details. A row, not a button: it opens a sheet you consult and
             dismiss, so the page keeps its place. It exists because there is
-            something behind it - the price history, built and then switched off
-            for making the page long. Specs and a note on the house join it here
-            when they arrive; do not ship this row onto an empty sheet. */}
+            something behind it - the piece's spec table, which is the reference
+            a product at this price is expected to carry and is too long to sit
+            on the page. A note on the house joins it here when it is written;
+            do not ship this row onto an empty sheet. */}
         <div style={{ padding: `24px ${PAGE}px 0` }}>
           <button
             onClick={() => setShowDetails(true)}
@@ -344,6 +383,48 @@ export default function ProductPage({
             <MIcon name="keyboard_arrow_right" size={22} color="#999" />
           </button>
         </div>
+
+        {/* Similar pieces: individual products of the same kind, nearest in
+            price. Above the looks, because "another like this" is a smaller
+            question than "what it goes with". */}
+        {similar.length > 0 && (
+          <>
+            <div style={{ height: 6, background: '#141414', marginTop: 24 }} />
+
+            <div style={{ padding: '20px 0 0' }}>
+              <h2
+                style={{
+                  padding: `0 ${PAGE}px`,
+                  margin: 0,
+                  fontSize: 16,
+                  fontWeight: 600,
+                  lineHeight: '24px',
+                  color: '#fff',
+                }}
+              >
+                Similar pieces
+              </h2>
+
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingTop: 16 }}>
+                <div style={{ display: 'flex', gap: 12, padding: `0 ${PAGE}px`, width: 'max-content' }}>
+                  {similar.map((p) => (
+                    <ProductCard
+                      key={p.name}
+                      product={p}
+                      width={RAIL_CARD_W}
+                      saved={picker.isSaved(p)}
+                      onToggleSave={() => picker.onToggleSaved(p)}
+                      onOpen={() => pushPiece(p)}
+                      menuOpen={openMenu === p.name}
+                      onToggleMenu={() => setOpenMenu((prev) => (prev === p.name ? null : p.name))}
+                      onCloseMenu={() => setOpenMenu(null)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Looks built around the piece, not the user's own collections - those
             are the section below. Each is a different lens on it (the occasion,
@@ -419,12 +500,20 @@ export default function ProductPage({
 
       </div>
 
-      {/* `full`, and the content scrolls inside it. The price card is taller
-          than the frame, and a content-height sheet grew past the top of the
-          screen: the close button ended up off-screen with no backdrop left to
-          tap, which is a sheet you cannot leave. */}
+      {/* `full`, and the content scrolls inside it. The sheet holds what the
+          page is too long to carry: the specification, and who is behind the
+          house. A content-height sheet grew past the top of the frame and took
+          its own close button with it, hence `full`. */}
       {showDetails && (
-        <Sheet title="Details" onClose={() => setShowDetails(false)} full>
+        <Sheet
+          title={openPerson ? openPerson.name : 'Details'}
+          onClose={() => {
+            setShowDetails(false);
+            setOpenPerson(null);
+          }}
+          onBack={openPerson ? () => setOpenPerson(null) : undefined}
+          full
+        >
           <div
             style={{
               flex: 1,
@@ -434,17 +523,138 @@ export default function ProductPage({
               padding: `0 ${PAGE}px ${safeBottom(20)}`,
             }}
           >
-            <p style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600, lineHeight: '20px', color: '#999' }}>
-              Price history
-            </p>
-            {/* Open on arrival: the sheet was opened to see this, so a second
-                tap to reveal it would be a door onto a door. */}
-            <HistoricalPrice
-              key={`${product.brand}-${product.name}`}
-              product={product}
-              history={history}
-              defaultOpen
-            />
+            {openPerson ? (
+              <>
+                <p style={{ margin: '20px 0 0', fontSize: 14, lineHeight: '20px', color: '#999' }}>
+                  {openPerson.role}
+                </p>
+                <p style={{ margin: '12px 0 0', fontSize: 16, lineHeight: '24px', color: '#c8c8c8' }}>
+                  {openPerson.story}
+                </p>
+              </>
+            ) : (
+              <>
+                {/* Authored spec bullets lead when a piece has them. */}
+                {product.details?.length ? (
+                  <ul style={{ margin: '20px 0 0', paddingLeft: 22, listStyleType: 'disc' }}>
+                    {product.details.map((d) => (
+                      <li key={d} style={{ fontSize: 16, lineHeight: '22px', color: '#c8c8c8', marginBottom: 8 }}>
+                        {d}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                <BlockTitle>Specification</BlockTitle>
+                {/* The reference table, its rows following the category: a watch
+                    has a movement, a bottle has a vintage, a car has an engine. */}
+                <div
+                  style={{
+                    padding: `2px ${PAGE}px`,
+                    background: '#101111',
+                    border: '1px solid #282828',
+                    borderRadius: theme.radii.card,
+                  }}
+                >
+                  {specs.map((row, i) => (
+                    <div key={row.label}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'baseline',
+                          justifyContent: 'space-between',
+                          gap: 16,
+                          padding: '12px 0',
+                        }}
+                      >
+                        <span style={{ fontSize: 16, fontWeight: 500, color: '#999', lineHeight: '22px', flexShrink: 0 }}>
+                          {row.label}
+                        </span>
+                        <span style={{ fontSize: 16, fontWeight: 400, color: '#f2f2f2', lineHeight: '22px', textAlign: 'right' }}>
+                          {row.value}
+                        </span>
+                      </div>
+                      {i < specs.length - 1 && <div style={{ height: 1, background: '#1c1c1c' }} />}
+                    </div>
+                  ))}
+                </div>
+
+                <BlockTitle>People</BlockTitle>
+                {/* Who made the house what it is. Only people on public record:
+                    these are real companies, and an invented name attached to
+                    one would be a fabricated person. See `src/data/people.ts`. */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {people.map((person) => (
+                    <button
+                      key={person.name}
+                      onClick={() => setOpenPerson(person)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        width: '100%',
+                        padding: `14px ${PAGE}px`,
+                        background: '#101111',
+                        border: '1px solid #282828',
+                        borderRadius: theme.radii.card,
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        WebkitTapHighlightColor: 'transparent',
+                      }}
+                    >
+                      {/* Their photograph when the house licensed one, their
+                          initials when it did not. Nothing here is generated:
+                          see the note on `Person.image`. */}
+                      <span
+                        aria-hidden
+                        style={{
+                          width: 44,
+                          height: 44,
+                          flexShrink: 0,
+                          borderRadius: theme.radii.button,
+                          background: '#1f2022',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 15,
+                          fontWeight: 600,
+                          color: '#c8c8c8',
+                          letterSpacing: '0.02em',
+                        }}
+                      >
+                        {person.image ? (
+                          <img
+                            src={person.image}
+                            alt=""
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                          />
+                        ) : (
+                          initialsOf(person.name)
+                        )}
+                      </span>
+                      <span style={{ flex: 1, minWidth: 0, display: 'block' }}>
+                        <span
+                          style={{
+                            display: 'block',
+                            fontSize: 16,
+                            fontWeight: 600,
+                            lineHeight: '22px',
+                            color: '#f7f7f7',
+                          }}
+                        >
+                          {person.name}
+                        </span>
+                        <span style={{ display: 'block', fontSize: 14, lineHeight: '20px', color: '#999' }}>
+                          {person.role}
+                        </span>
+                      </span>
+                      <MIcon name="keyboard_arrow_right" size={22} color="#999" />
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </Sheet>
       )}
@@ -479,4 +689,31 @@ export default function ProductPage({
 
     </div>
   );
+}
+
+/** A titled block inside the Details sheet. */
+function BlockTitle({ children }: { children: ReactNode }) {
+  return (
+    <h3
+      style={{
+        margin: '24px 0 12px',
+        fontSize: 16,
+        fontWeight: 600,
+        lineHeight: '22px',
+        color: '#f6f6f6',
+      }}
+    >
+      {children}
+    </h3>
+  );
+}
+
+/** "Thierry Hermes" -> "TH". Drops the articles a house fallback carries. */
+function initialsOf(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter((w) => !['the', 'of', 'and'].includes(w.toLowerCase()))
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('');
 }

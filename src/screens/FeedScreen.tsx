@@ -1,5 +1,6 @@
 import { useMemo, useState, useRef, useEffect } from 'react';
 import { editById, editsFor } from '../data/edits';
+import { similarTo } from '../data/similar';
 import { createPortal } from 'react-dom';
 import PRODUCTS, { type Product } from '../data/products';
 import { categoryConfigs } from '../data/categoryConfig';
@@ -601,6 +602,9 @@ export default function FeedScreen({
       pushCollection(editId);
     },
     onToggleLookSaved: (editId) => toggleEditSaved(editId),
+    similarTo: (product) => similarTo(product, catalogue),
+    isSaved: (product) => isSaved(product.name),
+    onToggleSaved: (product) => setAddTarget(product),
     renderLookMenu: () => (
       <OverflowMenu
         onMoreLikeThis={moreLikeThis}

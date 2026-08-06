@@ -4,7 +4,7 @@ import { RAIL_CARD_W, theme } from '../theme';
 import { collectionMeta, type Collection } from '../data/collections';
 import type { Product } from '../data/products';
 
-// ─── Save to your collections ────────────────────────────────────────────────
+// ─── Add to your collections ────────────────────────────────────────────────
 //
 // The product page's last section. It has **two states, and only ever one of
 // them**: a rail of the user's collections while the piece is in none, and a
@@ -46,14 +46,6 @@ const PHOTO_BG = '#ececec';
 /** The app's one rail width, so this row lines up with every Discover rail. */
 const CARD_W = RAIL_CARD_W;
 const PREVIEW = 64;
-/**
- * The rail's bookend cards are square, so their width is the row's height:
- * the preview, the card's padding either side, and its hairline border.
- * (`aspect-ratio` cannot do this - the flex item's width comes from its content,
- * so the ratio has no auto dimension to resolve against.)
- */
-const CAP_W = PREVIEW + 12 * 2 + 2;
-
 export default function SaveToCollection({
   collections,
   byName,
@@ -88,7 +80,7 @@ export default function SaveToCollection({
         }}
       >
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, lineHeight: '24px', color: '#fff' }}>
-          Save to your collections
+          Add to your collections
         </h2>
         {/* Nothing left to create into once the piece is filed. */}
         {!current && <CreateButton onClick={onCreate} />}
@@ -289,11 +281,10 @@ function PlusBadge() {
 }
 
 /**
- * The card that ends the rail. Square - its side is the row's height (the
- * preview, the card's padding either side, and its hairline border), since
- * `aspect-ratio` has no auto dimension to resolve against on a flex item whose
- * width comes from its content - with the glyph stacked over its label, so it
- * never reads as a collection you could file into.
+ * The card that ends the rail: glyph then label, on the same shell as a
+ * collection row and stretched to its height by the track, but only as wide as
+ * its two words and with no preview, so it never reads as a collection you
+ * could file into.
  */
 function CapCard({
   icon,
@@ -311,14 +302,9 @@ function CapCard({
     <button
       onClick={onClick}
       aria-label={ariaLabel}
-      style={{
-        ...cardShell,
-        width: CAP_W,
-        flexDirection: 'column',
-        justifyContent: 'center',
-        gap: 6,
-        cursor: 'pointer',
-      }}
+      // Laid out along the row, like the collection cards beside it: the glyph
+      // and its label side by side, the card as wide as they need.
+      style={{ ...cardShell, padding: '12px 20px', justifyContent: 'center', gap: 8, cursor: 'pointer' }}
     >
       <MIcon name={icon} size={24} color="#f6f6f6" />
       <span style={{ fontSize: 14, fontWeight: 500, lineHeight: '18px', color: '#f7f7f7' }}>
