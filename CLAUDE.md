@@ -425,10 +425,10 @@ leaving the page with none; it promotes Ask AI Concierge.
 **There is no stockist section.** The product page had one - a drawn map, a rail
 of store cards and a sheet per boutique - and it was removed along with
 `WhereToBuy.tsx`, `StoreMap.tsx`, `boutiques.ts` and `mapCanvas.ts`. Where to
-buy a piece is a question for the concierge, which the page already carries as
-its prompt field. Do not put boutiques, stock or a map back on this page
-without being asked; the deleted version is in git history if it is ever wanted
-back.
+buy a piece is a question for the concierge: the action stack carries a **Find
+stores nearby** that hands the piece over and asks it. Do not put boutiques,
+stock or a map back on this page without being asked; the deleted version is in
+git history if it is ever wanted back.
 
 **Similar pieces** sits above both (`src/data/similar.ts`): individual products
 of the same category, nearest in price, gender taken from the anchor. Tapping

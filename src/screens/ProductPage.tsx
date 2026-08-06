@@ -324,6 +324,27 @@ export default function ProductPage({
           >
             Explore on Official Site
           </button>
+          {/* Where to see it. The page carried a stockist section once and it was
+              removed; this asks the concierge instead, which is the app's answer
+              to every question the catalogue cannot hold. */}
+          {onAskConcierge && (
+            <button
+              onClick={() =>
+                onAskConcierge({
+                  text: `Where can I see the ${product.brand} ${product.name} near me?`,
+                  attachment: {
+                    title: `${product.brand} ${product.name}`,
+                    subtitle: priceLabel,
+                    images: [product.image],
+                    target: { kind: 'product', name: product.name },
+                  },
+                })
+              }
+              style={outlinedActionStyle}
+            >
+              Find stores nearby
+            </button>
+          )}
         </div>
 
         {/* Description */}
