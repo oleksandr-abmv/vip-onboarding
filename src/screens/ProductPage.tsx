@@ -608,7 +608,6 @@ export default function ProductPage({
           placeholderPrefix="Ask me"
           placeholder={['for pieces like this', 'where to buy it', 'about this piece']}
           ariaLabel="Ask AI Concierge"
-          showAttach={false}
           onSend={(text) =>
             onAskConcierge({
               text: text.trim() || 'Find me pieces like this one',
