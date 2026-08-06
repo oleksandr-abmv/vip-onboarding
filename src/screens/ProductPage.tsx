@@ -321,10 +321,11 @@ export default function ProductPage({
             onClick={() => onNotice?.(`Opening the ${product.brand} official site`)}
             style={tryOn ? outlinedActionStyle : primaryActionStyle}
           >
-            {/* The glyph follows the fill: this button is the primary one when
-                there is no try-on to take that slot. */}
-            <MIcon name="language" size={20} color={tryOn ? '#f6f6f6' : '#121212'} />
             Explore on Official Site
+            {/* Trailing, and only here: it marks the one action that leaves the
+                app. The glyph follows the fill, since this button takes the
+                primary slot when there is no try-on. */}
+            <MIcon name="open_in_new" size={18} color={tryOn ? '#f6f6f6' : '#121212'} />
           </button>
           {/* Where to see it. The page carried a stockist section once and it was
               removed; this asks the concierge instead, which is the app's answer
@@ -344,7 +345,6 @@ export default function ProductPage({
               }
               style={outlinedActionStyle}
             >
-              <MIcon name="location_on" size={20} color="#f6f6f6" />
               Find stores nearby
             </button>
           )}
