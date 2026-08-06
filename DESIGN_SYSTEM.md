@@ -672,10 +672,12 @@ Full-screen overlay opened by tapping any product card.
   of the light backdrop stranded behind the fade (which read as a pinned image).
 - **Title** 24/600 (`brand + name`), **general price** 20/500 `#ededed`, formatted from the price-history current value (`$8,200.00`) so it always
   shows and matches the chart's "today".
-- **Historical price**: the `HistoricalPrice` card sits directly under the price
-  (see its own entry below). Starts **collapsed**; tapping its header row expands
-  it. Keyed by product so it resets per item.
-- **Actions** (stacked, right under the historical price, `gap 12`, **`height 44`**,
+- **Meta line** 14/20 `#999` under the price: `Category · Subcategory · For`.
+  This replaced a derived bullet list **and** a Brand/For/Category table that
+  between them restated the title and each other: seven lines carrying three
+  facts, of which only the subcategory appeared once. Collapsing them saved
+  283px of a 1494px page. The brand is not repeated here, the title says it.
+- **Actions** (stacked, right under the meta line, `gap 12`, **`height 44`**,
   15/500). Exactly one is filled (`primaryActionStyle`, `#f6f6f6`/`#121212`); the
   rest are **outlined** (`outlinedActionStyle`, transparent on `1px solid #313131`,
   `#f6f6f6`), so the hierarchy reads at a glance:
@@ -689,9 +691,15 @@ Full-screen overlay opened by tapping any product card.
   noise. Both report through the optional `onNotice` prop, which every caller (feed,
   collection page, scan) passes. The old floating "Ask about this product" `ChatBar`
   was **removed**.
-- **Description**: paragraph + derived bullet list (category / type / gender).
-- **Spec table**: Brand / For / Category rows, label `#999` medium left, value
-  `#f2f2f2` right, hairline dividers.
+- **Description**: the paragraph, plus `product.details` **only when a piece
+  actually has them**. No product does today, so the list is simply absent; the
+  derived fallback that used to fill it was the meta line said twice.
+- **Details row** (52px, hairline above and below, label left + `keyboard_arrow_right`
+  right) opening a `full` **`<Sheet>`** whose content scrolls (`flex: 1`,
+  `minHeight: 0`, `overflow-y: auto`). It holds the `HistoricalPrice` card,
+  `defaultOpen`, under a `14/600 #999` "Price history" label. **Do not ship this
+  row onto an empty sheet** - it earns its place only while there is depth behind
+  it, and specs and a note on the house join it there when they arrive.
 - **Section divider**: 6px `#141414` band.
 - **Save to collection**: the collections rail, see below. A **stockist section**
   (drawn map, store-card rail, a sheet per boutique) sat here and was removed;
@@ -728,6 +736,10 @@ large. There is one details page, so restyling this restyles every route into it
 
 ### Historical price (`src/components/HistoricalPrice.tsx`)
 Collapsible price-history card under the price on the Product Page. Built 1:1 from
+Lives in the product page's **Details sheet**, not on the page: it is taller than
+the frame, which is what made the page long enough to switch it off in the first
+place. `defaultOpen` there, since the sheet was opened to see it.
+
 Figma **"Historical price"** (node `5294-26355`) and the Product Page states
 (`5294-28266`). Data comes from `src/data/priceHistory.ts` (deterministic
 per-product mock; a series of price-change events drawn as a **step** line).

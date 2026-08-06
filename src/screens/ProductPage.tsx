@@ -1,5 +1,5 @@
-import { useMemo, type ReactNode } from 'react';
-import { RAIL_CARD_W, safeTop } from '../theme';
+import { useMemo, useState, type ReactNode } from 'react';
+import { RAIL_CARD_W, safeBottom, safeTop } from '../theme';
 import { viewsOf, type Product } from '../data/products';
 import { categoryConfigs, getSubcategories } from '../data/categoryConfig';
 import HistoricalPrice from '../components/HistoricalPrice';
@@ -8,6 +8,7 @@ import NavIconButton from '../components/NavIconButton';
 import CollectionCard from '../components/CollectionCard';
 import ProductGallery from '../components/ProductGallery';
 import SaveToCollection from '../components/SaveToCollection';
+import Sheet from '../components/Sheet';
 import { getPriceHistory } from '../data/priceHistory';
 import { collectionOf, isClothing, type Collection } from '../data/collections';
 import { shareContent, shareMessage } from '../data/share';
@@ -16,13 +17,6 @@ import BottomDock from '../components/BottomDock';
 import type { ConciergePrompt } from './ChatScreen';
 
 const PAGE = 16;
-
-/**
- * The historical-price card is hidden for now. Nothing was deleted: the
- * component, its data and the price line it feeds are all still here, so
- * flipping this to `true` restores the chart exactly as it was.
- */
-const SHOW_HISTORICAL_PRICE = false;
 
 /** Nav height below the safe area: 10 top pad + 40 button + 20 bottom pad. */
 const NAV_H = 70;
@@ -104,25 +98,24 @@ export default function ProductPage({
 
   const tryOn = isClothing(product);
 
+  /** The details sheet: depth the page does not need to be long to carry. */
+  const [showDetails, setShowDetails] = useState(false);
+
   /** The coordinated looks this piece appears in. */
   const looks = useMemo(() => picker.looksWith(product), [picker, product]);
 
-  // Derived bullet list when the product has no explicit spec bullets.
-  const bullets = useMemo(() => {
-    if (product.details?.length) return product.details;
-    return [
-      categoryName,
-      subLabel,
-      `Designed for ${genderLabel.toLowerCase()}`,
-      'Concierge-sourced and authenticated',
-    ].filter(Boolean) as string[];
-  }, [product, categoryName, subLabel, genderLabel]);
+  /**
+   * Real spec bullets only. There used to be a derived fallback here - category,
+   * subcategory, "Designed for men", "Concierge-sourced and authenticated" - but
+   * every line of it was already on the screen (in the meta line, or the title,
+   * or on all 228 products alike), so it was length without information. When a
+   * piece grows genuine specs (materials, dimensions, movement) they show here.
+   */
+  const bullets = product.details ?? [];
 
-  const specs: { label: string; value: string }[] = [
-    { label: 'Brand', value: product.brand },
-    { label: 'For', value: genderLabel },
-    { label: 'Category', value: categoryName },
-  ];
+  /** What the piece is, in one line: the three facts the old table carried
+      minus the brand, which the title already says. */
+  const metaLine = [categoryName, subLabel, genderLabel].filter(Boolean).join('  ·  ');
 
   // Price history drives both the "general price" line and the chart. Computed
   // once here and shared so the displayed price always matches the chart's today.
@@ -267,21 +260,10 @@ export default function ProductPage({
           <p style={{ fontSize: 20, fontWeight: 500, color: '#ededed', lineHeight: '26px', margin: 0 }}>
             {priceLabel}
           </p>
+          <p style={{ fontSize: 14, fontWeight: 400, color: '#999', lineHeight: '20px', margin: 0 }}>
+            {metaLine}
+          </p>
         </div>
-
-        {/* Historical price (interactive chart, sits under the price). Starts
-            collapsed; tapping its header row expands it.
-            Keyed by product so it resets per item.
-
-            HIDDEN FOR NOW. The component and its data are kept intact
-            (src/components/HistoricalPrice.tsx, src/data/priceHistory.ts) - flip
-            SHOW_HISTORICAL_PRICE back to true to bring the card back. The price
-            line above still reads from the same history, so nothing else moves. */}
-        {SHOW_HISTORICAL_PRICE && (
-          <div style={{ padding: `16px ${PAGE}px 0` }}>
-            <HistoricalPrice key={`${product.brand}-${product.name}`} product={product} history={history} />
-          </div>
-        )}
 
         {/* Actions: Virtual try-on (clothing only), then official retail. Exactly
             one filled primary - a car has nothing to try on, so that button is
@@ -330,27 +312,38 @@ export default function ProductPage({
           )}
         </div>
 
-        {/* Spec table */}
+        {/* Details. A row, not a button: it opens a sheet you consult and
+            dismiss, so the page keeps its place. It exists because there is
+            something behind it - the price history, built and then switched off
+            for making the page long. Specs and a note on the house join it here
+            when they arrive; do not ship this row onto an empty sheet. */}
         <div style={{ padding: `24px ${PAGE}px 0` }}>
-          <div style={{ height: 1, background: '#282828' }} />
-          {specs.map((row, i) => (
-            <div key={row.label}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '10px 0' }}>
-                <span style={{ fontSize: 16, fontWeight: 500, color: '#999', lineHeight: '22px', flexShrink: 0 }}>
-                  {row.label}
-                </span>
-                <span style={{ fontSize: 16, fontWeight: 400, color: '#f2f2f2', lineHeight: '22px', textAlign: 'right' }}>
-                  {row.value}
-                </span>
-              </div>
-              {i < specs.length - 1 && <div style={{ height: 1, background: '#1c1c1c' }} />}
-            </div>
-          ))}
-          {/* No closing rule: the section band below already ends the table. */}
+          <button
+            onClick={() => setShowDetails(true)}
+            aria-haspopup="dialog"
+            style={{
+              width: '100%',
+              height: 52,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              padding: 0,
+              background: 'transparent',
+              border: 'none',
+              borderTop: '1px solid #282828',
+              borderBottom: '1px solid #282828',
+              color: '#f6f6f6',
+              fontSize: 16,
+              fontWeight: 500,
+              cursor: 'pointer',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            Details
+            <MIcon name="keyboard_arrow_right" size={22} color="#999" />
+          </button>
         </div>
-
-        {/* Section divider */}
-        <div style={{ height: 6, background: '#141414', marginTop: 24 }} />
 
         {/* Looks built around the piece, not the user's own collections - those
             are the section below. Each is a different lens on it (the occasion,
@@ -425,6 +418,36 @@ export default function ProductPage({
         />
 
       </div>
+
+      {/* `full`, and the content scrolls inside it. The price card is taller
+          than the frame, and a content-height sheet grew past the top of the
+          screen: the close button ended up off-screen with no backdrop left to
+          tap, which is a sheet you cannot leave. */}
+      {showDetails && (
+        <Sheet title="Details" onClose={() => setShowDetails(false)} full>
+          <div
+            style={{
+              flex: 1,
+              minHeight: 0,
+              overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              padding: `0 ${PAGE}px ${safeBottom(20)}`,
+            }}
+          >
+            <p style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600, lineHeight: '20px', color: '#999' }}>
+              Price history
+            </p>
+            {/* Open on arrival: the sheet was opened to see this, so a second
+                tap to reveal it would be a door onto a door. */}
+            <HistoricalPrice
+              key={`${product.brand}-${product.name}`}
+              product={product}
+              history={history}
+              defaultOpen
+            />
+          </div>
+        </Sheet>
+      )}
 
       {/* The concierge, as a prompt field rather than a button - the same call the
           collection page makes. What you want to ask about a piece is specific
