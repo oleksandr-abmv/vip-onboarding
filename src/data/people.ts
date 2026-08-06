@@ -158,6 +158,95 @@ const HOUSE_FALLBACK = (brand: string): Person[] => [
   },
 ];
 
+// ─── The house itself ────────────────────────────────────────────────────────
+//
+// A small card above the people: the maker's mark, its name, where and when it
+// started, and a line you can open to read about it. Same rule as the people -
+// founding city and year are public record, so they are stated; anything not in
+// the map gets a card that says only what the catalogue already knows.
+
+export interface House {
+  name: string;
+  /** "Paris, since 1837" - the card's second line. */
+  origin: string;
+  story: string;
+}
+
+const HOUSES: Record<string, Omit<House, 'name'>> = {
+  hermes: {
+    origin: 'Paris, since 1837',
+    story:
+      'Six generations of the same family, still making leather goods to the standard set by a harness workshop. The house never advertised its way to the top; it took orders and kept people waiting.',
+  },
+  chanel: {
+    origin: 'Paris, since 1910',
+    story:
+      'Privately held to this day, which is why it answers to nobody about what it makes. The codes it fixed a century ago - the tweed, the quilting, the chain - are still the codes it sells.',
+  },
+  cartier: {
+    origin: 'Paris, since 1847',
+    story:
+      'Called the jeweller of kings by one, and it kept the habit of designing for people who had somewhere to be: the first purpose-built wristwatch, and jewellery meant to be worn rather than kept in a safe.',
+  },
+  rolex: {
+    origin: 'Geneva, since 1905',
+    story:
+      'Owned by a charitable foundation rather than shareholders, which is unusual at this size and explains a lot about the pace. Every watch it sells is certified as a chronometer before it leaves.',
+  },
+  gucci: {
+    origin: 'Florence, since 1921',
+    story:
+      'Began with luggage for people who travelled well and has spent a century being reinvented by whoever it hands the pencil to, without ever leaving Florence or the leather.',
+  },
+  prada: {
+    origin: 'Milan, since 1913',
+    story:
+      'A leather goods shop that became the house most willing to be austere. Its most famous material is a nylon originally used for army tents.',
+  },
+  dior: {
+    origin: 'Paris, since 1946',
+    story:
+      'Founded on one silhouette that reset the industry within a year, and run since by designers hired to argue with it.',
+  },
+  'saint laurent': {
+    origin: 'Paris, since 1961',
+    story:
+      'The first couture house to treat ready-to-wear as the main event rather than a lesser line, and the one that put women in tailoring without apology.',
+  },
+  'louis vuitton': {
+    origin: 'Paris, since 1854',
+    story:
+      'A trunk maker before it was anything else, and the flat lid it introduced is still why its cases stack. The monogram was an anti-counterfeiting measure that became the point.',
+  },
+  tiffany: {
+    origin: 'New York, since 1837',
+    story:
+      'Brought the sterling standard to the United States and made the blue box carry more weight than most of what goes in it.',
+  },
+  'ralph lauren': {
+    origin: 'New York, since 1967',
+    story:
+      'Sells a life rather than a line, which is why the same name is on a polo shirt, a sofa and a paint colour and none of it feels borrowed.',
+  },
+  'brunello cucinelli': {
+    origin: 'Solomeo, since 1978',
+    story:
+      'Works from a restored hamlet in Umbria, pays above the sector, and publishes the fact. The cashmere is the argument, but the village is the point.',
+  },
+};
+
+/** The company behind the piece. Falls back to what the catalogue knows. */
+export function houseFor(brand: string): House {
+  const found = HOUSES[brand.trim().toLowerCase()];
+  return {
+    name: brand,
+    origin: found?.origin ?? 'Sourced by the concierge',
+    story:
+      found?.story ??
+      `Every ${brand} piece the concierge offers is checked against the house's own records before it reaches you. We are still writing this entry properly.`,
+  };
+}
+
 /** Who is behind this piece. Never empty, never invented. */
 export function peopleFor(brand: string): Person[] {
   const key = brand.trim().toLowerCase();

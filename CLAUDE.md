@@ -435,15 +435,19 @@ of the same category, nearest in price, gender taken from the anchor. Tapping
 one **swaps the page and Back walks the trail** rather than closing - the trail
 lives in ProductPage, so all three hosts get it without wiring anything.
 
-**The Details row** opens a `full` `<Sheet>` with two blocks: **Specification**
-(`src/data/specs.ts`, rows following the category - a watch has a movement, a
-bottle has a vintage) and **People** (`src/data/people.ts`), whose cards open a
-story with Back. Two rules there: **only people on public record** (these are
-real houses, so an invented name attached to one is a fabricated person, and
-brands without an entry get a fallback that names nobody), and **never a
-generated portrait** - `Person.image` is for a licensed photograph, and the card
-draws initials when there is none. The `HistoricalPrice` chart stays **off** the
-page and out of the sheet; it is intact but deliberately unused.
+**The Details row is a dropdown, not a sheet** - it is reference you read against
+the piece in front of you, so leaving the page for it was a step too many. It
+unfolds three blocks in place: **Specification** (`src/data/specs.ts`, rows
+following the category - a watch has a movement, a bottle has a vintage), **The
+house**, and **People** (both `src/data/people.ts`). The house and each person
+are `StoryCard`s that unfold their own story inside the card, one at a time.
+
+Two rules hold there: **only what is on public record** (these are real
+companies, so an invented name attached to one is a fabricated person; brands
+with no entry get a fallback that names nobody), and **never a generated
+portrait** - `Person.image` is for a licensed photograph, and the card draws
+initials when there is none. The `HistoricalPrice` chart stays **off** the page;
+it is intact but deliberately unused.
 
 **Collections with this piece** is the section above the save rail
 (`src/data/edits.ts`):
